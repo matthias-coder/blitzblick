@@ -1,0 +1,166 @@
+// Usage: node tools/extract-sprites.mjs [avatars|chef|decor|mascot|sheet|all]
+// Reads _lokal/source/*.jpg, writes _lokal/extracted/**. Needs @playwright/test chromium (decode/encode only).
+import fs from 'node:fs';
+import path from 'node:path';
+import { openBrowser, decode, encodePng, decodePng, floodBg, lightGrey, components, dilate, makeSprite, squarePad, trim } from './sprite-lib.mjs';
+
+const SRC = '_lokal/source/', OUT = '_lokal/extracted/';
+const F = {
+  avatars: '6b42508e-0486-4169-b187-b47603a9aad8.jpg',
+  chef: '771b1c9d-c1e0-4ae6-b325-321c4f166ec7.jpg',
+  decor: '39658032-5b5c-46f8-8fb1-be2a5b815690.jpg',
+  robot1: '157d5d0a-8431-43d4-a73f-4be959194115.jpg',
+  robot2: '30d1605b-033e-468d-8e46-535700b3b21c.jpg',
+};
+const mode = process.argv[2] || 'all';
+const { browser, page } = await openBrowser();
+const save = (rel, buf) => { fs.mkdirSync(path.dirname(OUT + rel), { recursive: true }); fs.writeFileSync(OUT + rel, buf); console.log('wrote', rel); };
+const bboxDist = (a, b) => Math.hypot(Math.max(0, a.x0 - b.x1, b.x0 - a.x1), Math.max(0, a.y0 - b.y1, b.y0 - a.y1));
+const bb = (cs) => ({ x0: Math.min(...cs.map(c => c.x0)), y0: Math.min(...cs.map(c => c.y0)), x1: Math.max(...cs.map(c => c.x1)), y1: Math.max(...cs.map(c => c.y1)) });
+
+// group components: mains (>= mainArea) + small ones attached to the nearest main within maxDist
+function group(comps, mainArea, minSmall, maxDist, mains = comps.filter(c => c.area >= mainArea)) {
+  const groups = mains.map(m => [m]);
+  for (const c of comps) {
+    if (mains.includes(c) || c.area < minSmall) continue;
+    let best = -1, bd = 1e9;
+    mains.forEach((m, i) => { const d = bboxDist(c, m); if (d < bd) { bd = d; best = i; } });
+    if (bd <= maxDist) groups[best].push(c);
+  }
+  return groups;
+}
+async function exportAvatar(img, labels, cs, id) {
+  const ids = new Set(cs.map(c => c.id));
+  const fg = new Uint8Array(img.w * img.h);
+  for (let i = 0; i < fg.length; i++) if (ids.has(labels[i])) fg[i] = 1;
+  const sp = squarePad(makeSprite(img, fg, bb(cs)), 0.04);
+  save(`avatars/${id}.png`, await encodePng(page, sp.data, sp.w, sp.h, 512, 512));
+}
+
+if (mode === 'avatars' || mode === 'all') {
+  const img = await decode(page, SRC + F.avatars);
+  const bg = floodBg(img, lightGrey(200, 38));
+  const { labels, comps } = components(bg.map(v => 1 - v), img.w, img.h);
+  const mains = comps.filter(c => c.area >= 5000);
+  // sort into grid: rows 4/3/4 by centroid y, then x
+  mains.sort((a, b) => a.cy - b.cy);
+  const rows = [mains.slice(0, 4), mains.slice(4, 7), mains.slice(7, 11)].map(r => r.sort((a, b) => a.cx - b.cx));
+  const ids = ['astronaut', 'monster', 'superhero', 'knight', 'dino', 'dragon', 'pony', 'taco', 'singer', 'cat', 'fairy'];
+  const ordered = rows.flat();
+  const groups = group(comps, 0, 6, 110, ordered);
+  for (let i = 0; i < ids.length; i++) await exportAvatar(img, labels, groups[i], ids[i]);
+}
+if (mode === 'chef' || mode === 'all') {
+  // chef touches the "LEVELED UP!" cloud: manual cut along the cloud's top outline (+3px so the dark outline stays as the chef's lower edge)
+  const img = await decode(page, SRC + F.chef);
+  const bg = floodBg(img, lightGrey(200, 38));
+  const crop = [[150, 722], [185, 716], [230, 692], [310, 678], [380, 684], [425, 705]].map(([x, y]) => [x / 3 + 30, y / 3 + 620]);
+  const cutY = (x) => {
+    if (x >= crop[crop.length - 1][0]) return 620 + 620 / 3 - 0; // right of the cloud top: star area, cut at arm level
+    if (x <= crop[0][0]) return crop[0][1] + (crop[0][0] - x) * 0.2;
+    for (let i = 1; i < crop.length; i++) if (x <= crop[i][0]) { const [xa, ya] = crop[i - 1], [xb, yb] = crop[i]; return ya + (yb - ya) * (x - xa) / (xb - xa); }
+  };
+  const fg = new Uint8Array(img.w * img.h);
+  for (let y = 625; y < 900; y++) for (let x = 35; x < 250; x++) if (!bg[y * img.w + x] && y < cutY(x)) fg[y * img.w + x] = 1;
+  const { labels, comps } = components(fg, img.w, img.h);
+  const main = comps.filter(c => c.area > 3000);
+  console.log('chef comps', main.map(c => [c.area, c.x0, c.y0, c.x1, c.y1].join(',')));
+  await exportAvatar(img, labels, main, 'chef');
+}
+if (mode === 'decor' || mode === 'all') {
+  const img = await decode(page, SRC + F.decor);
+  const { w, h } = img;
+  const isBg = lightGrey(215, 30);
+  const bg = floodBg(img, isBg);
+  const { labels, comps } = components(bg.map(v => 1 - v), w, h);
+  const inRect = (c, r) => c.x0 >= r[0] && c.y0 >= r[1] && c.x1 <= r[2] && c.y1 <= r[3];
+  const outDecor = async (name, cs, extraBg = null, fgFilter = null, keepLargest = false) => {
+    const ids = new Set(cs.map(c => c.id));
+    const fg = new Uint8Array(w * h);
+    for (let i = 0; i < fg.length; i++) if (ids.has(labels[i]) && !(extraBg && extraBg[i]) && !(fgFilter && !fgFilter(i % w, (i / w) | 0))) fg[i] = 1;
+    if (keepLargest) { const r = components(fg, w, h); const m = r.comps.sort((a, b) => b.area - a.area)[0]; for (let i = 0; i < fg.length; i++) if (fg[i] && r.labels[i] !== m.id) fg[i] = 0; cs = [m]; }
+    let sp = trim(makeSprite(img, fg, bb(cs)), 2);
+    const sc = Math.min(1, 512 / Math.max(sp.w, sp.h));
+    save('decor/' + name + '.png', await encodePng(page, sp.data, sp.w, sp.h, Math.round(sp.w * sc), Math.round(sp.h * sc)));
+  };
+  const rect = (r) => comps.filter(c => inRect(c, r));
+  const big = (r) => rect(r).sort((a, b) => b.area - a.area)[0];
+  // interior of frames is enclosed white: make it transparent too (flood from the frame centre)
+  const hole = (cx, cy) => floodBg(img, isBg, [[cx, cy]]);
+  await outDecor('frame-rect', rect([50, 350, 356, 612]), hole(205, 480));
+  await outDecor('frame-round', rect([395, 352, 670, 628]), hole(532, 490));
+  await outDecor('star-big', rect([705, 355, 975, 610]));
+  await outDecor('ribbon', [big([675, 622, 980, 712])]);
+  await outDecor('badge-winner', [big([505, 815, 640, 985])]);
+  // YAY / WOW are one connected component: split at the thinnest row around the waist
+  const bub = big([685, 730, 800, 882]);
+  let cutRow = 0, minN = 1e9;
+  for (let y = 795; y <= 820; y++) { let n = 0; for (let x = bub.x0; x <= bub.x1; x++) if (labels[y * w + x] === bub.id) n++; if (n < minN) { minN = n; cutRow = y; } }
+  console.log('bubble cut row', cutRow, minN);
+  await outDecor('bubble-yay', [bub], null, (x, y) => y < cutRow, true);
+  await outDecor('bubble-wow', [bub], null, (x, y) => y >= cutRow, true);
+  // confetti pieces picked by component id (shape variety: stars, circle, curl, chip)
+  const CONF = [1, 17, 19, 49, 73, 108];
+  for (let i = 0; i < CONF.length; i++) await outDecor('confetti-' + (i + 1), [comps.find(c => c.id === CONF[i])]);
+}
+if (mode === 'mascot' || mode === 'all') {
+  // Robot sits on UI (lavender page / coloured cards). Its outline is dark navy and closed, so: crop a rectangle,
+  // flood the *non-dark* area from the crop border (= everything outside the outline), keep the largest dark-outlined blob.
+  const cropImg = (img, [x0, y0, x1, y1]) => {
+    const W = x1 - x0, H = y1 - y0, d = new Uint8ClampedArray(W * H * 4);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) for (let k = 0; k < 4; k++) d[(y * W + x) * 4 + k] = (x + x0 >= 624 || y + y0 >= 858) ? 255 : img.data[((y + y0) * img.w + x + x0) * 4 + k]; // paint tablet bezel white
+    return { w: W, h: H, data: d };
+  };
+  const luma = (r, g, b) => 0.3 * r + 0.59 * g + 0.11 * b;
+  const jobs = [
+    ['robot-cheer', F.robot1, [455, 640, 626, 862]],
+    ['robot-wave', F.robot2, [440, 612, 628, 862]],
+  ];
+  for (const [name, file, rc] of jobs) {
+    const full = await decode(page, SRC + file);
+    const img = cropImg(full, rc);
+    const bg = floodBg(img, (r, g, b) => luma(r, g, b) > 100);
+    const fg0 = bg.map(v => 1 - v);
+    const { labels, comps } = components(fg0, img.w, img.h);
+    const main = comps.sort((a, b) => b.area - a.area)[0];
+    console.log(name, 'main', main.area, [main.x0, main.y0, main.x1, main.y1].join(','), 'others', comps.length - 1);
+    const keep = comps.filter(c => c === main);
+    const ids = new Set(keep.map(c => c.id));
+    const fg = new Uint8Array(img.w * img.h);
+    for (let i = 0; i < fg.length; i++) if (ids.has(labels[i])) fg[i] = 1;
+    // fill enclosed holes (everything not reachable from outside is robot interior)
+    const sp = squarePad(makeSprite(img, fg, bb(keep)), 0.04);
+    save('mascot/' + name + '.png', await encodePng(page, sp.data, sp.w, sp.h, 512, 512));
+  }
+}
+if (mode === 'sheet' || mode === 'all') {
+  const items = [];
+  for (const d of ['avatars', 'decor', 'mascot']) {
+    const dir = OUT + d; if (!fs.existsSync(dir)) continue;
+    for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.png')).sort()) items.push({ name: d + '/' + f.replace('.png', ''), b64: fs.readFileSync(path.join(dir, f)).toString('base64') });
+  }
+  const only = mode === 'sheet' ? process.argv[3] : null;
+  const png = await page.evaluate(async ({ items, only }) => {
+    const sel = only ? items.filter(i => i.name.startsWith(only)) : items;
+    const T = 150, cols = 8, rows = Math.ceil(sel.length / cols) * 2;
+    const c = document.createElement('canvas'); c.width = cols * T; c.height = rows * (T + 14);
+    const x = c.getContext('2d');
+    for (let k = 0; k < sel.length; k++) {
+      const img = new Image(); img.src = 'data:image/png;base64,' + sel[k].b64; await img.decode();
+      const col = k % cols, row = Math.floor(k / cols) * 2;
+      for (let v = 0; v < 2; v++) {
+        const ox = col * T, oy = (row + v) * (T + 14);
+        if (v === 0) { for (let yy = 0; yy < T; yy += 10) for (let xx = 0; xx < T; xx += 10) { x.fillStyle = ((xx + yy) / 10) % 2 ? '#fff' : '#ccc'; x.fillRect(ox + xx, oy + yy, 10, 10); } }
+        else { x.fillStyle = '#1F2350'; x.fillRect(ox, oy, T, T); }
+        const sc = Math.min(T / img.width, T / img.height, 1.0);
+        const w = img.width * sc, h = img.height * sc;
+        x.imageSmoothingQuality = 'high';
+        x.drawImage(img, ox + (T - w) / 2, oy + (T - h) / 2, w, h);
+        x.fillStyle = '#000'; x.fillRect(ox, oy + T, T, 14); x.fillStyle = '#fff'; x.font = '11px sans-serif'; x.fillText(sel[k].name, ox + 2, oy + T + 11);
+      }
+    }
+    return c.toDataURL('image/png').split(',')[1];
+  }, { items, only });
+  save(only ? 'contact-' + only.replace('/', '') + '.png' : 'contact-sheet.png', Buffer.from(png, 'base64'));
+}
+await browser.close();

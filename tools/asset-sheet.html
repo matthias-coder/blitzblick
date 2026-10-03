@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><title>Asset-Übersicht</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #EBEFFA; margin: 16px; }
+  section { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+  figure { margin: 0; text-align: center; font-size: 11px; }
+  img { width: 72px; height: 72px; object-fit: contain; background: #fff; border-radius: 12px; display: block; }
+  img.small { width: 32px; height: 32px; }
+</style></head>
+<body>
+<h1>Assets</h1>
+<div id="out"></div>
+<script type="module">
+  import { PAGES, stickerId, stickerUrl } from '../js/rewards.js';
+  import { OBJECTS } from '../js/exercises/quantity.js';
+  import { AVATARS } from '../js/profiles.js';
+  const DECOR = ['star-big', 'badge-winner', 'bubble-yay', 'bubble-wow', 'confetti-1', 'confetti-2', 'confetti-3', 'confetti-4', 'confetti-5', 'confetti-6'];
+  const groups = {
+    Objekte: OBJECTS.map((o) => `../assets/objects/${o}.svg`),
+    Avatare: AVATARS.map((a) => `../assets/avatars/${a}.png`),
+    UI: ['gear', 'back', 'album', 'again', 'check', 'lock', 'star'].map((u) => `../assets/ui/${u}.svg`),
+    Icon: ['../assets/icons/icon.svg'],
+    Deko: DECOR.map((d) => `../assets/decor/${d}.png`),
+    Maskottchen: ['../assets/mascot/robot-wave.png'],
+    ...Object.fromEntries(PAGES.map((p) => [p.title, p.stickers.map((s) => `../${stickerUrl(stickerId(p.id, s))}`)])),
+  };
+  const out = document.getElementById('out');
+  for (const [title, srcs] of Object.entries(groups)) {
+    out.insertAdjacentHTML('beforeend', `<h2>${title}</h2>`);
+    const sec = document.createElement('section');
+    for (const src of srcs) sec.insertAdjacentHTML('beforeend', `<figure><img src="${src}"><img class="small" src="${src}"><figcaption>${src.split('/').pop()}</figcaption></figure>`);
+    out.append(sec);
+  }
+</script>
+</body>
+</html>

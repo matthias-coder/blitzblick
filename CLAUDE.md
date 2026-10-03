@@ -8,6 +8,7 @@
 
 ## Start/Test
 - `npm run serve`, `npm test`, `npm run e2e`.
+- `node tools/extract-sprites.mjs all` regenerates `_lokal/extracted/` from `_lokal/source/`; `node tools/build-raster-assets.mjs` downscales it into `assets/`; `node tools/gen-svgs.mjs` regenerates the hand-drawn SVGs.
 - Nach jeder Änderung an `index.html`, `manifest.webmanifest`, `js/`, `css/`, `assets/`: `npm run precache` (Unit-Test prüft das).
 
 ## Konventionen
