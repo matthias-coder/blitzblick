@@ -1220,7 +1220,7 @@ git commit -m "feat: add quantity exercise with structured and random layouts"
 - Consumes: exercise modules; `initialLevel`, `clampLevel` from adaptive.
 - Produces:
   - `EXERCISES = { quantity, digits, letters }`, `EXERCISE_ORDER = ['quantity','digits','letters']`.
-  - `AVATARS = ['fox','bear','cat','owl','rabbit','frog']`, `AVATAR_LABELS`, `DEFAULT_SETTINGS`.
+  - `AVATARS = ['astronaut','monster','superhero','knight','dino','dragon','pony','taco','singer','cat','fairy','chef']` (raster PNG avatars from the son's artwork, files `assets/avatars/<id>.png`), `AVATAR_LABELS`, `DEFAULT_SETTINGS`.
   - `createProfile({ name, avatar }, { now, id } = {}) → profile`
   - `getActive(state)`, `addProfile(state, profile)`, `setActive(state, id)`, `updateProfile(state, id, fn)`, `removeProfile(state, id)` – all return new state.
   - `updateSettings(profile, patch) → profile` (deep merge, arrays replaced, timing normalized, levels clamped)
@@ -1239,7 +1239,7 @@ import {
 } from '../../js/profiles.js';
 
 const empty = () => ({ schemaVersion: 1, activeProfileId: null, profiles: [] });
-const mk = (id, name = 'Mia') => createProfile({ name, avatar: 'fox' }, { id, now: new Date(2026, 9, 3) });
+const mk = (id, name = 'Mia') => createProfile({ name, avatar: 'astronaut' }, { id, now: new Date(2026, 9, 3) });
 
 test('every exercise implements the module contract', () => {
   const fns = ['isAvailable', 'stages', 'maxComplexity', 'startComplexity', 'describeLevel', 'createTask', 'renderStimulus', 'renderChoices', 'speakPrompt', 'speakSolution'];
@@ -1264,7 +1264,7 @@ test('createProfile uses defaults, trims the name and creates a level per exerci
 });
 
 test('createProfile generates distinct ids', () => {
-  assert.notEqual(createProfile({ name: 'A', avatar: 'fox' }).id, createProfile({ name: 'B', avatar: 'fox' }).id);
+  assert.notEqual(createProfile({ name: 'A', avatar: 'astronaut' }).id, createProfile({ name: 'B', avatar: 'astronaut' }).id);
 });
 
 test('addProfile activates the first profile only', () => {
@@ -1323,11 +1323,11 @@ test('normalizeProfile fills missing settings, levels and rewards', () => {
   const raw = mk('p1');
   delete raw.settings.sounds;
   delete raw.levels.letters;
-  raw.avatar = 'dragon';
+  raw.avatar = 'unicorn';
   const p = normalizeProfile(raw);
   assert.equal(p.settings.sounds, true);
   assert.ok(p.levels.letters);
-  assert.equal(p.avatar, 'fox');
+  assert.equal(p.avatar, 'astronaut');
 });
 ```
 
@@ -1353,8 +1353,11 @@ export const EXERCISE_ORDER = ['quantity', 'digits', 'letters'];
 import { EXERCISES } from './exercises/index.js';
 import { initialLevel, clampLevel } from './adaptive.js';
 
-export const AVATARS = ['fox', 'bear', 'cat', 'owl', 'rabbit', 'frog'];
-export const AVATAR_LABELS = { fox: 'Fuchs', bear: 'Bär', cat: 'Katze', owl: 'Eule', rabbit: 'Hase', frog: 'Frosch' };
+export const AVATARS = ['astronaut', 'monster', 'superhero', 'knight', 'dino', 'dragon', 'pony', 'taco', 'singer', 'cat', 'fairy', 'chef'];
+export const AVATAR_LABELS = {
+  astronaut: 'Astronaut', monster: 'Monster', superhero: 'Superheld', knight: 'Ritter', dino: 'Dino', dragon: 'Drache',
+  pony: 'Pony', taco: 'Taco', singer: 'Sängerin', cat: 'Katze', fairy: 'Fee', chef: 'Koch',
+};
 
 export const DEFAULT_SETTINGS = {
   exercises: { quantity: true, digits: true, letters: true },
@@ -1499,7 +1502,7 @@ import {
 import { createProfile, addProfile } from '../../js/profiles.js';
 
 const stateWith = (...names) => names.reduce(
-  (s, n, i) => addProfile(s, createProfile({ name: n, avatar: 'fox' }, { id: `p${i + 1}` })),
+  (s, n, i) => addProfile(s, createProfile({ name: n, avatar: 'astronaut' }, { id: `p${i + 1}` })),
   emptyState(),
 );
 
@@ -1914,7 +1917,7 @@ import { ROUND_LENGTH, createRound, nextTask, answerTask, finishRound, abortRoun
 import { createProfile, updateSettings } from '../../js/profiles.js';
 import { mulberry32 } from '../../js/rng.js';
 
-const profile = () => createProfile({ name: 'Mia', avatar: 'fox' }, { id: 'p1', now: new Date(2026, 9, 3) });
+const profile = () => createProfile({ name: 'Mia', avatar: 'astronaut' }, { id: 'p1', now: new Date(2026, 9, 3) });
 
 function playAll(p, exerciseId, rng, answerFn = (t) => t.answer) {
   let r = createRound(p, exerciseId, rng);
@@ -2350,7 +2353,7 @@ git commit -m "feat: add speech output and sound effects"
 **Files:**
 - Create: `assets/fonts/andika-latin-400-normal.woff2`, `assets/fonts/andika-latin-700-normal.woff2`, `assets/fonts/OFL.txt`
 - Create: `assets/objects/{apple,ball,star,fish,flower,car}.svg`
-- Create: `assets/avatars/{fox,bear,cat,owl,rabbit,frog}.svg`
+- Create: `assets/avatars/<id>.png` for all 12 `AVATARS` — copy from `_lokal/extracted/avatars/` (cut-outs of the son's artwork, 512×512 transparent PNG); do not draw avatars
 - Create: `assets/ui/{gear,back,album,again,check,lock,star}.svg`
 - Create: `assets/icons/icon.svg`
 - Create: `assets/stickers/<page>/<name>.svg` for all 40 stickers in `PAGES` (Task 8)
@@ -2395,7 +2398,13 @@ function checkSvg(path) {
 }
 
 test('quantity objects exist', () => { for (const o of OBJECTS) checkSvg(`assets/objects/${o}.svg`); });
-test('avatars exist', () => { for (const a of AVATARS) checkSvg(`assets/avatars/${a}.svg`); });
+test('avatars exist as PNG', () => {
+  for (const a of AVATARS) {
+    const f = file(`assets/avatars/${a}.png`);
+    assert.ok(existsSync(f), `${a}.png fehlt`);
+    assert.equal(readFileSync(f).subarray(1, 4).toString(), 'PNG');
+  }
+});
 test('ui icons exist', () => { for (const u of UI) checkSvg(`assets/ui/${u}.svg`); });
 test('app icon exists', () => checkSvg('assets/icons/icon.svg'));
 test('all 40 stickers exist', () => {
@@ -2449,7 +2458,7 @@ Expected: three files, each > 1 KB. If a URL returns 404, run `npm view @fontsou
 
 - [ ] **Step 5: Draw the remaining SVGs following the style rules**
 
-Create every remaining file listed under **Files** (5 objects, 6 avatars as friendly animal faces, 6 UI icons, 39 stickers). Motifs:
+Create every remaining file listed under **Files** (5 objects, 6 UI icons, 39 stickers; avatars are copied PNGs, see Files). Motifs:
 - objects: `ball` (red/white beach ball), `star` (yellow five-point star, same shape as ui/star), `fish` (blue simple fish, side view), `flower` (5 round petals, yellow centre), `car` (red car side view, two wheels).
 - ui: `gear` (cog), `back` (left arrow), `album` (closed book with star), `again` (circular arrow), `check` (tick), `lock` (padlock).
 - stickers: one clear motif per name in `PAGES` (e.g. `dinos/footprint` = three-toed footprint, `space/ufo` = saucer with dome).
@@ -2477,7 +2486,7 @@ Create every remaining file listed under **Files** (5 objects, 6 avatars as frie
   import { AVATARS } from '../js/profiles.js';
   const groups = {
     Objekte: OBJECTS.map((o) => `../assets/objects/${o}.svg`),
-    Avatare: AVATARS.map((a) => `../assets/avatars/${a}.svg`),
+    Avatare: AVATARS.map((a) => `../assets/avatars/${a}.png`),
     UI: ['gear', 'back', 'album', 'again', 'check', 'lock', 'star'].map((u) => `../assets/ui/${u}.svg`),
     Icon: ['../assets/icons/icon.svg'],
     ...Object.fromEntries(PAGES.map((p) => [p.title, p.stickers.map((s) => `../${stickerUrl(stickerId(p.id, s))}`)])),
@@ -2539,7 +2548,7 @@ import { expect } from '@playwright/test';
 import { createProfile } from '../../js/profiles.js';
 
 export function buildState(mutate = () => {}, name = 'Mia') {
-  const p = createProfile({ name, avatar: 'fox' }, { id: 'p1' });
+  const p = createProfile({ name, avatar: 'astronaut' }, { id: 'p1' });
   p.settings.speech = false;
   p.settings.sounds = false;
   mutate(p);
@@ -2588,14 +2597,14 @@ test('first start asks for a profile and then shows the menu', async ({ page }) 
   await page.getByTestId('create-profile').click();
   await expect(page.locator('.form-msg')).toHaveText(/Namen/);
   await page.locator('#profile-name').fill('Mia');
-  await page.getByTestId('avatar-owl').click();
+  await page.getByTestId('avatar-dragon').click();
   await page.getByTestId('create-profile').click();
   await expect(page.getByTestId('tile-quantity')).toBeVisible();
   await expect(page.getByTestId('tile-digits')).toBeVisible();
   await expect(page.getByTestId('tile-letters')).toBeVisible();
   const state = await readState(page);
   expect(state.profiles[0].name).toBe('Mia');
-  expect(state.profiles[0].avatar).toBe('owl');
+  expect(state.profiles[0].avatar).toBe('dragon');
   await page.reload();
   await expect(page.getByTestId('tile-quantity')).toBeVisible();
 });
@@ -2610,7 +2619,7 @@ test('letters tile is hidden with fewer than two known letters', async ({ page }
 test('with two profiles the picker is shown and switches the active profile', async ({ page }) => {
   await page.addInitScript(() => {
     if (sessionStorage.getItem('seeded')) return;
-    const base = (id, name) => ({ id, name, avatar: 'fox', createdAt: '2026-10-03T00:00:00.000Z', settings: {}, levels: {}, rewards: { stars: 0, stickers: [], unlockedPages: 1 }, history: [] });
+    const base = (id, name) => ({ id, name, avatar: 'astronaut', createdAt: '2026-10-03T00:00:00.000Z', settings: {}, levels: {}, rewards: { stars: 0, stickers: [], unlockedPages: 1 }, history: [] });
     localStorage.setItem('blitzblick.v1', JSON.stringify({ schemaVersion: 1, activeProfileId: 'a', profiles: [base('a', 'Mia'), base('b', 'Ben')] }));
     sessionStorage.setItem('seeded', '1');
   });
@@ -2857,7 +2866,7 @@ export function starBadge(stars) {
 }
 
 export function avatarImg(avatar) {
-  return h('img', { class: 'avatar', src: `assets/avatars/${avatar}.svg`, alt: '' });
+  return h('img', { class: 'avatar', src: `assets/avatars/${avatar}.png`, alt: '' });
 }
 ```
 
