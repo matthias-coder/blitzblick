@@ -1,0 +1,17 @@
+{
+  "name": "blitzblick",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/unit/*.test.js",
+    "e2e": "playwright test",
+    "serve": "http-server -p 4173 -c-1 .",
+    "precache": "node tools/update-precache.mjs",
+    "icons": "node tools/render-icons.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "http-server": "^14.1.1"
+  }
+}
