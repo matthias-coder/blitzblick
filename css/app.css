@@ -86,13 +86,13 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .album-btn img { width: 48px; height: 48px; }
 
 /* round */
-.round-stars { flex: 1; display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
-.round-stars .slot { width: 20px; height: 20px; border-radius: 50%; background: rgba(255, 255, 255, .35); transition: background .3s, transform .3s; }
+.round-stars { flex: 1; display: flex; gap: 4px; justify-content: center; flex-wrap: nowrap; min-width: 0; }
+.round-stars .slot { flex: 0 1 20px; min-width: 0; aspect-ratio: 1; border-radius: 50%; background: rgba(255, 255, 255, .35); transition: background .3s, transform .3s; }
 .round-stars .slot.earned { background: var(--star); transform: scale(1.25); }
 .round-stars .slot.missed { background: rgba(45, 42, 93, .25); }
 .stage { flex: 1; min-height: 0; display: grid; place-items: center; padding: 8px; container-type: size; position: relative; }
 .stage .fixation { width: 18px; height: 18px; border-radius: 50%; background: var(--ink); }
-.stage .mask { width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); border-radius: var(--radius); background: repeating-linear-gradient(45deg, #EDE6D6 0 12px, #F6F0E2 12px 24px); }
+.stage .mask { width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); border-radius: var(--radius); background: repeating-linear-gradient(45deg, #E0E8F7 0 12px, #EBEFFA 12px 24px); }
 .stimulus { width: 100%; height: 100%; display: grid; place-items: center; }
 .stimulus.preload { visibility: hidden; position: absolute; inset: 8px; width: auto; height: auto; }
 .stimulus.solution { animation: pop .3s; }
@@ -194,3 +194,13 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
   .tile { aspect-ratio: auto; min-height: 0; }
   .tile-apples img { width: 24%; }
 }
+
+.round-end { position: relative; overflow: hidden; }
+.confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.confetti-piece { position: absolute; top: -48px; width: 28px; animation-name: fall; animation-timing-function: linear; animation-fill-mode: forwards; }
+@keyframes fall { to { transform: translateY(110vh) rotate(540deg); } }
+.end-head { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.end-bubble { width: clamp(90px, 22vw, 140px); animation: pop .4s .3s both; }
+.big-stars { position: relative; display: grid; place-items: center; }
+.big-stars .big-star { width: clamp(96px, 26vw, 150px); height: auto; grid-area: 1 / 1; }
+.big-stars span { grid-area: 1 / 1; font-size: clamp(2rem, 7vw, 3rem); font-weight: 700; color: var(--ink); padding-top: 10%; }
