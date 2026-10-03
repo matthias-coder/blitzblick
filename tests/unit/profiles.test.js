@@ -97,3 +97,12 @@ test('normalizeProfile fills missing settings, levels and rewards', () => {
   assert.ok(p.levels.letters);
   assert.equal(p.avatar, 'astronaut');
 });
+
+test('normalizeProfile does not share references to DEFAULT_SETTINGS', () => {
+  const raw = mk('p1');
+  delete raw.settings.letters;
+  const p = normalizeProfile(raw);
+  assert.notEqual(p.settings.letters, DEFAULT_SETTINGS.letters);
+  assert.notEqual(p.settings.letters.known, DEFAULT_SETTINGS.letters.known);
+  assert.deepEqual(p.settings.letters, DEFAULT_SETTINGS.letters);
+});

@@ -67,7 +67,7 @@ export function createProfile({ name, avatar }, { now = new Date(), id = newId()
 }
 
 export function normalizeProfile(raw) {
-  const settings = normalizeSettings(mergeDeep(DEFAULT_SETTINGS, raw.settings));
+  const settings = normalizeSettings(mergeDeep(structuredClone(DEFAULT_SETTINGS), raw.settings));
   return {
     ...raw,
     avatar: AVATARS.includes(raw.avatar) ? raw.avatar : AVATARS[0],
