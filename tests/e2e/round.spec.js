@@ -327,7 +327,9 @@ test('a mastered level moves up at the round end and opens the next sticker page
   });
   await page.goto('/');
   await playPerfectRound(page, 'tile-digits');
-  await expect(page.getByTestId('level-up')).toHaveText('Level 2!');
+  await expect(page.getByTestId('level-up')).toHaveAttribute('aria-label', 'Level 2');
+  await expect(page.getByTestId('level-up-num')).toHaveText('2');
+  await expect(page.getByTestId('end-mascot')).toHaveAttribute('src', /robot-trophy\.webp$/);
   await expect(page.getByTestId('page-unlocked')).toBeVisible();
   const p = (await readState(page)).profiles[0];
   expect(p.levels.digits.level).toBe(1);

@@ -159,8 +159,11 @@ if (mode === 'sheets' || mode === 'all') {
     blockworld: ['kloetzchenwelt.jpg', [4, 4]],
     // v1.6: menu tiles, 2×2 on white
     menu: ['menu-tiles.jpg', [2, 2]],
+    // v1.7: level celebration, one motif each on white (sparkles stay with it)
+    trophy: ['robot-trophy.jpg', [1]],
+    medal: ['medal.jpg', [1]],
   };
-  const PAGE_SHEETS = Object.keys(SHEETS).filter((k) => k.length > 1 && k !== 'blockworld' && k !== 'menu');
+  const PAGE_SHEETS = Object.keys(SHEETS).filter((k) => k.length > 1 && !['blockworld', 'menu', 'trophy', 'medal'].includes(k));
   // [sheet, row, col, output path]
   const CUTS = [
     ['e', 1, 0, 'objects/apple'], ['e', 2, 0, 'objects/duck'], ['a', 0, 2, 'objects/ladybug'],
@@ -184,12 +187,14 @@ if (mode === 'sheets' || mode === 'all') {
     ['blockworld', 0, 3, 'stickers/blockworld/grassblock'], ['blockworld', 1, 0, 'stickers/blockworld/crystal'],
     ['blockworld', 1, 1, 'stickers/blockworld/chest'], ['blockworld', 1, 2, 'stickers/blockworld/slime'],
     ['blockworld', 1, 3, 'stickers/blockworld/sixtyseven'],
+    ['trophy', 0, 0, 'mascot/robot-trophy'], ['medal', 0, 0, 'decor/medal'],
     ['menu', 0, 0, 'menu/quantity'], ['menu', 0, 1, 'menu/digits'], ['menu', 1, 0, 'menu/letters'], ['menu', 1, 1, 'menu/syllables'],
     ...PAGE_SHEETS.flatMap((id) => PAGES.find((p) => p.id === id).stickers.map((s, i) => [id, Math.floor(i / 4), i % 4, `stickers/${id}/${s}`])),
   ];
   for (const [key, [file, rowCols, lightMin = 200]] of Object.entries(SHEETS)) {
     const cuts = CUTS.filter((c) => c[0] === key);
     if (!cuts.length) continue;
+    if (!fs.existsSync(SRC + file) && (key === 'trophy' || key === 'medal')) { console.log('skipped (no source yet):', file); continue; }
     const img = await decode(page, SRC + file);
     const bg = floodBg(img, lightGrey(lightMin, 38)); // sheets with sticker shadows need a lower threshold
     const { labels, comps } = components(bg.map(v => 1 - v), img.w, img.h);

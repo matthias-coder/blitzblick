@@ -258,3 +258,12 @@ test('an enabled but currently hidden exercise gets an explanatory hint', async 
   await expect(page.getByTestId('ex-syllables-hidden')).toContainText('Im Menü gerade ausgeblendet');
   await expect(page.getByTestId('ex-quantity-hidden')).toHaveCount(0);
 });
+
+test('all levels mastered shows the medal and suggests the next grade', async ({ page }) => {
+  await seed(page, (p) => { p.levels.letters = { ...p.levels.letters, level: 3, mastered: true }; });
+  await page.goto('/');
+  await openParents(page);
+  const done = page.getByTestId('level-letters-done');
+  await expect(done).toContainText('Alle Level geschafft – nächste Klassenstufe?');
+  await expect(done.locator('img')).toHaveAttribute('src', 'assets/decor/medal.webp');
+});

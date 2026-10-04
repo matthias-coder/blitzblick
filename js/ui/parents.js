@@ -143,7 +143,7 @@ function levelsFieldset(ctx, rerender) {
       const cur = currentLevel(p, id);
       const notes = [];
       if (cur.played !== state.level) notes.push(`Gerade nicht spielbar (zu wenige bekannte Buchstaben) – gespielt wird Level ${cur.played + 1}.`);
-      if (state.level === LEVEL_COUNT - 1 && state.mastered) notes.push(lastGrade ? 'Alle Level geschafft!' : 'Alle Level geschafft – nächste Klassenstufe?');
+      const done = state.level === LEVEL_COUNT - 1 && state.mastered;
       return h('div', { class: 'level-row', 'data-testid': `level-row-${id}` },
         h('h3', {}, EXERCISES[id].title),
         segmented('Level', state.level, ladder.map((_, i) => [i, String(i + 1)]), (v) => {
@@ -152,6 +152,8 @@ function levelsFieldset(ctx, rerender) {
         }, `level-${id}`),
         h('p', { class: 'hint', 'data-testid': `level-${id}-label` }, `Level ${state.level + 1}: ${ladder[state.level].label}`),
         notes.map((t) => h('p', { class: 'hint warn' }, t)),
+        done ? h('p', { class: 'hint done', 'data-testid': `level-${id}-done` },
+          h('img', { src: 'assets/decor/medal.webp', alt: '' }), lastGrade ? 'Alle Level geschafft!' : 'Alle Level geschafft – nächste Klassenstufe?') : null,
         toggle('Level festhalten', s.hold[id], (v) => {
           ctx.setState(updateProfile(ctx.state, p.id, (pr) => updateSettings(pr, { hold: { [id]: v } })));
           rerender();

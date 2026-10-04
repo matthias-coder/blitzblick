@@ -21,7 +21,7 @@ export function render(root, ctx, { highlight = null } = {}) {
           'aria-label': `${pg.title}, Level ${pg.level + 1}`,
           onClick: () => { pageIndex = i; draw(); },
         }, h('img', { src: locked ? 'assets/ui/lock.svg' : stickerUrl(stickerId(pg.id, pg.stickers[0])), alt: '' }),
-        h('span', { class: 'album-tab-level' }, String(pg.level + 1)));
+        h('span', { class: 'album-tab-level medal-badge' }, String(pg.level + 1)));
       }))));
     tabs.querySelector('.album-tab.active')?.scrollIntoView?.({ inline: 'center', block: 'nearest' });
     const pg = PAGES[pageIndex];

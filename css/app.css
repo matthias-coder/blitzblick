@@ -245,7 +245,12 @@ input[type="range"] { width: 100%; accent-color: var(--primary); height: 32px; }
 .level-row { padding: 8px 0 4px; }
 .level-row + .level-row { border-top: 2px solid var(--line); }
 .level-row h3 { margin: 4px 0 0; font-size: 1.1rem; }
-.level-up { font-size: 2rem; font-weight: 700; color: var(--primary); animation: pop .5s .4s both; }
+.level-up { position: relative; width: 96px; height: 120px; animation: pop .5s .4s both; }
+.level-up .medal { width: 100%; height: 100%; object-fit: contain; }
+.medal-num { position: absolute; left: 0; right: 0; top: 59%; transform: translateY(-50%); text-align: center; font-size: 2.6rem; font-weight: 700; line-height: 1; color: #8A5A12; }
+.medal-badge { width: 24px; height: 30px; display: grid; place-items: end center; padding-bottom: 3px; background: url(../assets/decor/medal.webp) center / contain no-repeat; color: #8A5A12 !important; font-size: .75rem !important; }
+.hint.done { display: flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 700; }
+.hint.done img { width: 28px; height: 35px; object-fit: contain; }
 .letter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 6px; margin: 8px 0 12px; }
 .letter { position: relative; height: 48px; border-radius: 12px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 1.4rem; font-weight: 700; margin: 0; background: #fff; }
 .letter input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: pointer; }

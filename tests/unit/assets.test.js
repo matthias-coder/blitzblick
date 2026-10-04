@@ -25,16 +25,16 @@ test('app icon exists', () => checkSvg('assets/icons/icon.svg'));
 test('all stickers exist as WebP', () => {
   for (const p of PAGES) for (const s of p.stickers) checkWebp(stickerUrl(stickerId(p.id, s)));
 });
-test('Andika fonts and license are bundled', () => {
-  for (const f of ['andika-latin-400-normal.woff2', 'andika-latin-700-normal.woff2', 'OFL.txt']) {
+test('Andika, Grundschrift and license are bundled', () => {
+  for (const f of ['andika-latin-400-normal.woff2', 'andika-latin-700-normal.woff2', 'playwrite-de-grund-latin-400-normal.woff2', 'OFL.txt']) {
     assert.ok(existsSync(file(`assets/fonts/${f}`)), f);
     assert.ok(statSync(file(`assets/fonts/${f}`)).size > 1000, `${f} leer`);
   }
 });
 
-const MASCOT = ['robot-wave', 'robot-cheer'];
+const MASCOT = ['robot-wave', 'robot-cheer', 'robot-trophy'];
 const MENU = ['quantity', 'digits', 'letters', 'syllables'];
-const DECOR = ['star-big', 'badge-winner', 'bubble-yay', 'bubble-wow', 'confetti-1', 'confetti-2', 'confetti-3', 'confetti-4', 'confetti-5', 'confetti-6'];
+const DECOR = ['star-big', 'badge-winner', 'bubble-yay', 'bubble-wow', 'confetti-1', 'confetti-2', 'confetti-3', 'confetti-4', 'confetti-5', 'confetti-6', 'medal'];
 
 function checkWebp(path) {
   assert.ok(existsSync(file(path)), `${path} fehlt`);
