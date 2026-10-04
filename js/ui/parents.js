@@ -144,8 +144,13 @@ function settingsTab(body, ctx, rerender) {
   const lockLetters = s.letters.known.length <= MIN_LETTERS;
   body.append(
     h('h2', {}, `Einstellungen für ${p.name}`),
-    fieldset('Übungsarten', EXERCISE_ORDER.map((id) => toggle(EXERCISES[id].title, s.exercises[id], (v) => apply({ exercises: { [id]: v } }), `ex-${id}`,
-      playable.length <= 1 && playable.includes(id)))),
+    fieldset('Übungsarten', EXERCISE_ORDER.flatMap((id) => [
+      toggle(EXERCISES[id].title, s.exercises[id], (v) => apply({ exercises: { [id]: v } }), `ex-${id}`,
+        playable.length <= 1 && playable.includes(id)),
+      s.exercises[id] && !EXERCISES[id].isAvailable(s)
+        ? h('p', { class: 'hint', 'data-testid': `ex-${id}-hidden` }, 'Im Menü gerade ausgeblendet – zu wenige bekannte Buchstaben.')
+        : null,
+    ])),
     fieldset('Anzeigedauer', [
       toggle('Automatisch anpassen', s.timing.adaptive, (v) => apply({ timing: { adaptive: v } }), 'timing-adaptive'),
       slider(s.timing.adaptive ? 'Startwert' : 'Feste Dauer', 'start'),
