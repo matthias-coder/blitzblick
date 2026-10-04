@@ -26,7 +26,7 @@ function renderCreate(root, ctx) {
     },
   },
   h('h1', {}, 'Willkommen bei Blitzblick'),
-  h('p', {}, 'Lege ein Profil für dein Kind an. Weitere Einstellungen findest du später im Elternbereich: Zahnrad oben rechts 3 Sekunden gedrückt halten.'),
+  h('p', {}, 'Lege ein Profil für dein Kind an. Weitere Einstellungen findest du später im Elternbereich: Zahnrad oben rechts 1,5 Sekunden gedrückt halten.'),
   h('label', { for: 'profile-name' }, 'Name'), name,
   h('div', { class: 'label' }, 'Bild'), pick,
   msg,

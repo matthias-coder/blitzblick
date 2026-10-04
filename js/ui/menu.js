@@ -13,9 +13,9 @@ const TILE_CONTENT = {
 export function render(root, ctx) {
   const p = ctx.profile;
   const ids = EXERCISE_ORDER.filter((id) => p.settings.exercises[id] && EXERCISES[id].isAvailable(p.settings));
-  const gear = iconBtn('gear', 'Elternbereich: 3 Sekunden gedrückt halten', null, 'gear');
+  const gear = iconBtn('gear', 'Elternbereich: 1,5 Sekunden gedrückt halten', null, 'gear');
   gear.classList.add('gear');
-  attachLongPress(gear, 3000, () => ctx.go('parents'));
+  attachLongPress(gear, 1500, () => ctx.go('parents'));
   const who = ctx.state.profiles.length > 1
     ? h('button', { class: 'icon-btn', 'data-testid': 'switch-profile', 'aria-label': 'Profil wechseln', onClick: () => ctx.go('profiles') }, avatarImg(p.avatar))
     : h('div', { class: 'icon-btn' }, avatarImg(p.avatar));

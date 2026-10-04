@@ -39,7 +39,7 @@ h1, h2, h3 { margin: 0 0 .5em; line-height: 1.2; }
 .star-badge { display: flex; align-items: center; gap: 6px; font-size: 1.5rem; font-weight: 700; background: var(--surface); color: var(--ink); padding: 6px 16px 6px 10px; border-radius: 999px; box-shadow: var(--shadow); }
 .star-badge img { width: 30px; height: 30px; }
 .gear::after { content: ''; position: absolute; inset: -5px; border-radius: 50%; border: 5px solid var(--accent); clip-path: inset(0 100% 0 0); }
-.gear.pressing::after { animation: ring 3s linear forwards; }
+.gear.pressing::after { animation: ring 1.5s linear forwards; }
 @keyframes ring { to { clip-path: inset(0 0 0 0); } }
 @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
 @keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }

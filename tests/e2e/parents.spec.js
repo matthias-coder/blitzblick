@@ -2,12 +2,13 @@ import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { seed, readState, longPress, openParents, buildState } from './helpers.js';
 
-test('a short press does not open the parent area, a wrong answer returns to the menu', async ({ page }) => {
+test('a short press does not open the parent area, 1.5 s does, a wrong answer returns to the menu', async ({ page }) => {
   await seed(page);
   await page.goto('/');
-  await longPress(page, page.getByTestId('gear'), 800);
+  await longPress(page, page.getByTestId('gear'), 1000);
   await expect(page.getByTestId('tile-quantity')).toBeVisible();
-  await longPress(page, page.getByTestId('gear'));
+  await longPress(page, page.getByTestId('gear'), 1600);
+  await expect(page.getByTestId('gate-answer')).toBeVisible();
   await page.getByTestId('gate-answer').fill('1');
   await page.getByTestId('gate-submit').click();
   await expect(page.getByTestId('tile-quantity')).toBeVisible();
