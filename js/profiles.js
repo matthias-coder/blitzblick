@@ -2,6 +2,7 @@ import { EXERCISES } from './exercises/index.js';
 import { initialLevel, clampLevel } from './adaptive.js';
 import { MAXES } from './exercises/quantity.js';
 import { LETTERS } from './exercises/letters.js';
+import { sanitizeCustom } from './exercises/words.js';
 import { SPEECH_MODES } from './speech.js';
 
 export const AVATARS = ['astronaut', 'monster', 'superhero', 'knight', 'dino', 'dragon', 'pony', 'taco', 'singer', 'cat', 'fairy', 'chef'];
@@ -11,11 +12,12 @@ export const AVATAR_LABELS = {
 };
 
 export const DEFAULT_SETTINGS = {
-  exercises: { quantity: true, digits: true, letters: true },
+  exercises: { quantity: true, digits: true, letters: true, syllables: true },
   timing: { startMs: 1500, minMs: 300, maxMs: 3000, adaptive: true },
   quantity: { max: 10, layout: 'mixed' },
   digits: { range: 9 },
   letters: { known: ['A', 'M', 'O'], case: 'upper', speak: 'sound' },
+  syllables: { colors: true, custom: [] },
   speech: 'little',
   sounds: true,
 };
@@ -101,6 +103,10 @@ function sanitizeSettings(raw) {
       known: known ?? [...d.letters.known],
       case: oneOf(sub('letters').case, ['upper', 'lower', 'both'], d.letters.case),
       speak: oneOf(sub('letters').speak, ['sound', 'name'], d.letters.speak),
+    },
+    syllables: {
+      colors: bool(sub('syllables').colors, d.syllables.colors),
+      custom: sanitizeCustom(sub('syllables').custom),
     },
     speech: r.speech === true ? 'little' : r.speech === false ? 'off' : oneOf(r.speech, SPEECH_MODES, d.speech),
     sounds: bool(r.sounds, d.sounds),

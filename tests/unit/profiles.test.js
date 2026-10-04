@@ -111,7 +111,7 @@ test('normalizeProfile does not share references to DEFAULT_SETTINGS', () => {
 test('updateSettings refuses fewer than 2 letters or zero exercises', () => {
   const p = mk('p1');
   assert.equal(updateSettings(p, { letters: { known: ['A'] } }), p);
-  assert.equal(updateSettings(p, { exercises: { quantity: false, digits: false, letters: false } }), p);
+  assert.equal(updateSettings(p, { exercises: { quantity: false, digits: false, letters: false, syllables: false } }), p);
   assert.deepEqual(updateSettings(p, { letters: { known: ['A', 'B'] } }).settings.letters.known, ['A', 'B']);
 });
 
@@ -147,4 +147,37 @@ test('normalizeProfile migrates the old speech switch to speech modes', () => {
   assert.equal(withSpeech(false), 'off');
   assert.equal(withSpeech('lots'), 'lots');
   assert.equal(withSpeech('loud'), 'little');
+});
+
+test('defaults include the syllables exercise and its settings', () => {
+  assert.equal(DEFAULT_SETTINGS.exercises.syllables, true);
+  assert.deepEqual(DEFAULT_SETTINGS.syllables, { colors: true, custom: [] });
+});
+
+test('old profiles without syllables settings get defaults', () => {
+  const old = mk('p1');
+  delete old.settings.syllables;
+  delete old.settings.exercises.syllables;
+  const p = normalizeProfile(old);
+  assert.deepEqual(p.settings.syllables, { colors: true, custom: [] });
+  assert.equal(p.settings.exercises.syllables, true);
+});
+
+test('invalid custom words are dropped when loading or importing', () => {
+  const raw = mk('p1');
+  raw.settings.syllables = {
+    colors: false,
+    custom: [{ text: 'Ella', split: 'El|la' }, { text: '<b>', split: '<b>' }, { text: 'ELLA', split: 'EL|LA' }, 42],
+  };
+  const p = normalizeProfile(raw);
+  assert.deepEqual(p.settings.syllables, { colors: false, custom: [{ text: 'Ella', split: 'El|la' }] });
+  const data = { schemaVersion: 1, activeProfileId: 'p1', profiles: [raw] };
+  assert.deepEqual(parseImport(JSON.stringify(data)).profiles[0].settings.syllables.custom, [{ text: 'Ella', split: 'El|la' }]);
+});
+
+test('updateSettings replaces the custom word list', () => {
+  const p = updateSettings(mk('p1'), { syllables: { custom: [{ text: 'Mia', split: 'Mi|a' }] } });
+  assert.deepEqual(p.settings.syllables.custom, [{ text: 'Mia', split: 'Mi|a' }]);
+  const q = updateSettings(p, { syllables: { custom: [] } });
+  assert.deepEqual(q.settings.syllables.custom, []);
 });
