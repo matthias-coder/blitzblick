@@ -333,3 +333,13 @@ input[type="range"] { width: 100%; accent-color: var(--primary); height: 32px; }
 .chip { display: inline-flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border-radius: 999px; background: var(--bg); font-weight: 700; }
 .chip .missing { font-weight: 400; font-size: .9rem; color: var(--muted); }
 .chip button { width: 40px; height: 40px; font-size: 1.3rem; }
+
+/* v1.8: sticker trade in the album */
+.album-page .trade { display: flex; justify-content: center; margin-top: 12px; }
+.candy.pack-btn { display: inline-flex; align-items: center; gap: 8px; font-size: 1.3rem; padding: 10px 22px; }
+.candy.pack-btn:disabled { opacity: .5; filter: grayscale(.6); }
+.page-complete { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--good, #2e9d57); }
+.sticker { position: relative; }
+.sticker-count { position: absolute; right: 4%; bottom: 4%; min-width: 1.6em; height: 1.6em; border-radius: 999px; background: #ff8a3d; color: #fff; font-weight: 800; display: grid; place-items: center; font-size: .9rem; box-shadow: 0 1px 3px #0004; }
+.pack-reveal { position: fixed; inset: 0; display: grid; place-items: center; align-content: center; gap: 12px; background: #0006; z-index: 20; }
+.pack-count { display: inline-flex; align-items: center; gap: 6px; font-size: 2rem; font-weight: 800; color: #fff; text-shadow: 0 2px 4px #0008; }

@@ -1,6 +1,7 @@
 import { h } from './dom.js';
 import { uiIcon } from './widgets.js';
-import { stickerUrl, STICKER_MIN_CORRECT } from '../rewards.js';
+import { stickerUrl } from '../rewards.js';
+const STICKER_MIN_CORRECT = 4; // interim until Task 5 rewrites the round end
 import { ROUND_LENGTH } from '../session.js';
 import { PRAISE, STICKER, BONUS, ALMOST, SECRET, levelUpText } from '../phrases.js';
 

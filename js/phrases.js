@@ -19,3 +19,7 @@ export function createPicker(random = Math.random) {
     return v;
   };
 }
+export const DUPLICATE = ['Den hast du schon – jetzt hast du ihn doppelt!', 'Noch einmal der! Der zählt mit.'];
+export const TRADE = ['Du kannst eine Sticker-Tüte öffnen!', 'Deine Sterne reichen für eine Sticker-Tüte!'];
+export const SAVE = ['Sammle weiter Sterne für die nächste Sticker-Tüte.', 'Bald reicht es für eine Sticker-Tüte!'];
+export const BONUS_PAGE = 'Eine neue Bonusseite! Und dreißig Sterne dazu!';
