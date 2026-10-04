@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PAGES, STICKER_MIN_CORRECT, applyRoundRewards, isPageOpen, isPageVisible, stickerUrl, stickerId } from '../../js/rewards.js';
+import { PAGES, SECRET_PAGE, STICKER_MIN_CORRECT, applyRoundRewards, isPageOpen, isPageVisible, stickerUrl, stickerId } from '../../js/rewards.js';
 import { EXERCISE_ORDER } from '../../js/exercises/index.js';
 import { LEVEL_COUNT } from '../../js/levels.js';
 import { mulberry32 } from '../../js/rng.js';
@@ -88,4 +88,39 @@ test('input rewards are not mutated', () => {
 
 test('stickerUrl', () => {
   assert.equal(stickerUrl('sea/fish'), 'assets/stickers/sea/fish.webp');
+});
+
+const secretIds = SECRET_PAGE.stickers.map((s) => stickerId(SECRET_PAGE.id, s));
+const playOn = (rewards, correct, today, seed = 1) =>
+  applyRoundRewards(rewards, correct, mulberry32(seed), { exercise: 'quantity', level: 0, reached: rewards.reached, today });
+
+test('the secret page is separate from the level pages and has eight stickers', () => {
+  assert.equal(SECRET_PAGE.stickers.length, 8);
+  assert.ok(!PAGES.some((p) => p.id === SECRET_PAGE.id));
+});
+
+test('a round with no correct answer gives one secret sticker per day', () => {
+  const r = playOn(fresh(), 0, '2026-10-05');
+  assert.equal(r.secret, true);
+  assert.ok(secretIds.includes(r.sticker));
+  assert.deepEqual(r.rewards.stickers, [r.sticker]);
+  assert.equal(r.rewards.secretDay, '2026-10-05');
+  assert.equal(r.rewards.stars, 0);
+  assert.equal(r.earned, false);
+  const again = playOn(r.rewards, 0, '2026-10-05', 2);
+  assert.equal(again.secret, false);
+  assert.equal(again.sticker, null);
+  assert.deepEqual(again.rewards.stickers, r.rewards.stickers);
+  const next = playOn(r.rewards, 0, '2026-10-06', 3);
+  assert.equal(next.secret, true);
+  assert.notEqual(next.sticker, r.sticker);
+});
+
+test('no secret sticker with any correct answer, without a date or on a full page', () => {
+  for (const c of [1, 2, 3]) assert.equal(playOn(fresh(), c, '2026-10-05').secret, false);
+  assert.equal(play(fresh(), 0, 1).secret, false);
+  const full = playOn({ ...fresh(), stickers: [...secretIds] }, 0, '2026-10-05');
+  assert.equal(full.secret, false);
+  assert.equal(full.sticker, null);
+  assert.equal(full.rewards.secretDay, undefined);
 });

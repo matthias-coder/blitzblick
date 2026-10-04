@@ -77,7 +77,7 @@ export function finishRound(profile, round, rng, now = new Date()) {
   const level = up ? advanceLevel(round.level, profile.settings.timing) : round.level;
   const id = round.exerciseId;
   const reached = { ...profile.rewards.reached, [id]: Math.max(profile.rewards.reached[id] ?? 0, level.level) };
-  const reward = applyRoundRewards(profile.rewards, correct, rng, { exercise: id, level: round.played, reached });
+  const reward = applyRoundRewards(profile.rewards, correct, rng, { exercise: id, level: round.played, reached, today: localDate(now) });
   return {
     profile: {
       ...profile,

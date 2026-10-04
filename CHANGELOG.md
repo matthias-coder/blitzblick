@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.1] – 2026-10-04
+
+- Geheime Albumseite „Unfug-Bande“: Wer in einer Runde gar nichts richtig hat, bekommt einen geheimen Sticker – höchstens einen pro Tag. Die Seite erscheint im Album erst, wenn der erste gefunden ist
+
 ## [1.7.0] – 2026-10-04
 
 - Klassenstufen: Vorschule und Klasse 1, jede mit eigenen Leveln und eigenen Anzeigedauern; Wechsel im Elternbereich mit Rückfrage, Sticker und Sterne bleiben

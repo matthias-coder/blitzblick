@@ -367,3 +367,26 @@ test('quantity can count album stickers, and the sticker image loads', async ({ 
   await expect(obj).toHaveAttribute('src', /^assets\/stickers\/[a-z]+\/[a-z]+\.webp$/);
   expect(await obj.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
 });
+
+test('a round with no correct answer gives a secret sticker, and the album shows the secret page', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('open-album').click();
+  await expect(page.getByTestId('album-group-quantity')).toBeVisible();
+  await expect(page.getByTestId('album-group-secret')).toHaveCount(0);
+  await page.getByTestId('back').click();
+  await page.getByTestId('tile-digits').click();
+  for (let i = 0; i < N; i++) {
+    const { choices, answer } = await waitForChoices(page);
+    await choices.locator(`button:not([data-value="${answer}"])`).first().click();
+  }
+  await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
+  await expect(page.getByTestId('new-sticker')).toHaveAttribute('data-sticker', /^mischief\//);
+  await expect(page.getByTestId('sticker-hint')).toHaveCount(0);
+  await page.getByTestId('round-done').click();
+  await page.getByTestId('open-album').click();
+  await page.getByTestId('album-tab-mischief').click();
+  await expect(page.locator('[data-testid^="sticker-mischief/"].collected')).toHaveCount(1);
+  const p = (await readState(page)).profiles[0];
+  expect(p.rewards.secretDay).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+});

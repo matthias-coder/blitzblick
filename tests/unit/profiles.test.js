@@ -255,3 +255,13 @@ test('settings that would leave no playable exercise are refused or reset', () =
   const p = normalizeProfile(raw);
   assert.equal(p.settings.exercises.quantity, true);
 });
+
+test('secretDay is kept only as a date string', () => {
+  const raw = mk('p1');
+  raw.rewards.secretDay = '2026-10-05';
+  assert.equal(normalizeProfile(raw).rewards.secretDay, '2026-10-05');
+  for (const bad of [42, 'gestern', { d: 1 }]) {
+    raw.rewards.secretDay = bad;
+    assert.equal('secretDay' in normalizeProfile(raw).rewards, false);
+  }
+});

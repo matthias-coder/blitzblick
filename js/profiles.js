@@ -152,7 +152,7 @@ export function normalizeProfile(raw) {
   const rw = isObj(raw.rewards) ? raw.rewards : {};
   const lv = isObj(raw.levels) ? raw.levels : {};
   const levels = buildLevels(Object.fromEntries(Object.keys(EXERCISES).filter((k) => isObj(lv[k])).map((k) => [k, sanitizeLevel(lv[k])])), settings);
-  const { unlockedPages, ...rest } = rw; // unlockedPages: pre-1.7, pages now open by level
+  const { unlockedPages, secretDay, ...rest } = rw; // unlockedPages: pre-1.7, pages now open by level
   return {
     ...raw,
     avatar: AVATARS.includes(raw.avatar) ? raw.avatar : AVATARS[0],
@@ -163,6 +163,7 @@ export function normalizeProfile(raw) {
       stars: num(rw.stars, 0),
       stickers: Array.isArray(rw.stickers) ? rw.stickers.filter((x) => typeof x === 'string') : [],
       reached: sanitizeReached(rw.reached, levels),
+      ...(typeof secretDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(secretDay) ? { secretDay } : {}),
     },
     history: sanitizeHistory(raw.history),
   };
