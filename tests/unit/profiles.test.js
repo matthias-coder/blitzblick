@@ -138,3 +138,13 @@ test('a hand-damaged backup normalizes to a playable profile', () => {
     assert.ok(task.choices.length >= 2, key);
   }
 });
+
+test('normalizeProfile migrates the old speech switch to speech modes', () => {
+  const base = createProfile({ name: 'Mia', avatar: 'cat' });
+  const withSpeech = (v) => normalizeProfile({ ...base, settings: { ...base.settings, speech: v } }).settings.speech;
+  assert.equal(base.settings.speech, 'little');
+  assert.equal(withSpeech(true), 'little');
+  assert.equal(withSpeech(false), 'off');
+  assert.equal(withSpeech('lots'), 'lots');
+  assert.equal(withSpeech('loud'), 'little');
+});

@@ -45,7 +45,7 @@ test('migrate fills defaults and repairs an unknown active profile', () => {
   delete s.profiles[0].settings.speech;
   s.activeProfileId = 'gone';
   const m = migrate(s);
-  assert.equal(m.profiles[0].settings.speech, true);
+  assert.equal(m.profiles[0].settings.speech, 'little');
   assert.equal(m.activeProfileId, 'p1');
 });
 

@@ -9,6 +9,7 @@ export const PAGES = [
 ];
 export const STARS_PER_PAGE = 50;
 export const BONUS_STARS = 3;
+export const STICKER_MIN_CORRECT = 8;
 
 export const stickerId = (page, name) => `${page}/${name}`;
 export const stickerUrl = (id) => `assets/stickers/${id}.svg`;
@@ -27,11 +28,12 @@ export function applyRoundRewards(rewards, correct, rng) {
   let stars = rewards.stars + correct;
   let unlocked = Math.max(rewards.unlockedPages, unlockedPagesFor(stars));
   const missing = missingStickers({ ...rewards, unlockedPages: unlocked });
+  const earned = correct >= STICKER_MIN_CORRECT;
   let sticker = null;
   let bonusStars = 0;
-  if (missing.length) {
+  if (earned && missing.length) {
     sticker = pick(rng, missing);
-  } else {
+  } else if (earned) {
     bonusStars = BONUS_STARS;
     stars += BONUS_STARS;
     unlocked = Math.max(unlocked, unlockedPagesFor(stars));
@@ -40,6 +42,7 @@ export function applyRoundRewards(rewards, correct, rng) {
     rewards: { stars, stickers: sticker ? [...rewards.stickers, sticker] : [...rewards.stickers], unlockedPages: unlocked },
     sticker,
     bonusStars,
+    earned,
     newlyUnlockedPages: PAGES.slice(rewards.unlockedPages, unlocked).map((p) => p.id),
   };
 }

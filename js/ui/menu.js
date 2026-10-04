@@ -31,5 +31,5 @@ export function render(root, ctx) {
     }, uiIcon('album'), h('span', {}, String(p.rewards.stickers.length)))),
     h('img', { class: 'mascot', src: 'assets/mascot/robot-wave.png', alt: '' }),
   );
-  ctx.speech.speak(`Hallo ${p.name}! Was möchtest du üben?`);
+  ctx.speech.speak(`Hallo ${p.name}! Was möchtest du üben?`, { extra: true });
 }

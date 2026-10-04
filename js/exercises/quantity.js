@@ -72,4 +72,7 @@ export function renderChoices(task, el, onPick) {
 }
 
 export function speakPrompt() { return 'Wie viele waren es?'; }
-export function speakSolution(task) { return task.answer === 1 ? 'Es war einer.' : `Es waren ${task.answer}.`; }
+export function speakSolution(task) {
+  const n = task.answer;
+  return n === 1 ? ['Es war einer.', 'Das war einer.', 'Nur einer.'] : [`Es waren ${n}.`, `Das waren ${n}.`, `${n} waren es.`];
+}

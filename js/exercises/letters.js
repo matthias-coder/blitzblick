@@ -65,5 +65,10 @@ export function renderChoices(task, el, onPick) {
 
 export function speakPrompt() { return 'Welcher Buchstabe war das?'; }
 export function speakSolution(task, settings) {
-  return settings.letters.speak === 'name' ? `Das war ein ${NAMES[task.base]}.` : `Das war ${SOUNDS[task.base]}.`;
+  if (settings.letters.speak === 'name') {
+    const n = NAMES[task.base];
+    return [`Das war ein ${n}.`, `Es war ein ${n}.`, `Das war das ${n}.`];
+  }
+  const s = SOUNDS[task.base];
+  return [`Das war ${s}.`, `Es war ${s}.`, `Der Laut war ${s}.`];
 }

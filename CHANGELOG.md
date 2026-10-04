@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0] – 2026-10-04
+
+- Sprachausgabe in drei Stufen (Aus / Wenig / Viel), Standard „Wenig“: nur erste Frage, Lösungen und Lob
+- Abwechselnde Sätze für Lob und Lösungen, kein Satz zweimal hintereinander
+- Stimmenauswahl im Elternbereich (pro Gerät), automatische Wahl bevorzugt natürlichere Online-/Google-Stimmen
+- Countdown-Ton „tick – tick – Ping“ mit pulsierendem Punkt vor jedem Aufblitzen
+- Sticker bzw. Extra-Sterne erst ab 8 von 10 richtigen Antworten
+
 ## [1.0.0] – 2026-10-04
 
 - Übungsarten Mengen, Zahlen, Buchstaben mit Blitz-Anzeige

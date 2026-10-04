@@ -42,5 +42,5 @@ export function render(root, ctx) {
     'data-testid': `profile-${p.id}`,
     onClick: () => { ctx.setState(setActive(ctx.state, p.id)); ctx.go('menu'); },
   }, avatarImg(p.avatar), h('span', {}, p.name)))));
-  ctx.speech.speak('Wer bist du?');
+  ctx.speech.speak('Wer bist du?', { extra: true });
 }

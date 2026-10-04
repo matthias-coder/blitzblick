@@ -62,5 +62,6 @@ test('the reversed number is preferred when it stays in range (20 → 2)', () =>
 test('prompt and solution texts', () => {
   const t = task(0, 1);
   assert.equal(digits.speakPrompt(t, S()), 'Welche Zahl war das?');
-  assert.equal(digits.speakSolution(t, S()), `Das war die ${t.answer}.`);
+  assert.equal(digits.speakSolution(t, S())[0], `Das war die ${t.answer}.`);
+  for (const v of digits.speakSolution(t, S())) assert.ok(v.includes(String(t.answer)));
 });

@@ -73,6 +73,20 @@ const select = (label, value, options, onChange, testid) => h('label', { class: 
   h('select', { 'data-testid': testid, onChange: (e) => onChange(e.target.value) },
     options.map(([v, t]) => h('option', { value: String(v), selected: String(v) === String(value) }, t))));
 
+function voiceSelect(ctx, rerender) {
+  const voices = ctx.speech.germanVoices();
+  if (!voices.length) {
+    ctx.speech.onVoicesChanged(() => { if (document.querySelector('[data-testid="parents"]')) rerender(); });
+    return null;
+  }
+  const options = [['', `Automatisch (${voices[0].name})`], ...voices.map((v) => [v.name, v.localService === false ? `${v.name} (online)` : v.name])];
+  return select('Stimme (dieses Gerät)', ctx.speech.currentVoiceName() === voices[0].name ? '' : ctx.speech.currentVoiceName(), options, (v) => {
+    ctx.speech.setVoice(v || null);
+    ctx.speech.speak('Hallo! So klinge ich.', { force: true });
+    rerender();
+  }, 'voice');
+}
+
 function settingsTab(body, ctx, rerender) {
   const p = ctx.profile;
   const s = p.settings;
@@ -122,9 +136,11 @@ function settingsTab(body, ctx, rerender) {
       select('Aussprache', s.letters.speak, [['sound', 'Als Laut („mmm“)'], ['name', 'Als Name („em“)']], (v) => apply({ letters: { speak: v } }), 'letters-speak'),
     ]),
     fieldset('Ton', [
-      check('Sprachausgabe', s.speech, (v) => apply({ speech: v }), 'speech'),
-      check('Töne', s.sounds, (v) => apply({ sounds: v }), 'sounds'),
-      h('button', { type: 'button', class: 'secondary-btn', onClick: () => ctx.speech.speak('Hallo! So klinge ich.') }, 'Stimme testen'),
+      select('Sprachausgabe', s.speech, [['off', 'Aus'], ['little', 'Wenig (nur Lösungen und Lob)'], ['lots', 'Viel (alles ansagen)']], (v) => apply({ speech: v }), 'speech'),
+      voiceSelect(ctx, rerender),
+      h('button', { type: 'button', class: 'secondary-btn', 'data-testid': 'voice-test', onClick: () => ctx.speech.speak('Hallo! So klinge ich.', { force: true }) }, 'Stimme testen'),
+      h('p', { class: 'hint' }, 'Tipp für Android: Unter Einstellungen → Sprachausgabe → Google lassen sich natürlichere deutsche Stimmen herunterladen.'),
+      check('Töne (auch Countdown vor dem Aufblitzen)', s.sounds, (v) => apply({ sounds: v }), 'sounds'),
     ]),
     fieldset('Schwierigkeit', [
       h('button', {

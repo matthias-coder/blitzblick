@@ -30,6 +30,23 @@ test('a full quantity round awards stars and a sticker', async ({ page }) => {
   await expect(page.getByTestId('star-badge')).toHaveText('10');
 });
 
+test('with fewer than 8 correct answers there are stars but no sticker', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-quantity').click();
+  for (let i = 0; i < 10; i++) {
+    const { choices, answer } = await waitForChoices(page);
+    const value = i < 3 ? await choices.locator(`button.choice:not([data-value="${answer}"])`).first().getAttribute('data-value') : answer;
+    await choices.locator(`button[data-value="${value}"]`).click();
+  }
+  await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 8000 });
+  await expect(page.getByTestId('sticker-hint')).toContainText('7 von 10');
+  await expect(page.getByTestId('new-sticker')).toHaveCount(0);
+  const p = (await readState(page)).profiles[0];
+  expect(p.rewards.stars).toBe(7);
+  expect(p.rewards.stickers).toHaveLength(0);
+});
+
 test('the flash disappears after the configured duration', async ({ page }) => {
   await seed(page, fixed(1000));
   await page.goto('/');

@@ -5,7 +5,8 @@ import { updateProfile } from '../profiles.js';
 import { iconBtn } from './widgets.js';
 import { renderRoundEnd } from './round-end.js';
 
-export const FIXATION_MS = 800;
+// two countdown ticks fit into the fixation, the ping lands on the stimulus
+export const FIXATION_MS = 900;
 export const MASK_MS = 200;
 export const FEEDBACK_MS = 1000;
 export const SOLUTION_MS = 2500;
@@ -42,7 +43,8 @@ export function render(root, ctx, { exerciseId }) {
     const stim = h('div', { class: 'stimulus preload', 'data-testid': 'stimulus' });
     ex.renderStimulus(task, stim);
     stage.replaceChildren(h('div', { class: 'fixation' }), stim);
-    if (round.results.length === 0) ctx.speech.speak('Pass gut auf!');
+    if (round.results.length === 0) ctx.speech.speak('Pass gut auf!', { extra: true });
+    ctx.sounds.ticks();
     await Promise.all([
       wait(FIXATION_MS),
       document.fonts?.ready,
@@ -51,6 +53,7 @@ export function render(root, ctx, { exerciseId }) {
     if (!alive) return;
     stim.classList.remove('preload');
     stage.replaceChildren(stim);
+    ctx.sounds.ping();
     await wait(durationMs);
     if (!alive) return;
     stage.replaceChildren(h('div', { class: 'mask' }));
@@ -59,7 +62,7 @@ export function render(root, ctx, { exerciseId }) {
     stage.replaceChildren();
     choicesEl.dataset.answer = String(task.answer);
     ex.renderChoices(task, choicesEl, onPick);
-    ctx.speech.speak(ex.speakPrompt(task, profile.settings));
+    ctx.speech.speak(ex.speakPrompt(task, profile.settings), { extra: round.results.length > 0 });
   }
 
   async function onPick(value, button) {
@@ -79,7 +82,7 @@ export function render(root, ctx, { exerciseId }) {
       const solution = h('div', { class: 'stimulus solution' });
       ex.renderStimulus(round.task, solution);
       stage.replaceChildren(solution);
-      ctx.speech.speak(ex.speakSolution(round.task, profile.settings));
+      ctx.speech.speak(ctx.pick('solution', ex.speakSolution(round.task, profile.settings)));
       await wait(SOLUTION_MS);
     }
     if (!alive) return;

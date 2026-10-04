@@ -2,6 +2,7 @@ import { EXERCISES } from './exercises/index.js';
 import { initialLevel, clampLevel } from './adaptive.js';
 import { MAXES } from './exercises/quantity.js';
 import { LETTERS } from './exercises/letters.js';
+import { SPEECH_MODES } from './speech.js';
 
 export const AVATARS = ['astronaut', 'monster', 'superhero', 'knight', 'dino', 'dragon', 'pony', 'taco', 'singer', 'cat', 'fairy', 'chef'];
 export const AVATAR_LABELS = {
@@ -15,7 +16,7 @@ export const DEFAULT_SETTINGS = {
   quantity: { max: 10, layout: 'mixed' },
   digits: { range: 9 },
   letters: { known: ['A', 'M', 'O'], case: 'upper', speak: 'sound' },
-  speech: true,
+  speech: 'little',
   sounds: true,
 };
 
@@ -101,7 +102,7 @@ function sanitizeSettings(raw) {
       case: oneOf(sub('letters').case, ['upper', 'lower', 'both'], d.letters.case),
       speak: oneOf(sub('letters').speak, ['sound', 'name'], d.letters.speak),
     },
-    speech: bool(r.speech, d.speech),
+    speech: r.speech === true ? 'little' : r.speech === false ? 'off' : oneOf(r.speech, SPEECH_MODES, d.speech),
     sounds: bool(r.sounds, d.sounds),
   };
 }

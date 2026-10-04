@@ -3,7 +3,7 @@ import { createProfile } from '../../js/profiles.js';
 
 export function buildState(mutate = () => {}, name = 'Mia') {
   const p = createProfile({ name, avatar: 'astronaut' }, { id: 'p1' });
-  p.settings.speech = false;
+  p.settings.speech = 'off';
   p.settings.sounds = false;
   mutate(p);
   return { schemaVersion: 1, activeProfileId: 'p1', profiles: [p] };

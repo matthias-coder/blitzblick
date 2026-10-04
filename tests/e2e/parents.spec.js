@@ -114,3 +114,12 @@ test('at least two known letters and one exercise stay enabled', async ({ page }
   expect(s.letters.known.length).toBe(3);
   expect(Object.values(s.exercises).filter(Boolean)).toHaveLength(1);
 });
+
+test('the speech mode can be chosen and is saved', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await openParents(page);
+  await expect(page.getByTestId('speech')).toHaveValue('off');
+  await page.getByTestId('speech').selectOption('lots');
+  expect((await readState(page)).profiles[0].settings.speech).toBe('lots');
+});

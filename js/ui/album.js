@@ -23,7 +23,7 @@ export function render(root, ctx, { highlight = null } = {}) {
       const need = pageIndex * STARS_PER_PAGE;
       body.replaceChildren(h('div', { class: 'locked-page', 'data-testid': 'locked-page' },
         uiIcon('lock'), h('div', { class: 'need' }, uiIcon('star'), String(need))));
-      ctx.speech.speak(`Diese Seite gibt es ab ${need} Sternen.`);
+      ctx.speech.speak(`Diese Seite gibt es ab ${need} Sternen.`, { extra: true });
       return;
     }
     body.replaceChildren(h('div', { class: 'sticker-grid' }, pg.stickers.map((name) => {

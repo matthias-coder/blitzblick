@@ -92,6 +92,8 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .round-stars .slot.missed { background: rgba(45, 42, 93, .25); }
 .stage { flex: 1; min-height: 0; display: grid; place-items: center; padding: 8px; container-type: size; position: relative; }
 .stage .fixation { width: 18px; height: 18px; border-radius: 50%; background: var(--ink); }
+.stage .fixation { animation: tick-pulse 0.45s ease-out 2; }
+@keyframes tick-pulse { from { transform: scale(1.7); } to { transform: scale(1); } }
 .stage .mask { width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); border-radius: var(--radius); background: repeating-linear-gradient(45deg, #E0E8F7 0 12px, #EBEFFA 12px 24px); }
 .stimulus { width: 100%; height: 100%; display: grid; place-items: center; }
 .stimulus.preload { visibility: hidden; position: absolute; inset: 8px; width: auto; height: auto; }
@@ -122,6 +124,8 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .sticker-reveal img { width: 80%; height: 80%; }
 .bonus { font-size: 2.5rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
 .bonus img { width: 56px; }
+.sticker-hint { display: flex; align-items: center; gap: 12px; padding: 14px 22px; background: var(--surface); border-radius: 24px; box-shadow: var(--shadow); font-size: 1.3rem; font-weight: 700; text-align: left; }
+.sticker-hint img { width: 40px; opacity: .6; }
 .unlock { display: flex; align-items: center; gap: 8px; font-size: 2rem; animation: pop .5s .6s both; }
 .unlock img { width: 56px; }
 .end-actions { display: flex; gap: 16px; }

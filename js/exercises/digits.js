@@ -42,4 +42,4 @@ export function renderChoices(task, el, onPick) {
 }
 
 export function speakPrompt() { return 'Welche Zahl war das?'; }
-export function speakSolution(task) { return `Das war die ${task.answer}.`; }
+export function speakSolution(task) { return [`Das war die ${task.answer}.`, `Es war die ${task.answer}.`, `Das war eine ${task.answer}.`]; }

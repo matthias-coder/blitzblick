@@ -75,8 +75,9 @@ test('confusable letters are preferred as distractors (b/d/p/q)', () => {
 
 test('solution text uses sound or name', () => {
   const t = { base: 'M', answer: 'M' };
-  assert.equal(letters.speakSolution(t, S(['M', 'A'], 'upper', 'sound')), 'Das war mmm.');
-  assert.equal(letters.speakSolution(t, S(['M', 'A'], 'upper', 'name')), 'Das war ein Em.');
+  assert.equal(letters.speakSolution(t, S(['M', 'A'], 'upper', 'sound'))[0], 'Das war mmm.');
+  assert.equal(letters.speakSolution(t, S(['M', 'A'], 'upper', 'name'))[0], 'Das war ein Em.');
+  for (const v of letters.speakSolution(t, S(['M', 'A'], 'upper', 'name'))) assert.ok(v.includes('Em'));
   assert.equal(letters.speakPrompt(t, S(['M', 'A'])), 'Welcher Buchstabe war das?');
 });
 

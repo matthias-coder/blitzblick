@@ -1,6 +1,8 @@
 import { h } from './dom.js';
 import { uiIcon } from './widgets.js';
-import { stickerUrl } from '../rewards.js';
+import { stickerUrl, STICKER_MIN_CORRECT } from '../rewards.js';
+import { ROUND_LENGTH } from '../session.js';
+import { PRAISE, STICKER, BONUS, ALMOST } from '../phrases.js';
 
 const decor = (name, cls) => h('img', { class: cls, src: `assets/decor/${name}.png`, alt: '' });
 
@@ -15,10 +17,13 @@ function confetti() {
 }
 
 export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
-  const prize = reward.sticker
-    ? h('div', { class: 'sticker-reveal', 'data-testid': 'new-sticker', 'data-sticker': reward.sticker },
-      h('img', { src: stickerUrl(reward.sticker), alt: '' }))
-    : h('div', { class: 'bonus', 'data-testid': 'bonus-stars' }, `+${reward.bonusStars}`, uiIcon('star'));
+  const prize = !reward.earned
+    ? h('div', { class: 'sticker-hint', 'data-testid': 'sticker-hint' },
+      uiIcon('lock'), h('span', {}, `${correct} von ${ROUND_LENGTH} – ab ${STICKER_MIN_CORRECT} gibt's einen Sticker`))
+    : reward.sticker
+      ? h('div', { class: 'sticker-reveal', 'data-testid': 'new-sticker', 'data-sticker': reward.sticker },
+        h('img', { src: stickerUrl(reward.sticker), alt: '' }))
+      : h('div', { class: 'bonus', 'data-testid': 'bonus-stars' }, `+${reward.bonusStars}`, uiIcon('star'));
   const unlocked = reward.newlyUnlockedPages.length
     ? h('div', { class: 'unlock', 'data-testid': 'page-unlocked' }, uiIcon('album'), '+', String(reward.newlyUnlockedPages.length))
     : null;
@@ -28,7 +33,7 @@ export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
 
   root.replaceChildren(
     h('main', { class: 'round-end', 'data-testid': 'round-end' },
-      confetti(),
+      reward.earned ? confetti() : null,
       h('div', { class: 'end-head' },
         bubble,
         h('div', { class: 'big-stars' }, decor('star-big', 'big-star'), h('span', {}, String(correct)))),
@@ -41,6 +46,7 @@ export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
     h('img', { class: 'mascot', src: 'assets/mascot/robot-wave.png', alt: '' }),
   );
   ctx.sounds.fanfare();
-  const praise = correct >= 8 ? 'Super gemacht!' : correct >= 5 ? 'Gut gemacht!' : 'Toll geübt!';
-  ctx.speech.speak(reward.sticker ? `${praise} Du hast einen neuen Sticker!` : `${praise} Du bekommst Extra-Sterne!`);
+  const praise = ctx.pick('praise', PRAISE[correct >= 8 ? 'great' : correct >= 5 ? 'good' : 'practiced']);
+  const news = !reward.earned ? ctx.pick('almost', ALMOST) : reward.sticker ? ctx.pick('sticker', STICKER) : ctx.pick('bonus', BONUS);
+  ctx.speech.speak(`${praise} ${news}`);
 }

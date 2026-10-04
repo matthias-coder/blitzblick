@@ -1,6 +1,7 @@
 import { createStore } from './storage.js';
 import { createSpeech } from './speech.js';
 import { createSounds } from './sounds.js';
+import { createPicker } from './phrases.js';
 import { getActive } from './profiles.js';
 import * as profiles from './ui/profiles.js';
 import * as menu from './ui/menu.js';
@@ -18,7 +19,7 @@ let cleanup = null;
 
 function applyProfilePrefs() {
   const p = getActive(state);
-  speech.setEnabled(p?.settings.speech ?? true);
+  speech.setMode(p?.settings.speech ?? 'little');
   sounds.setEnabled(p?.settings.sounds ?? true);
 }
 
@@ -26,6 +27,7 @@ const ctx = {
   store,
   speech,
   sounds,
+  pick: createPicker(),
   get state() { return state; },
   get profile() { return getActive(state); },
   setState(next) {

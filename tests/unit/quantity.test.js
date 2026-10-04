@@ -69,6 +69,7 @@ test('prepareRound picks one of the objects', () => {
 
 test('texts', () => {
   assert.equal(quantity.speakPrompt(), 'Wie viele waren es?');
-  assert.equal(quantity.speakSolution({ answer: 1 }), 'Es war einer.');
-  assert.equal(quantity.speakSolution({ answer: 6 }), 'Es waren 6.');
+  assert.equal(quantity.speakSolution({ answer: 1 })[0], 'Es war einer.');
+  assert.equal(quantity.speakSolution({ answer: 6 })[0], 'Es waren 6.');
+  for (const v of quantity.speakSolution({ answer: 6 })) assert.ok(v.includes('6'));
 });
