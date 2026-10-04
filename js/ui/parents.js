@@ -144,12 +144,13 @@ function settingsTab(body, ctx, rerender) {
     }),
     h('span', { class: 'unit' }, 'ms'));
 
-  const enabledCount = EXERCISE_ORDER.filter((id) => s.exercises[id]).length;
+  // the last enabled exercise that is also playable cannot be switched off
+  const playable = EXERCISE_ORDER.filter((id) => s.exercises[id] && EXERCISES[id].isAvailable(s));
   const lockLetters = s.letters.known.length <= MIN_LETTERS;
   body.append(
     h('h2', {}, `Einstellungen für ${p.name}`),
     fieldset('Übungsarten', EXERCISE_ORDER.map((id) => check(EXERCISES[id].title, s.exercises[id], (v) => apply({ exercises: { [id]: v } }), `ex-${id}`,
-      s.exercises[id] && enabledCount <= 1))),
+      playable.length <= 1 && playable.includes(id)))),
     fieldset('Anzeigedauer', [
       check('Automatisch anpassen', s.timing.adaptive, (v) => apply({ timing: { adaptive: v } }), 'timing-adaptive'),
       num(s.timing.adaptive ? 'Startwert' : 'Feste Dauer', s.timing.startMs, 'start'),

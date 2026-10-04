@@ -181,3 +181,13 @@ test('updateSettings replaces the custom word list', () => {
   const q = updateSettings(p, { syllables: { custom: [] } });
   assert.deepEqual(q.settings.syllables.custom, []);
 });
+
+test('settings that would leave no playable exercise are refused or reset', () => {
+  const only = updateSettings(mk('p1'), { exercises: { quantity: false, digits: false, letters: false } });
+  assert.deepEqual(Object.keys(only.settings.exercises).filter((k) => only.settings.exercises[k]), ['syllables']);
+  assert.equal(updateSettings(only, { letters: { known: ['A', 'M'] } }), only);
+  const raw = structuredClone(only);
+  raw.settings.letters.known = ['A', 'M'];
+  const p = normalizeProfile(raw);
+  assert.equal(p.settings.exercises.quantity, true);
+});

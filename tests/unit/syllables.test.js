@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as syl from '../../js/exercises/syllables.js';
-import { letterKey } from '../../js/exercises/words.js';
+import { letterKey, WORDS } from '../../js/exercises/words.js';
 import { mulberry32 } from '../../js/rng.js';
 
 const S = (known, extra = {}) => ({
@@ -88,4 +88,17 @@ test('speech: prompt by kind, syllable spelling only in mode lots', () => {
   assert.equal(syl.speakPrompt({ ...t, kind: 'syllable' }), 'Welche Silbe war das?');
   assert.ok(syl.speakSolution(t, { speech: 'little' }).every((l) => l.includes('Ella') && !l.includes('–')));
   assert.ok(syl.speakSolution(t, { speech: 'lots' }).every((l) => l.startsWith('El – la. ')));
+});
+
+test('made-up distractors are split like the answer, so colors never give it away', () => {
+  const s = S([...'ABDEFGHIKLMNOPRSTUZÄÖÜ']);
+  const realTexts = new Set(WORDS.map((w) => w.replaceAll('|', '')));
+  const shape = (parts) => parts.map((p) => [...p].length).join(',');
+  for (let seed = 0; seed < 600; seed++) {
+    const t = make(s, 2, seed);
+    for (const c of t.choices) {
+      if (c === t.answer || realTexts.has(c) || [...c].length !== [...t.answer].length) continue;
+      assert.equal(shape(t.parts[c]), shape(t.stimulus.parts), `${t.answer} vs ${c}`);
+    }
+  }
 });

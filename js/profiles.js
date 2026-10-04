@@ -25,6 +25,9 @@ export const DEFAULT_SETTINGS = {
 export const MIN_LETTERS = 2;
 const DIGIT_RANGES = [9, 10, 20];
 
+// at least one exercise must be enabled and playable, otherwise the menu is empty
+const hasPlayable = (s) => Object.entries(EXERCISES).some(([k, ex]) => s.exercises[k] && ex.isAvailable(s));
+
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 export function mergeDeep(base, patch) {
@@ -79,6 +82,11 @@ const bool = (v, d) => (typeof v === 'boolean' ? v : d);
 const oneOf = (v, allowed, d) => (allowed.includes(v) ? v : d);
 
 function sanitizeSettings(raw) {
+  const s = sanitizeFields(raw);
+  return hasPlayable(s) ? s : { ...s, exercises: { ...DEFAULT_SETTINGS.exercises } };
+}
+
+function sanitizeFields(raw) {
   const r = isObj(raw) ? raw : {};
   const d = DEFAULT_SETTINGS;
   const sub = (k) => (isObj(r[k]) ? r[k] : {});
@@ -175,7 +183,7 @@ export function updateSettings(profile, patch) {
   const merged = mergeDeep(profile.settings, patch);
   const known = merged.letters.known.length;
   if (known < MIN_LETTERS && known < profile.settings.letters.known.length) return profile;
-  if (!Object.values(merged.exercises).some(Boolean)) return profile;
+  if (!hasPlayable(merged)) return profile;
   const settings = normalizeSettings(merged);
   return { ...profile, settings, levels: buildLevels(profile.levels, settings) };
 }

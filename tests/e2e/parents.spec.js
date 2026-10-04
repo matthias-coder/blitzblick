@@ -110,11 +110,11 @@ test('at least two known letters and one exercise stay enabled', async ({ page }
   await expect(page.getByTestId('letter-M')).toBeEnabled();
   await page.getByTestId('ex-quantity').uncheck();
   await page.getByTestId('ex-digits').uncheck();
-  await page.getByTestId('ex-letters').uncheck();
-  await expect(page.getByTestId('ex-syllables')).toBeDisabled();
+  // with M, O, B the syllables exercise is not playable, so letters is the last playable one
+  await expect(page.getByTestId('ex-letters')).toBeDisabled();
   const s = (await readState(page)).profiles[0].settings;
   expect(s.letters.known.length).toBe(3);
-  expect(Object.values(s.exercises).filter(Boolean)).toHaveLength(1);
+  expect(Object.values(s.exercises).filter(Boolean)).toHaveLength(2);
 });
 
 test('the speech mode can be chosen and is saved', async ({ page }) => {

@@ -74,7 +74,15 @@ export function buildDistractors(answer, pool, keys, rng) {
   return out;
 }
 
-const partsFor = (text, pool) => pool.find((e) => e.text === text)?.parts ?? syllabify(text);
+// real words keep their stored split; made-up variants of the same length copy the answer's cuts
+function partsFor(text, pool, answer) {
+  const real = pool.find((e) => e.text === text);
+  if (real) return real.parts;
+  const chars = [...text];
+  if (chars.length !== [...answer.text].length) return syllabify(text);
+  let i = 0;
+  return answer.parts.map((p) => chars.slice(i, (i += [...p].length)).join(''));
+}
 
 export function createTask(level, settings, rng, ctx = { last: null }) {
   const pool = buildPool(settings);
@@ -89,7 +97,7 @@ export function createTask(level, settings, rng, ctx = { last: null }) {
     stimulus: { text: entry.text, parts: entry.parts },
     answer: entry.text,
     choices,
-    parts: Object.fromEntries(choices.map((c) => [c, partsFor(c, pool)])),
+    parts: Object.fromEntries(choices.map((c) => [c, partsFor(c, pool, entry)])),
     kind: entry.level === 0 ? 'syllable' : 'word',
     colors: settings.syllables?.colors !== false,
   };
