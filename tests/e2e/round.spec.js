@@ -12,6 +12,15 @@ async function waitForChoices(page) {
   return { choices, answer: await choices.getAttribute('data-answer') };
 }
 
+async function playPerfectRound(page, tile = 'tile-quantity') {
+  await page.getByTestId(tile).click();
+  for (let i = 0; i < 10; i++) {
+    const { choices, answer } = await waitForChoices(page);
+    await choices.locator(`button[data-value="${answer}"]`).click();
+  }
+  await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
+}
+
 test('a full quantity round awards stars and a sticker', async ({ page }) => {
   await seed(page, fixed(500));
   await page.goto('/');
@@ -207,4 +216,37 @@ test('addition stimuli stay inside the board in landscape', async ({ page }) => 
   const sum = page.locator('.flash-text.sum');
   await expect(sum).toBeVisible({ timeout: 6000 });
   await inside(sum);
+});
+
+test('the new sticker flies into the album button, which counts it', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await playPerfectRound(page);
+  await expect(page.getByTestId('new-sticker')).toBeVisible();
+  await expect(page.getByTestId('album-count')).toHaveText('0');
+  await expect(page.getByTestId('album-count')).toHaveText('1', { timeout: 5000 });
+  await expect(page.getByTestId('to-album')).toHaveClass(/\bbump\b/);
+});
+
+test('leaving the round end mid-animation leaves nothing behind', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await playPerfectRound(page);
+  await page.getByTestId('round-done').click();
+  await expect(page.getByTestId('tile-quantity')).toBeVisible();
+  await page.waitForTimeout(3000);
+  await expect(page.locator('.sticker-reveal, .rays')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('with reduced motion the sticker stays put and the count is final', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await playPerfectRound(page);
+  await expect(page.getByTestId('album-count')).toHaveText('1');
+  await page.waitForTimeout(3000);
+  await expect(page.locator('.sticker-reveal')).toBeVisible();
 });
