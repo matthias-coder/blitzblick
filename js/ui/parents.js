@@ -10,6 +10,7 @@ import {
 } from '../profiles.js';
 import { serializeExport, exportFilename, ImportError } from '../storage.js';
 import { summarize } from '../stats.js';
+import { currentComplexity } from '../session.js';
 import { formatSeconds } from '../util.js';
 import { toggle, segmented, durationSlider } from './controls.js';
 
@@ -111,6 +112,7 @@ function syllablesFieldset(s, apply) {
     h('p', { class: 'hint', 'data-testid': 'syllables-playable' },
       `Spielbar gerade: ${nSyl} Silben, ${pool.length - nSyl} Wörter – nur aus bekannten Buchstaben.`),
     h('p', { class: 'hint' }, 'Eigene Wörter, z. B. Namen aus der Familie. Silben mit | trennen (El|la) – ohne | trennt die App selbst.'),
+    h('p', { class: 'hint' }, 'Namen und Nomen bitte groß schreiben (Ella, Ball).'),
     h('form', { class: 'add-row', onSubmit: (e) => { e.preventDefault(); add(); } },
       input,
       h('button', { type: 'submit', class: 'secondary-btn candy candy-pill', 'data-testid': 'syllables-custom-add' }, 'Hinzufügen')),
@@ -142,8 +144,13 @@ function settingsTab(body, ctx, rerender) {
   const lockLetters = s.letters.known.length <= MIN_LETTERS;
   body.append(
     h('h2', {}, `Einstellungen für ${p.name}`),
-    fieldset('Übungsarten', EXERCISE_ORDER.map((id) => toggle(EXERCISES[id].title, s.exercises[id], (v) => apply({ exercises: { [id]: v } }), `ex-${id}`,
-      playable.length <= 1 && playable.includes(id)))),
+    fieldset('Übungsarten', EXERCISE_ORDER.flatMap((id) => [
+      toggle(EXERCISES[id].title, s.exercises[id], (v) => apply({ exercises: { [id]: v } }), `ex-${id}`,
+        playable.length <= 1 && playable.includes(id)),
+      s.exercises[id] && !EXERCISES[id].isAvailable(s)
+        ? h('p', { class: 'hint', 'data-testid': `ex-${id}-hidden` }, 'Im Menü gerade ausgeblendet – zu wenige bekannte Buchstaben.')
+        : null,
+    ])),
     fieldset('Anzeigedauer', [
       toggle('Automatisch anpassen', s.timing.adaptive, (v) => apply({ timing: { adaptive: v } }), 'timing-adaptive'),
       slider(s.timing.adaptive ? 'Startwert' : 'Feste Dauer', 'start'),
@@ -199,7 +206,7 @@ function progressTab(body, ctx) {
     const ex = EXERCISES[id];
     const lvl = p.levels[id];
     const maxC = ex.maxComplexity(p.settings);
-    const c = Math.min(lvl.complexity, maxC);
+    const c = currentComplexity(p, id);
     const sum = summarize(p.history, id);
     const duration = p.settings.timing.adaptive ? formatSeconds(lvl.durationMs) : `${formatSeconds(p.settings.timing.startMs)} (fest)`;
     body.append(h('div', { class: 'card stat', 'data-testid': `stat-${id}` },

@@ -144,7 +144,9 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .big-stars img { width: 64px; height: 64px; }
 .reveal { position: relative; display: grid; place-items: center; perspective: 800px; }
 .reveal > * { grid-area: 1 / 1; }
-.round-end > .reveal { z-index: 0; }
+.end-main { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+.end-main > * { position: relative; z-index: 1; }
+.end-main > .reveal { z-index: 0; }
 .rays { --rays: min(110vw, 70vh); position: absolute; left: 50%; top: 50%; margin: calc(var(--rays) / -2) 0 0 calc(var(--rays) / -2); width: var(--rays); aspect-ratio: 1; border-radius: 50%; pointer-events: none;
   background: repeating-conic-gradient(from 0deg, rgba(247, 200, 109, .55) 0 12deg, transparent 12deg 30deg);
   -webkit-mask: radial-gradient(closest-side, #000 35%, transparent); mask: radial-gradient(closest-side, #000 35%, transparent);
@@ -260,6 +262,24 @@ input[type="range"] { width: 100%; accent-color: var(--primary); height: 32px; }
 .big-stars { position: relative; display: grid; place-items: center; }
 .big-stars .big-star { width: clamp(96px, 26vw, 150px); height: auto; grid-area: 1 / 1; }
 .big-stars span { grid-area: 1 / 1; font-size: clamp(2rem, 7vw, 3rem); font-weight: 700; color: var(--ink); padding-top: 10%; }
+
+/* round end in phone landscape: text and prize left, the three buttons stacked on the right */
+@media (orientation: landscape) and (max-height: 500px) {
+  .round-end { flex-direction: row; gap: 4vw; padding: 3vh 16px; }
+  .end-main { flex: 0 1 auto; gap: 2vh; min-height: 0; }
+  .end-actions { flex-direction: column; gap: 2.5vh; }
+  .round-end .big-btn { width: min(88px, 21vh); height: min(88px, 21vh); }
+  .end-bubble { width: 22vh; }
+  .big-stars .big-star { width: 24vh; }
+  .big-stars span { font-size: 8vh; }
+  .sticker-reveal { width: 34vh; border-radius: 24px; }
+  .bonus { font-size: 8vh; }
+  .bonus img { width: 8vh; }
+  .sticker-hint { padding: 1.5vh 18px; font-size: min(1.3rem, 6vh); }
+  .unlock { font-size: 6vh; }
+  .unlock img { width: 8vh; }
+  .rays { --rays: 60vh; }
+}
 
 /* syllables & words */
 .flash-word { font-size: min(40cqh, calc(150 * min(1cqw, 1cqh) / (var(--len) + 1))); white-space: nowrap; padding: .05em .3em; }

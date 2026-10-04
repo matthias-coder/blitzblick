@@ -123,3 +123,37 @@ test('with adaptive timing off a round stays on the top regular stage', () => {
   let r = createRound(p, 'digits', rng);
   for (let i = 0; i < 20; i++) { r = nextTask(r, p, rng); assert.ok(!r.task.stimulus.add); r = answerTask(r, p, r.task.answer).round; }
 });
+
+test('currentComplexity follows fixed timing like the session does', async () => {
+  const { currentComplexity } = await import('../../js/session.js');
+  const { EXERCISES } = await import('../../js/exercises/index.js');
+  const p = updateSettings(profile(), { timing: { adaptive: false } });
+  const fixed = EXERCISES.digits.fixedComplexity(p.settings);
+  assert.equal(p.levels.digits.complexity < fixed, true);
+  assert.equal(currentComplexity(p, 'digits'), fixed);
+  const a = profile();
+  assert.equal(currentComplexity(a, 'digits'), Math.min(a.levels.digits.complexity, EXERCISES.digits.maxComplexity(a.settings)));
+});
+
+test('addition mistakes are not counted as confusions', () => {
+  const p = profile();
+  const r = {
+    exerciseId: 'digits', level: p.levels.digits,
+    results: [
+      { answer: '3', picked: '5', correct: false, add: true },
+      { answer: '3', picked: '5', correct: false, add: false },
+      { answer: '4', picked: '4', correct: true, add: false },
+    ],
+  };
+  assert.deepEqual(finishRound(p, r, mulberry32(1)).profile.history.at(-1).confusions, { '3>5': 1 });
+});
+
+test('answerTask flags addition results', () => {
+  const p = profile();
+  const rng = mulberry32(2);
+  const r = nextTask(createRound(p, 'digits', rng), p, rng);
+  const withAdd = { ...r, task: { ...r.task, stimulus: { add: true } } };
+  assert.equal(answerTask(withAdd, p, 'zzz').round.results[0].add, true);
+  const plain = { ...r, task: { ...r.task, stimulus: { text: '3' } } };
+  assert.equal(answerTask(plain, p, 'zzz').round.results[0].add, false);
+});

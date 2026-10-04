@@ -2,7 +2,7 @@ import { LETTERS } from './letters.js';
 
 export const VOWELS = ['A', 'E', 'I', 'O', 'U', 'Ä', 'Ö', 'Ü'];
 export const MAX_CUSTOM = 50;
-const VOWEL_UNITS = ['ei', 'ai', 'au', 'eu', 'äu', 'ie'];
+const VOWEL_UNITS = ['ei', 'ai', 'au', 'eu', 'äu', 'ie', 'aa', 'ee', 'oo'];
 const CONSONANT_UNITS = ['sch', 'ch', 'ck', 'qu'];
 // consonants that make readable consonant+vowel / vowel+consonant syllables
 const CV_CONSONANTS = ['B', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'R', 'S', 'T', 'W', 'Z'];
@@ -24,6 +24,9 @@ export const WORDS = [
   'Tor', 'Bus', 'Zug', 'Boot', 'Rol|ler', 'Pup|pe', 'Son|ne', 'Mond', 'Stern', 'Tul|pe', 'Ki|no',
   'Pi|rat', 'Mu|sik',
 ];
+
+// explicit whitelist: capitals plus lowercase forms (ı, ſ etc. must not slip in via toUpperCase)
+const ALLOWED = new Set([...LETTERS, ...LETTERS.map((l) => l.toLowerCase())]);
 
 export const letterKey = (c) => (c === 'ß' ? 'ß' : c.toUpperCase());
 const isUpper = (c) => typeof c === 'string' && c !== 'ß' && c === c.toUpperCase() && c !== c.toLowerCase();
@@ -67,7 +70,7 @@ export function wordLevel(parts) {
 export function parseCustomWord(input) {
   const raw = String(input ?? '').trim();
   const chars = [...raw.replaceAll('|', '')];
-  if (chars.some((c) => !LETTERS.includes(letterKey(c)))) return { error: 'Nur Buchstaben (A–Z, Ä, Ö, Ü, ß) und | sind erlaubt.' };
+  if (chars.some((c) => !ALLOWED.has(c))) return { error: 'Nur Buchstaben (A–Z, Ä, Ö, Ü, ß) und | sind erlaubt.' };
   if (chars.length < 2 || chars.length > 12) return { error: 'Ein Wort braucht 2 bis 12 Buchstaben.' };
   const pieces = raw.split('|');
   if (pieces.some((p) => p === '')) return { error: 'Vor und nach jedem | muss ein Buchstabe stehen.' };
@@ -108,7 +111,11 @@ export function buildPool(settings) {
     const key = text.toLowerCase();
     if (!entries.has(key) && playable(text)) entries.set(key, { text, parts, level });
   };
+  // a built-in word wins over a custom entry that differs only in case (exact matches keep the custom split)
+  const builtIn = new Map(WORDS.map((w) => w.replaceAll('|', '')).map((t) => [t.toLowerCase(), t]));
   for (const c of settings.syllables?.custom ?? []) {
+    const b = builtIn.get(c.text.toLowerCase());
+    if (b !== undefined && b !== c.text) continue;
     const parts = c.split.split('|');
     add(c.text, parts, wordLevel(parts));
   }

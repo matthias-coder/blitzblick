@@ -204,3 +204,16 @@ test('keyboard focus survives a settings change', async ({ page }) => {
   await expect.poll(async () => (await readState(page)).profiles[0].settings.speech).toBe('lots');
   await expect(page.getByTestId('speech-lots')).toBeFocused();
 });
+
+test('an enabled but currently hidden exercise gets an explanatory hint', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await openParents(page);
+  await expect(page.getByTestId('ex-syllables-hidden')).toHaveCount(0);
+  await page.getByTestId('letter-A').uncheck();
+  await page.getByTestId('letter-B').check();
+  await expect(page.getByTestId('ex-syllables')).toBeChecked();
+  await expect(page.getByTestId('ex-syllables-hidden')).toBeVisible();
+  await expect(page.getByTestId('ex-syllables-hidden')).toContainText('Im Menü gerade ausgeblendet');
+  await expect(page.getByTestId('ex-quantity-hidden')).toHaveCount(0);
+});

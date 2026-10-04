@@ -59,8 +59,11 @@ function variants(answer, keys) {
 export function buildDistractors(answer, pool, keys, rng) {
   const len = [...answer].length;
   const out = [];
+  const chars = [...answer];
+  // a capital letter is never swapped for ß ("ßofa")
+  const badEszett = (t) => [...t].some((c, i) => c === 'ß' && chars[i] !== undefined && chars[i] !== 'ß' && chars[i] === chars[i].toUpperCase() && chars[i] !== chars[i].toLowerCase());
   const add = (t) => {
-    if (out.length < 3 && t && t !== answer && !out.includes(t) && [...t].every((c) => keys.includes(letterKey(c)))) out.push(t);
+    if (out.length < 3 && t && t !== answer && !badEszett(t) && !out.includes(t) && [...t].every((c) => keys.includes(letterKey(c)))) out.push(t);
   };
   const { swaps, replacements } = variants(answer, keys);
   const s = shuffle(rng, swaps);
