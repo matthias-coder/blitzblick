@@ -2,9 +2,10 @@ import { h } from './dom.js';
 import { EXERCISES, EXERCISE_ORDER } from '../exercises/index.js';
 import { iconBtn, starBadge, avatarImg, uiIcon } from './widgets.js';
 import { attachLongPress } from './gate.js';
+import { objectUrl } from '../exercises/quantity.js';
 
 const TILE_CONTENT = {
-  quantity: () => h('span', { class: 'tile-apples' }, [0, 1, 2].map(() => h('img', { src: 'assets/objects/apple.svg', alt: '' }))),
+  quantity: () => h('span', { class: 'tile-apples' }, [0, 1, 2].map(() => h('img', { src: objectUrl('apple'), alt: '' }))),
   digits: () => '1 2 3',
   letters: () => 'A B C',
   syllables: () => h('span', { class: 'tile-syl' }, h('span', {}, 'Ma'), h('span', {}, 'ma')),

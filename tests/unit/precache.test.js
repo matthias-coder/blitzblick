@@ -5,7 +5,7 @@ import { listPrecache, computeVersion, renderBlock, ROOT } from '../../tools/upd
 
 test('precache list contains the core files', () => {
   const list = listPrecache(ROOT);
-  for (const f of ['./', './index.html', './manifest.webmanifest', './js/app.js', './css/app.css', './assets/objects/apple.svg', './assets/icons/icon-192.png']) {
+  for (const f of ['./', './index.html', './manifest.webmanifest', './js/app.js', './css/app.css', './assets/objects/apple.png', './assets/icons/icon-192.png']) {
     assert.ok(list.includes(f), f);
   }
   assert.ok(!list.some((f) => f.includes('tests/') || f.includes('tools/') || f.includes('node_modules')));

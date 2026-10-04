@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.0] – 2026-10-04
+
+- Neue Zählobjekte im Stil der Avatare: Apfel, Ente, Marienkäfer, Fisch, Auto, Luftballon
+- Fünf neue Sticker-Seiten mit je 8 Stickern: Spielzeug, Leckereien, Küche, Zauberei, Mein Zimmer (insgesamt jetzt 80 Sticker)
+
 ## [1.2.0] – 2026-10-04
 
 - Neue Übung „Silben & Wörter“: Silben und kurze Wörter nur aus bekannten Buchstaben, immer korrekt groß/klein geschrieben

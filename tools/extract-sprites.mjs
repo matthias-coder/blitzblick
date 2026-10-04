@@ -1,4 +1,4 @@
-// Usage: node tools/extract-sprites.mjs [avatars|chef|decor|mascot|sheet|all]
+// Usage: node tools/extract-sprites.mjs [avatars|chef|decor|mascot|sheets|sheet [prefix]|all]
 // Reads _lokal/source/*.jpg, writes _lokal/extracted/**. Needs @playwright/test chromium (decode/encode only).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -133,9 +133,63 @@ if (mode === 'mascot' || mode === 'all') {
     save('mascot/' + name + '.png', await encodePng(page, sp.data, sp.w, sp.h, 512, 512));
   }
 }
+if (mode === 'sheets' || mode === 'all') {
+  // Object/sticker sheets (v1.3): regular grids on white. Every component is assigned to the grid cell of its centroid,
+  // so detached bits (steam, sparkles, spoon) stay with their motif. White die-cut borders and grey shadows flood away.
+  const SHEETS = {
+    a: ['216ca0e6-b029-4162-b05c-2c7e38c7e3f5.jpg', [3, 3, 3]],
+    b: ['75c28c76-4f89-427a-958c-4621bc213d2c.jpg', [3, 3, 3], 150],
+    c: ['776f5434-5b6c-40d5-b256-20882173e6f3.jpg', [3, 3, 3], 150],
+    d: ['be71305d-4bc8-4a26-9e1d-560d2771ca0d.jpg', [4, 4, 4, 4], 150],
+    e: ['Gemini_Generated_Image_3aoa333aoa333aoa.jpg', [3, 3, 3]],
+    f: ['Gemini_Generated_Image_sonn79sonn79sonn.jpg', [3, 3, 4]],
+  };
+  // [sheet, row, col, output path]
+  const CUTS = [
+    ['e', 1, 0, 'objects/apple'], ['e', 2, 0, 'objects/duck'], ['a', 0, 2, 'objects/ladybug'],
+    ['a', 2, 0, 'objects/fish'], ['f', 0, 2, 'objects/car'], ['f', 2, 2, 'objects/balloon'],
+    ['a', 0, 0, 'stickers/toys/train'], ['a', 0, 1, 'stickers/toys/hotairballoon'], ['e', 0, 0, 'stickers/toys/helicopter'],
+    ['e', 0, 1, 'stickers/toys/rocket'], ['e', 0, 2, 'stickers/toys/sailboat'], ['e', 2, 1, 'stickers/toys/yoyo'],
+    ['f', 2, 3, 'stickers/toys/blocks'], ['a', 1, 2, 'stickers/toys/teddy'],
+    ['a', 2, 1, 'stickers/treats/icecream'], ['f', 0, 1, 'stickers/treats/cake'], ['c', 0, 1, 'stickers/treats/grapes'],
+    ['c', 0, 2, 'stickers/treats/banana'], ['d', 3, 1, 'stickers/treats/cocoa'], ['e', 1, 1, 'stickers/treats/cheese'],
+    ['b', 1, 2, 'stickers/treats/watermelon'], ['d', 0, 0, 'stickers/treats/strawberry'],
+    ['b', 0, 0, 'stickers/kitchen/bread'], ['b', 0, 1, 'stickers/kitchen/spatula'], ['b', 0, 2, 'stickers/kitchen/mug'],
+    ['b', 1, 1, 'stickers/kitchen/whisk'], ['b', 2, 0, 'stickers/kitchen/rollingpin'], ['b', 2, 1, 'stickers/kitchen/salad'],
+    ['b', 2, 2, 'stickers/kitchen/pot'], ['e', 1, 2, 'stickers/kitchen/cereal'],
+    ['d', 0, 1, 'stickers/magic/spellbook'], ['d', 0, 3, 'stickers/magic/crystals'], ['d', 1, 0, 'stickers/magic/wand'],
+    ['d', 1, 1, 'stickers/magic/potion'], ['d', 1, 2, 'stickers/magic/broom'], ['d', 3, 3, 'stickers/magic/telescope'],
+    ['d', 2, 2, 'stickers/magic/globe'], ['d', 2, 0, 'stickers/magic/camera'],
+    ['a', 1, 1, 'stickers/room/pencils'], ['a', 2, 2, 'stickers/room/backpack'], ['e', 2, 2, 'stickers/room/book'],
+    ['d', 1, 3, 'stickers/room/headphones'], ['d', 3, 2, 'stickers/room/sneakers'], ['d', 3, 0, 'stickers/room/flowers'],
+    ['c', 1, 0, 'stickers/room/cat'], ['f', 1, 1, 'stickers/room/drawingbook'],
+  ];
+  for (const [key, [file, rowCols, lightMin = 200]] of Object.entries(SHEETS)) {
+    const cuts = CUTS.filter((c) => c[0] === key);
+    if (!cuts.length) continue;
+    const img = await decode(page, SRC + file);
+    const bg = floodBg(img, lightGrey(lightMin, 38)); // sheets with sticker shadows need a lower threshold
+    const { labels, comps } = components(bg.map(v => 1 - v), img.w, img.h);
+    const minArea = (img.w * img.h) / 40000; // drop JPEG speckles
+    const cellOf = (c) => {
+      const row = Math.min(rowCols.length - 1, Math.floor(c.cy / (img.h / rowCols.length)));
+      return [row, Math.min(rowCols[row] - 1, Math.floor(c.cx / (img.w / rowCols[row])))];
+    };
+    for (const [, row, col, out] of cuts) {
+      const cs = comps.filter((c) => c.area >= minArea && cellOf(c).join() === `${row},${col}`);
+      const ids = new Set(cs.map(c => c.id));
+      const fg = new Uint8Array(img.w * img.h);
+      for (let i = 0; i < fg.length; i++) if (ids.has(labels[i])) fg[i] = 1;
+      const sp = squarePad(makeSprite(img, fg, bb(cs)), 0.04);
+      console.log(out, 'parts', cs.length);
+      save(out + '.png', await encodePng(page, sp.data, sp.w, sp.h, 512, 512));
+    }
+  }
+}
 if (mode === 'sheet' || mode === 'all') {
   const items = [];
-  for (const d of ['avatars', 'decor', 'mascot']) {
+  const STICKER_DIRS = fs.existsSync(OUT + 'stickers') ? fs.readdirSync(OUT + 'stickers').map((d) => 'stickers/' + d) : [];
+  for (const d of ['avatars', 'decor', 'mascot', 'objects', ...STICKER_DIRS]) {
     const dir = OUT + d; if (!fs.existsSync(dir)) continue;
     for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.png')).sort()) items.push({ name: d + '/' + f.replace('.png', ''), b64: fs.readFileSync(path.join(dir, f)).toString('base64') });
   }

@@ -2,6 +2,8 @@
 // Usage: node tools/build-raster-assets.mjs
 import fs from 'node:fs';
 import { openBrowser, decodePng } from './sprite-lib.mjs';
+import { OBJECTS } from '../js/exercises/quantity.js';
+import { PAGES } from '../js/rewards.js';
 
 const AVATARS = ['astronaut', 'monster', 'superhero', 'knight', 'dino', 'dragon', 'pony', 'taco', 'singer', 'cat', 'fairy', 'chef'];
 const DECOR = ['star-big', 'badge-winner', 'bubble-yay', 'bubble-wow', 'confetti-1', 'confetti-2', 'confetti-3', 'confetti-4', 'confetti-5', 'confetti-6'];
@@ -10,6 +12,8 @@ const jobs = [
   ...AVATARS.map((a) => ({ from: `avatars/${a}.png`, to: `avatars/${a}.png`, square: 256 })),
   ...DECOR.map((d) => ({ from: `decor/${d}.png`, to: `decor/${d}.png`, max: 320 })),
   { from: 'mascot/robot-wave.png', to: 'mascot/robot-wave.png', max: 400 },
+  ...OBJECTS.map((o) => ({ from: `objects/${o}.png`, to: `objects/${o}.png`, square: 256 })),
+  ...PAGES.filter((p) => p.format === 'png').flatMap((p) => p.stickers.map((s) => ({ from: `stickers/${p.id}/${s}.png`, to: `stickers/${p.id}/${s}.png`, square: 256 }))),
 ];
 
 const { browser, page } = await openBrowser();
@@ -28,7 +32,7 @@ for (const j of jobs) {
     x.drawImage(img, 0, 0, outW, outH);
     return c.toDataURL('image/png').split(',')[1];
   }, { b64: buf.toString('base64'), outW, outH });
-  fs.mkdirSync(`assets/${j.to.split('/')[0]}`, { recursive: true });
+  fs.mkdirSync(`assets/${j.to.slice(0, j.to.lastIndexOf('/'))}`, { recursive: true });
   fs.writeFileSync(`assets/${j.to}`, Buffer.from(out, 'base64'));
   console.log(j.to, `${w}x${h} -> ${outW}x${outH}`);
 }

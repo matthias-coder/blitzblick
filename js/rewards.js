@@ -6,13 +6,19 @@ export const PAGES = [
   { id: 'space', title: 'Weltraum', stickers: ['rocket', 'moon', 'sun', 'planet', 'star', 'astronaut', 'ufo', 'comet'] },
   { id: 'sea', title: 'Meer', stickers: ['fish', 'octopus', 'crab', 'whale', 'starfish', 'seahorse', 'jellyfish', 'shell'] },
   { id: 'dinos', title: 'Dinos', stickers: ['trex', 'stegosaurus', 'triceratops', 'brachiosaurus', 'pterodactyl', 'egg', 'volcano', 'footprint'] },
+  { id: 'toys', title: 'Spielzeug', format: 'png', stickers: ['teddy', 'train', 'hotairballoon', 'helicopter', 'rocket', 'sailboat', 'yoyo', 'blocks'] },
+  { id: 'treats', title: 'Leckereien', format: 'png', stickers: ['icecream', 'cake', 'grapes', 'banana', 'cocoa', 'cheese', 'watermelon', 'strawberry'] },
+  { id: 'kitchen', title: 'Küche', format: 'png', stickers: ['pot', 'bread', 'spatula', 'mug', 'whisk', 'rollingpin', 'salad', 'cereal'] },
+  { id: 'magic', title: 'Zauberei', format: 'png', stickers: ['wand', 'spellbook', 'crystals', 'potion', 'broom', 'telescope', 'globe', 'camera'] },
+  { id: 'room', title: 'Mein Zimmer', format: 'png', stickers: ['cat', 'pencils', 'backpack', 'book', 'headphones', 'sneakers', 'flowers', 'drawingbook'] },
 ];
+const FORMAT = Object.fromEntries(PAGES.map((p) => [p.id, p.format ?? 'svg']));
 export const STARS_PER_PAGE = 50;
 export const BONUS_STARS = 3;
 export const STICKER_MIN_CORRECT = 8;
 
 export const stickerId = (page, name) => `${page}/${name}`;
-export const stickerUrl = (id) => `assets/stickers/${id}.svg`;
+export const stickerUrl = (id) => `assets/stickers/${id}.${FORMAT[id.split('/')[0]] ?? 'svg'}`;
 
 export function unlockedPagesFor(stars) {
   return Math.min(PAGES.length, 1 + Math.floor(stars / STARS_PER_PAGE));

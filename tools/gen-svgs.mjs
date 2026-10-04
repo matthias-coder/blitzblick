@@ -26,14 +26,8 @@ const out = (path, b) => { const u = new URL(path, ROOT); fs.mkdirSync(new URL('
 const wheel = (cx, cy, rr = 9) => c(cx, cy, rr, GR) + c(cx, cy, rr * 0.4, W);
 const smile = (cx, cy, w = 10) => ln(`M${cx - w / 2} ${cy}q${w / 2} ${w / 2} ${w} 0`);
 
-// ---- objects
-out('objects/apple.svg', `<path d="M50 30c-8-8-30-8-34 12-4 22 12 46 26 46 4 0 6-2 8-2s4 2 8 2c14 0 30-24 26-46-4-20-26-20-34-12z" fill="${R}" ${OL}/><path d="M50 30c0-8 2-14 6-18" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round"/><path d="M56 20c6-8 16-8 20-4-4 6-12 8-20 4z" fill="${G}" ${OL}/>`);
-out('objects/ball.svg', [0, 1, 2, 3, 4, 5].map((i) => p(wedge(50, 50, 40, i * 60, i * 60 + 60), [R, W, B][i % 3])).join('') + c(50, 50, 6, Y) + `<circle cx="50" cy="50" r="40" fill="none" ${OL}/>`);
-out('objects/star.svg', g('50,6 63,36 95,38 70,59 78,92 50,74 22,92 30,59 5,38 37,36', Y));
-out('objects/fish.svg', p('M12 50C24 30 52 26 70 44l18-14v40L70 56C52 74 24 70 12 50z', B) + p('M40 31C46 22 58 24 62 34', O) + ln('M46 40c4 6 4 14 0 20') + c(28, 46, 5, W) + dot(29, 46, 2));
-out('objects/flower.svg', [0, 1, 2, 3, 4].map((i) => { const a = (i * 72 - 90) * Math.PI / 180; return c(n(50 + 24 * Math.cos(a)), n(50 + 24 * Math.sin(a)), 17, R); }).join('') + c(50, 50, 13, Y));
+// quantity objects are raster cut-outs since v1.3 (tools/extract-sprites.mjs sheets)
 const carSvg = (body) => p('M24 52L36 30H64L78 52Z', body) + r(8, 50, 84, 24, body, 7) + p('M31 49L39 34H49V49Z', W) + p('M53 34H62L72 49H53Z', W) + e(88, 58, 4, 5, Y) + wheel(28, 74, 11) + wheel(72, 74, 11);
-out('objects/car.svg', carSvg(R));
 
 // ---- ui icons (single ink colour)
 const sw = (d, w = 11) => `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
