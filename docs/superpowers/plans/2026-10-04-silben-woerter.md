@@ -20,6 +20,7 @@
 - Custom words: only letters from `LETTERS` (any case) plus `|`; 2–12 letters; max 50; case-insensitive duplicates rejected.
 - Exercise id `syllables`, title `Silben & Wörter`, after `letters` in `EXERCISE_ORDER`; defaults `exercises.syllables: true`, `syllables: { colors: true, custom: [] }`.
 - Version 1.2.0.
+- Parent area long-press: 1500 ms (was 3000 ms); the gate challenge itself stays unchanged.
 
 ## Review Focus
 
@@ -848,7 +849,73 @@ git commit -m "feat: add syllables section with custom words to the parent area"
 
 ---
 
-### Task 5: Release 1.2.0
+### Task 5: Shorter long-press for the parent area (1.5 s)
+
+**Files:**
+- Modify: `js/ui/menu.js:15-17`, `js/ui/profiles.js:29`, `css/app.css:41`, `tests/e2e/helpers.js:27`, `tests/e2e/parents.spec.js` (first test)
+
+**Interfaces:**
+- Consumes: `attachLongPress(el, ms, onDone)` from `js/ui/gate.js` (unchanged).
+- Produces: gear opens the parent gate after 1500 ms; the ring animation matches.
+
+- [ ] **Step 1: Tighten the e2e test** – in `tests/e2e/parents.spec.js`, first test, the short press must stay below the new threshold and a 1.6 s press must open the gate. Replace the first test with:
+
+```js
+test('a short press does not open the parent area, 1.5 s does, a wrong answer returns to the menu', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await longPress(page, page.getByTestId('gear'), 1000);
+  await expect(page.getByTestId('tile-quantity')).toBeVisible();
+  await longPress(page, page.getByTestId('gear'), 1600);
+  await expect(page.getByTestId('gate-answer')).toBeVisible();
+  await page.getByTestId('gate-answer').fill('1');
+  await page.getByTestId('gate-submit').click();
+  await expect(page.getByTestId('tile-quantity')).toBeVisible();
+});
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `npx playwright test tests/e2e/parents.spec.js -g "short press"`
+Expected: FAIL – `gate-answer` not visible after 1.6 s (still 3 s).
+
+- [ ] **Step 3: Implement**
+
+`js/ui/menu.js`:
+
+```js
+  const gear = iconBtn('gear', 'Elternbereich: 1,5 Sekunden gedrückt halten', null, 'gear');
+  gear.classList.add('gear');
+  attachLongPress(gear, 1500, () => ctx.go('parents'));
+```
+
+`js/ui/profiles.js:29` – text becomes: `'Lege ein Profil für dein Kind an. Weitere Einstellungen findest du später im Elternbereich: Zahnrad oben rechts 1,5 Sekunden gedrückt halten.'`
+
+`css/app.css:41`:
+
+```css
+.gear.pressing::after { animation: ring 1.5s linear forwards; }
+```
+
+`tests/e2e/helpers.js:27` – default hold time: `export async function longPress(page, locator, ms = 1800) {`
+
+`README.md:8` – `(Zahnrad 3 s halten)` → `(Zahnrad 1,5 s halten)`.
+
+- [ ] **Step 4: Run to verify it passes**
+
+Run: `npm run precache && npx playwright test tests/e2e/parents.spec.js`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add js/ui/menu.js js/ui/profiles.js css/app.css sw.js README.md tests/e2e/helpers.js tests/e2e/parents.spec.js
+git commit -m "feat: open the parent area after a 1.5 s long press"
+```
+
+---
+
+### Task 6: Release 1.2.0
 
 **Files:**
 - Modify: `package.json`, `package-lock.json` (version), `CHANGELOG.md` (top), `README.md` (exercise list, if it lists exercises)
@@ -868,6 +935,7 @@ Expected: `v1.2.0`
 - Silben farbig (blau/rot) zur Lesehilfe, im Elternbereich abschaltbar
 - Eigene Wörter (z. B. Familiennamen) im Elternbereich, mit optionaler Silbentrennung per |
 - Im Modus „Viel“ spricht die Lösung zuerst in Silben („El – la. Ella.“)
+- Elternbereich öffnet schon nach 1,5 Sekunden Halten des Zahnrads (statt 3)
 ```
 
 - [ ] **Step 3: README** – run `grep -n "Buchstaben" README.md`; where exercises are listed, add „Silben & Wörter“ next to Mengen, Zahlen, Buchstaben. Skip if no such list.
