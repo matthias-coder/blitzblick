@@ -47,6 +47,10 @@ export const PATTERNS = {
   ring: { min: 3, max: 8, fn: ring },
 };
 
+// finger pictures as a further structured picture (1–10): the first hand is full above 5, as children count
+export const FINGER_SHARE = 0.25;
+export const fingerHands = (n) => (n <= 5 ? [n] : [5, n - 5]);
+
 // two ten-frames on top of each other, filled row by row (11–20)
 export function twentyFrame(count) {
   const ys = [0.17, 0.37, 0.63, 0.83];

@@ -1,6 +1,7 @@
 import { randInt, pick } from '../rng.js';
 import { ALL_PAGES, stickerId, stickerUrl } from '../rewards.js';
-import { layoutPositions } from './quantity-layout.js';
+import { layoutPositions, fingerHands, FINGER_SHARE } from './quantity-layout.js';
+import { handSvgMarkup } from '../ui/hands.js';
 import { buildChoices } from './choices.js';
 import { h } from '../ui/dom.js';
 import { renderChoiceButtons } from '../ui/choice-buttons.js';
@@ -88,11 +89,16 @@ export function createTask(step, settings, rng, ctx = { object: OBJECTS[0] }) {
   }
   const count = randInt(rng, 1, step.max);
   const mode = step.layout === 'mixed' ? (rng() < 0.5 ? 'structured' : 'random') : step.layout;
+  const choices = Array.from({ length: step.max }, (_, i) => i + 1);
+  if (mode === 'structured' && count <= 10 && ctx.lastPattern !== 'fingers' && rng() < FINGER_SHARE) {
+    ctx.lastPattern = 'fingers';
+    return { exercise: id, stimulus: { count, object: ctx.object, fingers: true, hands: fingerHands(count) }, answer: count, choices };
+  }
   return {
     exercise: id,
     stimulus: { count, object: ctx.object, positions: layoutPositions(count, mode, rng, ctx) },
     answer: count,
-    choices: Array.from({ length: step.max }, (_, i) => i + 1),
+    choices,
   };
 }
 
@@ -111,6 +117,14 @@ export function renderStimulus(task, el) {
     el.replaceChildren(h('div', { class: 'compare-row', 'data-testid': 'compare-stimulus' },
       field(st.objectLeft, st.positionsLeft, 'field', st.scaleLeft),
       field(st.objectRight, st.positionsRight, 'field', st.scaleRight)));
+    return;
+  }
+  if (st.fingers) {
+    el.replaceChildren(h('div', { class: 'hands', 'data-testid': 'finger-stimulus' }, st.hands.map((n) => {
+      const hand = h('span', { class: 'hand' });
+      hand.innerHTML = handSvgMarkup(n);
+      return hand;
+    })));
     return;
   }
   el.replaceChildren(st.add

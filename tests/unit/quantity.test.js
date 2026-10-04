@@ -29,7 +29,8 @@ test('count is within 1..max and choices are 1..max for regular steps', () => {
         const t = quantity.createTask(st, S, mulberry32(seed), ctx);
         assert.ok(t.answer >= 1 && t.answer <= st.max);
         assert.equal(t.stimulus.count, t.answer);
-        assert.equal(t.stimulus.positions.length, t.answer);
+        if (t.stimulus.fingers) assert.equal(t.stimulus.hands.reduce((a, b) => a + b, 0), t.answer);
+        else assert.equal(t.stimulus.positions.length, t.answer);
         assert.deepEqual(t.choices, Array.from({ length: st.max }, (_, i) => i + 1));
         assert.equal(t.stimulus.object, ctx.object);
       }
@@ -227,4 +228,26 @@ test('compare speech: prompt and solutions', () => {
   assert.deepEqual(quantity.speakSolution(cmpTask(7, 4)), ['Links waren mehr: 7 gegen 4.']);
   assert.deepEqual(quantity.speakSolution(cmpTask(3, 8)), ['Rechts waren mehr: 8 gegen 3.']);
   assert.deepEqual(quantity.speakSolution(cmpTask(5, 5)), ['Es waren gleich viele.']);
+});
+
+test('structured counts up to 10 sometimes show fingers, never twice in a row, never scattered or twenty', () => {
+  let fingers = 0;
+  for (let seed = 0; seed < 100; seed++) {
+    const rng = mulberry32(seed);
+    const ctx = quantity.prepareRound(rng);
+    let prev = false;
+    for (let i = 0; i < 10; i++) {
+      const t = quantity.createTask(step('g1', 0, 2), S, rng, ctx);
+      const f = Boolean(t.stimulus.fingers);
+      if (f) {
+        fingers++;
+        assert.ok(!prev);
+        assert.equal(t.stimulus.hands.reduce((a, b) => a + b, 0), t.answer);
+      }
+      prev = f;
+    }
+    const scattered = quantity.createTask({ max: 10, layout: 'random' }, S, rng, quantity.prepareRound(rng));
+    assert.ok(!scattered.stimulus.fingers);
+  }
+  assert.ok(fingers > 100 && fingers < 350, String(fingers));
 });
