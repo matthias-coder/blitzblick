@@ -2,7 +2,7 @@ import { h } from './dom.js';
 import { uiIcon } from './widgets.js';
 import { stickerUrl, STICKER_MIN_CORRECT } from '../rewards.js';
 import { ROUND_LENGTH } from '../session.js';
-import { PRAISE, STICKER, BONUS, ALMOST, levelUpText } from '../phrases.js';
+import { PRAISE, STICKER, BONUS, ALMOST, SECRET, levelUpText } from '../phrases.js';
 
 const decor = (name, cls) => h('img', { class: cls, src: `assets/decor/${name}.webp`, alt: '' });
 export const HOLD_MS = 1800;
@@ -51,7 +51,7 @@ export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
   const track = (x) => (typeof x === 'number' ? timers.push(x) : animations.push(x));
   const rays = h('div', { class: 'rays', 'aria-hidden': 'true' });
   const card = reward.sticker ? h('div', { class: 'sticker-reveal' }, h('img', { src: stickerUrl(reward.sticker), alt: '' })) : null;
-  const prize = !reward.earned
+  const prize = !reward.earned && !reward.secret
     ? h('div', { class: 'sticker-hint', 'data-testid': 'sticker-hint' },
       uiIcon('lock'), h('span', {}, `${correct} von ${ROUND_LENGTH} – ab ${STICKER_MIN_CORRECT} gibt's einen Sticker`))
     : card
@@ -96,7 +96,7 @@ export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
   if (card && motion) playReveal({ card, rays, target: albumBtn, count, total }, track);
   ctx.sounds.fanfare();
   const praise = ctx.pick('praise', PRAISE[share(correct) >= GREAT ? 'great' : share(correct) >= GOOD ? 'good' : 'practiced']);
-  const news = !reward.earned ? ctx.pick('almost', ALMOST) : reward.sticker ? ctx.pick('sticker', STICKER) : ctx.pick('bonus', BONUS);
+  const news = reward.secret ? ctx.pick('secret', SECRET) : !reward.earned ? ctx.pick('almost', ALMOST) : reward.sticker ? ctx.pick('sticker', STICKER) : ctx.pick('bonus', BONUS);
   ctx.speech.speak([praise, reward.levelUp ? levelUpText(reward.levelUp.from) : null, news].filter(Boolean).join(' '));
   return () => { timers.forEach(clearTimeout); animations.forEach((a) => a.cancel()); };
 }

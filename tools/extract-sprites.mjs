@@ -2,7 +2,8 @@
 // Reads _lokal/source/*.jpg, writes _lokal/extracted/**. Needs @playwright/test chromium (decode/encode only).
 import fs from 'node:fs';
 import path from 'node:path';
-import { PAGES } from '../js/rewards.js';
+import { PAGES as LEVEL_PAGES, SECRET_PAGE } from '../js/rewards.js';
+const PAGES = [...LEVEL_PAGES, SECRET_PAGE];
 import { openBrowser, decode, encodePng, decodePng, floodBg, lightGrey, components, dilate, makeSprite, squarePad, trim } from './sprite-lib.mjs';
 
 const SRC = '_lokal/source/', OUT = '_lokal/extracted/';
@@ -162,6 +163,8 @@ if (mode === 'sheets' || mode === 'all') {
     // v1.7: level celebration, one motif each on white (sparkles stay with it)
     trophy: ['robot-trophy.jpg', [1]],
     medal: ['medal.jpg', [1]],
+    // v1.7.1: secret page (easter egg), 4×2 on beige
+    mischief: ['sticker-quatsch-2-evil.jpg', [4, 4]],
   };
   const PAGE_SHEETS = Object.keys(SHEETS).filter((k) => k.length > 1 && !['blockworld', 'menu', 'trophy', 'medal'].includes(k));
   // [sheet, row, col, output path]

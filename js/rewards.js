@@ -20,6 +20,9 @@ export const PAGES = [
   { id: 'cooking', title: 'Kochen', exercise: 'syllables', level: 2, stickers: ['pan', 'ladle', 'kettle', 'toaster', 'grater', 'colander', 'ovenmitt', 'bowl'] },
   { id: 'magic', title: 'Zauberei', exercise: 'syllables', level: 3, stickers: ['wand', 'spellbook', 'crystals', 'potion', 'broom', 'telescope', 'globe', 'camera'] },
 ];
+// easter egg: hidden page, filled only by rounds with no correct answer (one sticker per day); not part of the level grid
+export const SECRET_PAGE = { id: 'mischief', title: 'Unfug-Bande', stickers: ['toast', 'toaster', 'finger', 'bubbletea', 'broccoli', 'shroomrider', 'yarncat', 'melon'] };
+
 export const BONUS_STARS = 3;
 export const STICKER_MIN_CORRECT = 4;
 
@@ -33,8 +36,9 @@ export const isPageVisible = (rewards, page) => isPageOpen(rewards.reached, page
 
 const missingOn = (rewards, pages) => pages.flatMap(idsOf).filter((id) => !rewards.stickers.includes(id));
 
-// sticker from the page just played, else another open page of that exercise, else any open page; all full → bonus stars
-export function applyRoundRewards(rewards, correct, rng, { exercise, level, reached = rewards.reached }) {
+// sticker from the page just played, else another open page of that exercise, else any open page; all full → bonus stars.
+// No correct answer at all: a missing secret sticker, at most one per day (today = local date string)
+export function applyRoundRewards(rewards, correct, rng, { exercise, level, reached = rewards.reached, today = null }) {
   const open = PAGES.filter((p) => isPageOpen(reached, p));
   const earned = correct >= STICKER_MIN_CORRECT;
   let sticker = null;
@@ -47,9 +51,15 @@ export function applyRoundRewards(rewards, correct, rng, { exercise, level, reac
     }
     if (!sticker) bonusStars = BONUS_STARS;
   }
+  let secret = false;
+  if (correct === 0 && today && rewards.secretDay !== today) {
+    const missing = missingOn(rewards, [SECRET_PAGE]);
+    if (missing.length) { sticker = pick(rng, missing); secret = true; }
+  }
   return {
     rewards: {
       ...rewards,
+      ...(secret ? { secretDay: today } : {}),
       stars: rewards.stars + correct + bonusStars,
       stickers: sticker ? [...rewards.stickers, sticker] : [...rewards.stickers],
       reached: { ...reached },
@@ -57,6 +67,7 @@ export function applyRoundRewards(rewards, correct, rng, { exercise, level, reac
     sticker,
     bonusStars,
     earned,
+    secret,
     newlyUnlockedPages: PAGES.filter((p) => isPageOpen(reached, p) && !isPageOpen(rewards.reached, p)).map((p) => p.id),
   };
 }
