@@ -99,7 +99,7 @@ test('profiles can be added, renamed and deleted; deleting the last shows the cr
   await page.getByTestId(`delete-${benId}`).click();
   expect((await readState(page)).profiles).toHaveLength(0);
   await page.getByTestId('close-parents').click();
-  await expect(page.getByTestId('create-profile')).toBeVisible();
+  await expect(page.getByTestId('welcome-start')).toBeVisible();
 });
 
 test('at least two known letters and one exercise stay enabled', async ({ page }) => {

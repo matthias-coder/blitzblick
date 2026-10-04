@@ -2,6 +2,19 @@ import { h } from './dom.js';
 import { avatarImg } from './widgets.js';
 import { AVATARS, AVATAR_LABELS, createProfile, addProfile, setActive } from '../profiles.js';
 
+const WELCOME = 'Hallo! Schön, dass du da bist.';
+
+function renderWelcome(root, ctx) {
+  root.append(h('main', { class: 'center welcome-step', 'data-testid': 'welcome' },
+    h('img', { class: 'welcome-robot', src: 'assets/mascot/robot-wave.webp', alt: '' }),
+    h('p', { class: 'bubble bubble-up' }, WELCOME),
+    h('button', {
+      class: 'candy candy-pill is-primary welcome-go', type: 'button', 'data-testid': 'welcome-start',
+      onClick: () => { ctx.speech.cancel(); root.replaceChildren(); renderCreate(root, ctx); },
+    }, 'Los geht\'s')));
+  ctx.speech.speak(WELCOME, { extra: true });
+}
+
 function renderCreate(root, ctx) {
   let avatar = AVATARS[0];
   const name = h('input', { id: 'profile-name', type: 'text', maxlength: '20', autocomplete: 'off', placeholder: 'Name des Kindes' });
@@ -36,7 +49,7 @@ function renderCreate(root, ctx) {
 
 export function render(root, ctx) {
   const { profiles } = ctx.state;
-  if (!profiles.length) return renderCreate(root, ctx);
+  if (!profiles.length) return renderWelcome(root, ctx);
   root.append(h('main', { class: 'profile-picker' }, profiles.map((p) => h('button', {
     class: 'profile-card candy candy-pill',
     'data-testid': `profile-${p.id}`,

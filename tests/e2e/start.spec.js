@@ -3,6 +3,9 @@ import { seed, readState } from './helpers.js';
 
 test('first start asks for a profile and then shows the menu', async ({ page }) => {
   await page.goto('/');
+  await expect(page.getByTestId('welcome')).toContainText('Hallo! Schön, dass du da bist.');
+  await expect(page.getByTestId('create-profile')).toHaveCount(0);
+  await page.getByTestId('welcome-start').click();
   await page.getByTestId('create-profile').click();
   await expect(page.locator('.form-msg')).toHaveText(/Namen/);
   await page.locator('#profile-name').fill('Mia');
@@ -43,6 +46,7 @@ test('with two profiles the picker is shown and switches the active profile', as
 test('star badge shows the profile stars', async ({ page }) => {
   await seed(page, (p) => { p.rewards.stars = 42; });
   await page.goto('/');
+  await expect(page.getByTestId('welcome')).toHaveCount(0);
   await expect(page.getByTestId('star-badge')).toHaveText('42');
 });
 
