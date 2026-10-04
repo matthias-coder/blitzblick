@@ -267,3 +267,18 @@ test('all levels mastered shows the medal and suggests the next grade', async ({
   await expect(done).toContainText('Alle Level geschafft – nächste Klassenstufe?');
   await expect(done.locator('img')).toHaveAttribute('src', 'assets/decor/medal.webp');
 });
+
+test('the gear also opens with a held Enter key, a short key press does not', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  const gear = page.getByTestId('gear');
+  await gear.focus();
+  await page.keyboard.down('Enter');
+  await page.waitForTimeout(500);
+  await page.keyboard.up('Enter');
+  await expect(page.getByTestId('gate-question')).toHaveCount(0);
+  await page.keyboard.down('Enter');
+  await page.waitForTimeout(1800);
+  await page.keyboard.up('Enter');
+  await expect(page.getByTestId('gate-question')).toBeVisible();
+});

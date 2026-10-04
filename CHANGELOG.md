@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.8.1] – 2026-10-04
+
+- Blitzwörter mit breiten Buchstaben (z. B. „Mama“, „Oma“) werden nicht mehr rechts abgeschnitten; lange Wörter auf den Antwortknöpfen passen auch auf schmalen Handys
+- Kräftigere Farben für Richtig, Falsch, Hinweise und Sticker-Zähler – besser lesbar
+- Elternbereich auch per Tastatur: Enter oder Leertaste 1,5 Sekunden halten
+- Bildschirmleser hören die Frage und ob die Antwort richtig war; der Tastaturfokus bleibt in der Runde
+- Zoomen mit zwei Fingern ist wieder möglich
+- Knopf „Tüte öffnen“ wieder einzeilig mit kleinem Stern
+- Schalter und Eingabefelder im Elternbereich mit deutlicherem Rand, gut sichtbarer Fokus in der Kopfleiste
+
 ## [1.8.0] – 2026-10-04
 
 - Sticker-Tausch: Sterne werden im Album gegen Sticker-Tüten getauscht (Level 1–4: 10/15/20/25, Bonusseiten: 30 Sterne). Es gibt keine automatischen Sticker mehr

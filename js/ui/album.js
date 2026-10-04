@@ -33,7 +33,7 @@ export function render(root, ctx, { highlight = null, page = null } = {}) {
     return h('button', {
       class: 'candy pack-btn', 'data-testid': 'open-pack', disabled: rw().stars < price,
       'aria-label': `Sticker-Tüte öffnen für ${price} Sterne`, onClick: () => trade(pg),
-    }, h('span', {}, 'Tüte öffnen ·'), h('span', {}, String(price)), uiIcon('star'));
+    }, h('span', {}, 'Tüte öffnen'), h('span', { class: 'pack-price' }, String(price), uiIcon('star')));
   }
 
   function trade(pg) {

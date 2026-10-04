@@ -16,6 +16,13 @@ export function h(tag, props = {}, ...children) {
 
 export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// one-line text sized by its letter count can still be too wide (M, m, W): shrink it via --fit until it fits
+export function fitText(el, maxWidth) {
+  el.style.removeProperty('--fit');
+  const width = el.offsetWidth;
+  if (maxWidth > 0 && width > maxWidth) el.style.setProperty('--fit', (maxWidth / width).toFixed(3));
+}
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 // namespace-aware twin of h() for inline SVG; attributes only, no event handlers

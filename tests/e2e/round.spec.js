@@ -410,3 +410,38 @@ test('a round with no correct answer gives a secret sticker, and the album shows
   const p = (await readState(page)).profiles[0];
   expect(p.rewards.secretDay).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 });
+
+// "Mama" with its wide M and m was cut off on the right: the length-based font size ignores glyph widths
+test('flash words with wide letters stay inside the board and the answer buttons', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seed(page, (p) => {
+    fixed(3000)(p);
+    p.settings.letters.known = ['A', 'M', 'O'];
+    p.levels.syllables = { ...p.levels.syllables, level: 2, step: 0 };
+  });
+  await page.goto('/');
+  await page.getByTestId('tile-syllables').click();
+  const word = page.locator('.board .flash-word');
+  await expect(word).toBeVisible({ timeout: 6000 });
+  const b = await page.getByTestId('board').boundingBox();
+  const w = await word.boundingBox();
+  expect(w.x).toBeGreaterThanOrEqual(b.x - 1);
+  expect(w.x + w.width).toBeLessThanOrEqual(b.x + b.width + 1);
+  const { choices } = await waitForChoices(page);
+  for (const btn of await choices.locator('button.choice').all()) {
+    const bb = await btn.boundingBox();
+    const wb = await btn.locator('.word').boundingBox();
+    expect(wb.width).toBeLessThanOrEqual(bb.width);
+  }
+});
+
+test('screen readers hear the question and the result', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-quantity').click();
+  const status = page.getByTestId('round-status');
+  const { choices, answer } = await waitForChoices(page);
+  await expect(status).toHaveText('Wie viele waren es?');
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await expect(status).toHaveText('Richtig!');
+});
