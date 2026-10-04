@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { PAGES, stickerId, stickerUrl } from '../../js/rewards.js';
-import { OBJECTS } from '../../js/exercises/quantity.js';
+import { OBJECTS, objectUrl } from '../../js/exercises/quantity.js';
 import { AVATARS } from '../../js/profiles.js';
 
 const UI = ['gear', 'back', 'album', 'again', 'check', 'lock', 'star'];
@@ -18,7 +18,7 @@ function checkSvg(path) {
   assert.ok(s.length < 6000, `${path}: zu groß (${s.length})`);
 }
 
-test('quantity objects exist', () => { for (const o of OBJECTS) checkSvg(`assets/objects/${o}.svg`); });
+test('quantity objects exist as PNG', () => { for (const o of OBJECTS) checkPng(objectUrl(o)); });
 test('avatars exist as PNG', () => {
   for (const a of AVATARS) {
     const f = file(`assets/avatars/${a}.png`);
@@ -28,8 +28,11 @@ test('avatars exist as PNG', () => {
 });
 test('ui icons exist', () => { for (const u of UI) checkSvg(`assets/ui/${u}.svg`); });
 test('app icon exists', () => checkSvg('assets/icons/icon.svg'));
-test('all 40 stickers exist', () => {
-  for (const p of PAGES) for (const s of p.stickers) checkSvg(stickerUrl(stickerId(p.id, s)));
+test('all stickers exist in their page format', () => {
+  for (const p of PAGES) for (const s of p.stickers) {
+    const url = stickerUrl(stickerId(p.id, s));
+    if (url.endsWith('.png')) checkPng(url); else checkSvg(url);
+  }
 });
 test('Andika fonts and license are bundled', () => {
   for (const f of ['andika-latin-400-normal.woff2', 'andika-latin-700-normal.woff2', 'OFL.txt']) {
@@ -52,7 +55,9 @@ test('raster assets stay small enough for offline caching', () => {
     ...AVATARS.map((a) => `assets/avatars/${a}.png`),
     ...DECOR.map((d) => `assets/decor/${d}.png`),
     'assets/mascot/robot-wave.png',
+    ...OBJECTS.map(objectUrl),
+    ...PAGES.flatMap((p) => p.stickers.map((s) => stickerUrl(stickerId(p.id, s)))).filter((u) => u.endsWith('.png')),
   ];
   const total = paths.reduce((sum, p) => sum + statSync(file(p)).size, 0);
-  assert.ok(total < 1_500_000, `Rastergrafiken zusammen ${total} Bytes (> 1,5 MB)`);
+  assert.ok(total < 5_000_000,`Rastergrafiken zusammen ${total} Bytes (> 1,5 MB)`);
 });

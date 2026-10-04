@@ -13,11 +13,11 @@
 <div id="out"></div>
 <script type="module">
   import { PAGES, stickerId, stickerUrl } from '../js/rewards.js';
-  import { OBJECTS } from '../js/exercises/quantity.js';
+  import { OBJECTS, objectUrl } from '../js/exercises/quantity.js';
   import { AVATARS } from '../js/profiles.js';
   const DECOR = ['star-big', 'badge-winner', 'bubble-yay', 'bubble-wow', 'confetti-1', 'confetti-2', 'confetti-3', 'confetti-4', 'confetti-5', 'confetti-6'];
   const groups = {
-    Objekte: OBJECTS.map((o) => `../assets/objects/${o}.svg`),
+    Objekte: OBJECTS.map((o) => `../${objectUrl(o)}`),
     Avatare: AVATARS.map((a) => `../assets/avatars/${a}.png`),
     UI: ['gear', 'back', 'album', 'again', 'check', 'lock', 'star'].map((u) => `../assets/ui/${u}.svg`),
     Icon: ['../assets/icons/icon.svg'],
