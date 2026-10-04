@@ -71,6 +71,18 @@ test('a wrong answer shows the solution and marks the right button', async ({ pa
   await expect(page.locator('.round-stars .slot.missed')).toHaveCount(1);
 });
 
+test('the board stays during the answer phase and a right answer is cheered', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  const { choices, answer } = await waitForChoices(page);
+  await expect(page.getByTestId('board')).toBeVisible();
+  await expect(page.getByTestId('board-waiting')).toBeVisible();
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await expect(page.getByTestId('cheer')).toBeVisible();
+  await expect(page.locator('.round-stars .slot.earned')).toHaveCount(1);
+});
+
 test('a double tap on an answer counts once', async ({ page }) => {
   await seed(page, fixed(500));
   await page.goto('/');

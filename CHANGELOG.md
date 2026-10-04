@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.4.0] – 2026-10-04
+
+- Alle Sticker im neuen Stil: die fünf alten Seiten neu gezeichnet (gesammelte Sticker bleiben erhalten)
+- Fünf neue Sticker-Seiten: Quatschwesen, Kochen, Essen, Gemüse & Pilze, Obst – jetzt 15 Seiten mit 120 Stickern
+- Album-Seitenleiste zum Wischen
+- Feste Bühne: die Aufgabenkarte bleibt in jeder Phase gleich groß, während der Antwort steht ein „?“ darauf
+- Sterne statt Punkte als Fortschritt; bei richtiger Antwort jubelt der Roboter und ein Stern fliegt in die Leiste
+- Falsche Antworten werden sanfter markiert
+- Bilder als WebP: Offline-Speicher für Grafiken von ~8 MB auf ~1,5 MB
+
 ## [1.3.0] – 2026-10-04
 
 - Neue Zählobjekte im Stil der Avatare: Apfel, Ente, Marienkäfer, Fisch, Auto, Luftballon
