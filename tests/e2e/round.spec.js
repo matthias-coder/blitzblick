@@ -231,12 +231,19 @@ test('the new sticker flies into the album button, which counts it', async ({ pa
 test('leaving the round end mid-animation leaves nothing behind', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  await page.addInitScript(() => {
+    window.__anims = 0;
+    const orig = Element.prototype.animate;
+    Element.prototype.animate = function (...args) { window.__anims++; return orig.apply(this, args); };
+  });
   await seed(page, fixed(500));
   await page.goto('/');
   await playPerfectRound(page);
   await page.getByTestId('round-done').click();
   await expect(page.getByTestId('tile-quantity')).toBeVisible();
+  const before = await page.evaluate(() => window.__anims);
   await page.waitForTimeout(3000);
+  expect(await page.evaluate(() => window.__anims)).toBe(before);
   await expect(page.locator('.sticker-reveal, .rays')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

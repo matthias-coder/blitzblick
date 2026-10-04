@@ -138,7 +138,8 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .big-stars img { width: 64px; height: 64px; }
 .reveal { position: relative; display: grid; place-items: center; perspective: 800px; }
 .reveal > * { grid-area: 1 / 1; }
-.rays { position: absolute; left: 50%; top: 50%; margin: calc(min(110vw, 70vh) / -2) 0 0 calc(min(110vw, 70vh) / -2); width: min(110vw, 70vh); aspect-ratio: 1; border-radius: 50%; pointer-events: none;
+.round-end > .reveal { z-index: 0; }
+.rays { --rays: min(110vw, 70vh); position: absolute; left: 50%; top: 50%; margin: calc(var(--rays) / -2) 0 0 calc(var(--rays) / -2); width: var(--rays); aspect-ratio: 1; border-radius: 50%; pointer-events: none;
   background: repeating-conic-gradient(from 0deg, rgba(247, 200, 109, .55) 0 12deg, transparent 12deg 30deg);
   -webkit-mask: radial-gradient(closest-side, #000 35%, transparent); mask: radial-gradient(closest-side, #000 35%, transparent);
   animation: spin 8s linear infinite; }
@@ -148,7 +149,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .big-btn.bump { animation: bump .45s; }
 @keyframes bump { 40% { transform: scale(1.18); } }
 .sticker-reveal img { width: 80%; height: 80%; }
-.bonus { font-size: 2.5rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.bonus { position: relative; z-index: 1; font-size: 2.5rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
 .bonus img { width: 56px; }
 .sticker-hint { display: flex; align-items: center; gap: 12px; padding: 14px 22px; background: var(--surface); border-radius: 24px; box-shadow: var(--shadow); font-size: 1.3rem; font-weight: 700; text-align: left; }
 .sticker-hint img { width: 40px; opacity: .6; }
