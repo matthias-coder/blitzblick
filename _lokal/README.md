@@ -2,7 +2,7 @@ Lokale Notizen und Testdaten. Inhalt außer dieser Datei wird nicht committet.
 
 ## Offen für später (1.7.0)
 
-Die Level-Feier nutzt im Repo noch Platzhalter. Echte Bilder so nachziehen:
+Die Level-Feier nutzt die echten Bilder (seit 1.7.0). Bei neuen Originalen so nachziehen:
 
 1. `robot-trophy.jpg` (Roboter mit Pokal) und `medal.jpg` (Medaille) nach `_lokal/source/` legen, jeweils ein Motiv auf weißem Grund.
 2. `node tools/extract-sprites.mjs sheets` → `_lokal/extracted/mascot/robot-trophy.png`, `_lokal/extracted/decor/medal.png`

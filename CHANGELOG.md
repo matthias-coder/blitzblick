@@ -5,7 +5,7 @@
 - Klassenstufen: Vorschule und Klasse 1, jede mit eigenen Leveln und eigenen Anzeigedauern; Wechsel im Elternbereich mit Rückfrage, Sticker und Sterne bleiben
 - Vier feste Level pro Übung; neue Profile starten auf Level 1, Eltern können pro Übung direkt ein höheres Level wählen
 - Beherrscht das Kind ein Level, geht es am Rundenende automatisch eins höher (nie tiefer); „Level festhalten“ verhindert das; bei fester Anzeigedauer gilt das gewählte Level
-- Level-Feier am Rundenende: Roboter mit Pokal und Medaille mit der neuen Level-Nummer (Grafiken vorerst als Platzhalter)
+- Level-Feier am Rundenende: Roboter mit Pokal und Medaille mit der neuen Level-Nummer
 - Runden mit 5 statt 10 Aufgaben, Sticker ab 4 Richtigen
 - Sammelalbum nach Übung und Level geordnet: jede Seite gehört zu einem Level und öffnet sich, sobald es erreicht ist; schon gesammelte Sticker bleiben sichtbar
 - Mengen nicht mehr nur als Würfelbild: auch Reihe, Paare, zwei Gruppen und Kreis, gedreht und gespiegelt

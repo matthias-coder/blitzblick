@@ -65,6 +65,11 @@ export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
     ? h('div', { class: 'level-up', 'data-testid': 'level-up', role: 'img', 'aria-label': `Level ${reward.levelUp.to + 1}` },
       decor('medal', 'medal'), h('span', { class: 'medal-num', 'data-testid': 'level-up-num' }, String(reward.levelUp.to + 1)))
     : null;
+  // medal and unlocked page share a row; on phones the trophy robot joins them instead of hiding behind the buttons
+  const prizeRow = levelUp || unlocked
+    ? h('div', { class: 'end-row' },
+      levelUp ? h('img', { class: 'level-up-robot', src: 'assets/mascot/robot-trophy.webp', alt: '' }) : null, levelUp, unlocked)
+    : null;
   const mascot = reward.levelUp ? 'robot-trophy' : share(correct) >= GOOD ? 'robot-cheer' : 'robot-wave';
   const bubble = share(correct) >= GREAT ? decor('bubble-yay', 'end-bubble') : share(correct) >= GOOD ? decor('bubble-wow', 'end-bubble') : null;
   const btn = (icon, testid, label, onClick, extra = '') =>
@@ -81,13 +86,12 @@ export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
           bubble,
           h('div', { class: 'big-stars' }, decor('star-big', 'big-star'), h('span', {}, String(correct)))),
         prize,
-        levelUp,
-        unlocked),
+        prizeRow),
       h('div', { class: 'end-actions' },
         btn('again', 'play-again', 'Nochmal', () => ctx.go('round', { exerciseId })),
         albumBtn,
         btn('check', 'round-done', 'Fertig', () => ctx.go('menu'), 'is-go'))),
-    h('img', { class: 'mascot', src: `assets/mascot/${mascot}.webp`, 'data-testid': 'end-mascot', alt: '' }),
+    h('img', { class: reward.levelUp ? 'mascot mascot-trophy' : 'mascot', src: `assets/mascot/${mascot}.webp`, 'data-testid': 'end-mascot', alt: '' }),
   );
   if (card && motion) playReveal({ card, rays, target: albumBtn, count, total }, track);
   ctx.sounds.fanfare();
