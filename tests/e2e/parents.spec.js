@@ -185,7 +185,22 @@ test('parent controls are custom toggles and segments that fit a phone', async (
   await expect(page.getByTestId('ex-quantity')).toHaveAttribute('role', 'switch');
   await page.getByTestId('sounds').check();
   expect((await readState(page)).profiles[0].settings.sounds).toBe(true);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+  expect(await page.evaluate(() => { const a = document.getElementById('app'); return a.scrollWidth <= a.clientWidth; })).toBe(true);
+  for (const box of await page.locator('.seg').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().right))) expect(box).toBeLessThanOrEqual(375);
   await page.getByTestId('tab-progress').click();
   await expect(page.getByTestId('stat-quantity')).toContainText(/Anzeigedauer [\d,]+ s/);
+});
+
+test('keyboard focus survives a settings change', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await openParents(page);
+  await page.getByTestId('timing-start').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(async () => (await readState(page)).profiles[0].settings.timing.startMs).toBe(1550);
+  await expect(page.getByTestId('timing-start')).toBeFocused();
+  await page.getByTestId('speech-little').click();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(async () => (await readState(page)).profiles[0].settings.speech).toBe('lots');
+  await expect(page.getByTestId('speech-lots')).toBeFocused();
 });

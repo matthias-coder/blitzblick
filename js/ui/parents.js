@@ -44,6 +44,8 @@ function renderPanel(root, ctx, tab) {
   if (!ctx.profile && (tab === 'settings' || tab === 'progress')) tab = 'profiles';
   const rerender = () => renderPanel(root, ctx, tab);
   const body = h('section', { class: 'panel-body' });
+  const focusId = document.activeElement?.dataset?.testid;
+  const scrollTop = root.scrollTop;
   root.replaceChildren(h('div', { class: 'parents', 'data-testid': 'parents' },
     h('header', { class: 'parents-head' },
       h('h1', {}, 'Elternbereich'),
@@ -56,6 +58,8 @@ function renderPanel(root, ctx, tab) {
     }, label))),
     body));
   ({ settings: settingsTab, progress: progressTab, profiles: profilesTab, data: dataTab })[tab](body, ctx, rerender);
+  root.scrollTop = scrollTop;
+  if (focusId) root.querySelector(`[data-testid="${focusId}"]`)?.focus({ preventScroll: true });
 }
 
 function warnings(ctx) {
