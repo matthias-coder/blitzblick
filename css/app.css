@@ -5,7 +5,8 @@
   --bg: #EBEFFA; --surface: #FFFFFF; --ink: #2D2A5D; --muted: #6E6E9A; --line: #E0E8F7;
   --primary: #6B42DE; --primary-ink: #FFFFFF; --grad-a: #6BC2F7; --grad-b: #8C6AF5;
   --accent: #348CE5; --right: #2FAF6B; --wrong: #EA6458; --star: #F7C86D;
-  --tile-quantity: #EA6458; --tile-digits: #348CE5; --tile-letters: #6B42DE;
+  --tile-quantity: #EA6458; --tile-digits: #348CE5; --tile-letters: #6B42DE; --tile-syllables: #D9711C;
+  --syl-a: #2563C9; --syl-b: #C8322B;
   --radius: 20px; --shadow: 0 4px 0 rgba(45, 42, 93, .15);
   --font: 'Andika', ui-rounded, 'Segoe UI', system-ui, sans-serif;
 }
@@ -209,3 +210,13 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .big-stars { position: relative; display: grid; place-items: center; }
 .big-stars .big-star { width: clamp(96px, 26vw, 150px); height: auto; grid-area: 1 / 1; }
 .big-stars span { grid-area: 1 / 1; font-size: clamp(2rem, 7vw, 3rem); font-weight: 700; color: var(--ink); padding-top: 10%; }
+
+/* syllables & words */
+.tile-syllables { background: var(--tile-syllables); }
+.tile-syl span + span { opacity: .7; }
+.flash-word { font-size: min(40cqh, calc(150cqw / (var(--len) + 1))); white-space: nowrap; padding: .05em .3em; }
+.syl-a { color: var(--syl-a); }
+.syl-b { color: var(--syl-b); }
+.choices.words { grid-template-columns: repeat(2, minmax(120px, 260px)); justify-content: center; }
+.choice .word { font-size: clamp(1.4rem, 6vw, 2.2rem); line-height: 1.1; white-space: nowrap; }
+.choice.right .word span, .choice.wrong .word span { color: inherit; }

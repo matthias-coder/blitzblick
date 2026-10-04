@@ -7,6 +7,7 @@ const TILE_CONTENT = {
   quantity: () => h('span', { class: 'tile-apples' }, [0, 1, 2].map(() => h('img', { src: 'assets/objects/apple.svg', alt: '' }))),
   digits: () => '1 2 3',
   letters: () => 'A B C',
+  syllables: () => h('span', { class: 'tile-syl' }, h('span', {}, 'Ma'), h('span', {}, 'ma')),
 };
 
 export function render(root, ctx) {

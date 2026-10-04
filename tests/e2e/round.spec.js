@@ -122,3 +122,18 @@ test('small phone viewport: ten answer buttons fit without scrolling', async ({ 
   }
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
 });
+
+test('a syllables round with the default letters runs to the end with colored syllables', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-syllables').click();
+  for (let i = 0; i < 10; i++) {
+    const { choices, answer } = await waitForChoices(page);
+    await expect(choices.locator('button.choice')).toHaveCount(4);
+    await expect(choices.locator('.syl-a').first()).toBeVisible();
+    await choices.locator(`button[data-value="${answer}"]`).click();
+  }
+  await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
+  const p = (await readState(page)).profiles[0];
+  expect(p.history.at(-1)).toMatchObject({ exercise: 'syllables', correct: 10, total: 10 });
+});
