@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.0] – 2026-10-04
+
+- Mengenblitz: „Wo ist mehr?" – links und rechts blitzen zwei Gruppen auf, das Kind tippt die Seite mit mehr. Ab Vorschule Level 2 bzw. Klasse 1 Level 1 etwa jede dritte Aufgabe, höchstens zwei pro Runde; später auch „gleich viel" und große Dinge in der kleineren Gruppe
+- Mengenblitz: Mengen bis 10 erscheinen manchmal als Finger (eine Hand bis 5, darüber eine volle Hand plus Rest)
+- Elternbereich: Schalter „Vergleiche einmischen"
+
 ## [1.8.1] – 2026-10-04
 
 - Blitzwörter mit breiten Buchstaben (z. B. „Mama“, „Oma“) werden nicht mehr rechts abgeschnitten; lange Wörter auf den Antwortknöpfen passen auch auf schmalen Handys
