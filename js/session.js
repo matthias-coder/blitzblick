@@ -20,9 +20,11 @@ export function createRound(profile, exerciseId, rng) {
 
 export function nextTask(round, profile, rng) {
   const ex = EXERCISES[round.exerciseId];
-  const eff = effectiveLevel(round.level, profile.settings.timing, ex.maxComplexity(profile.settings));
-  const task = ex.createTask({ ...round.level, complexity: eff.complexity }, profile.settings, rng, round.ctx);
-  return { ...round, task, durationMs: eff.durationMs, awaiting: true };
+  const s = profile.settings;
+  const maxC = ex.maxComplexity(s);
+  const eff = effectiveLevel(round.level, s.timing, maxC, ex.fixedComplexity ? ex.fixedComplexity(s) : maxC);
+  const task = ex.createTask({ ...round.level, complexity: eff.complexity }, s, rng, round.ctx);
+  return { ...round, task, durationMs: Math.round(eff.durationMs * (task.durationFactor ?? 1)), awaiting: true };
 }
 
 export function answerTask(round, profile, picked) {

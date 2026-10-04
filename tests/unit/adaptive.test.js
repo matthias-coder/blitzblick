@@ -104,3 +104,7 @@ test('clampLevel pulls a level into lowered parent limits', () => {
 test('recordResult clamps an out-of-range level first', () => {
   assert.equal(recordResult(lvl({ complexity: 9 }), true, T, 3).complexity, 3);
 });
+
+test('effectiveLevel with adaptive off uses the fixed complexity when given', () => {
+  assert.deepEqual(effectiveLevel(lvl({}), { ...T, startMs: 900, adaptive: false }, 4, 2), { durationMs: 900, complexity: 2 });
+});

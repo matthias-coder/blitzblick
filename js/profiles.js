@@ -14,8 +14,8 @@ export const AVATAR_LABELS = {
 export const DEFAULT_SETTINGS = {
   exercises: { quantity: true, digits: true, letters: true, syllables: true },
   timing: { startMs: 1500, minMs: 300, maxMs: 3000, adaptive: true },
-  quantity: { max: 10, layout: 'mixed' },
-  digits: { range: 9 },
+  quantity: { max: 10, layout: 'mixed', addition: true },
+  digits: { range: 9, addition: true },
   letters: { known: ['A', 'M', 'O'], case: 'upper', speak: 'sound' },
   syllables: { colors: true, custom: [] },
   speech: 'little',
@@ -105,8 +105,12 @@ function sanitizeFields(raw) {
     quantity: {
       max: oneOf(sub('quantity').max, MAXES, d.quantity.max),
       layout: oneOf(sub('quantity').layout, ['structured', 'random', 'mixed'], d.quantity.layout),
+      addition: bool(sub('quantity').addition, d.quantity.addition),
     },
-    digits: { range: oneOf(sub('digits').range, DIGIT_RANGES, d.digits.range) },
+    digits: {
+      range: oneOf(sub('digits').range, DIGIT_RANGES, d.digits.range),
+      addition: bool(sub('digits').addition, d.digits.addition),
+    },
     letters: {
       known: known ?? [...d.letters.known],
       case: oneOf(sub('letters').case, ['upper', 'lower', 'both'], d.letters.case),

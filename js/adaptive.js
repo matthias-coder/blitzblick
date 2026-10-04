@@ -17,8 +17,8 @@ export function clampLevel(level, timing, maxComplexity) {
   };
 }
 
-export function effectiveLevel(level, timing, maxComplexity) {
-  if (!timing.adaptive) return { durationMs: timing.startMs, complexity: maxComplexity };
+export function effectiveLevel(level, timing, maxComplexity, fixedComplexity = maxComplexity) {
+  if (!timing.adaptive) return { durationMs: timing.startMs, complexity: fixedComplexity };
   const c = clampLevel(level, timing, maxComplexity);
   return { durationMs: c.durationMs, complexity: c.complexity };
 }
