@@ -82,7 +82,7 @@ function field(object, positions) {
 export function renderStimulus(task, el) {
   const s = task.stimulus;
   el.replaceChildren(s.add
-    ? h('div', { class: 'add-row', 'data-testid': 'add-stimulus' },
+    ? h('div', { class: 'plus-row', 'data-testid': 'add-stimulus' },
       field(s.object, s.positionsA), h('span', { class: 'plus' }, '+'), field(s.object, s.positionsB))
     : field(s.object, s.positions));
 }

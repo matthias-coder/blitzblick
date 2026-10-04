@@ -181,3 +181,30 @@ test('top digits stage shows "a + b" on one line, also on a 360 px phone', async
   expect(box.width).toBeLessThanOrEqual(stage.width + 1);
   expect(box.height).toBeLessThan(stage.height);
 });
+
+test('addition stimuli stay inside the board in landscape', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 700 });
+  await seed(page, (p) => {
+    onTopAddition(p);
+    p.settings.timing = { startMs: 3000, minMs: 3000, maxMs: 3000, adaptive: true };
+    p.levels.quantity.durationMs = 3000;
+    p.levels.digits.durationMs = 3000;
+  });
+  const inside = async (locator) => {
+    const b = await page.getByTestId('board').boundingBox();
+    const s = await locator.boundingBox();
+    expect(s.x).toBeGreaterThanOrEqual(b.x - 1);
+    expect(s.x + s.width).toBeLessThanOrEqual(b.x + b.width + 1);
+  };
+  await page.goto('/');
+  await page.getByTestId('tile-quantity').click();
+  const fields = page.getByTestId('add-stimulus').locator('.field');
+  await expect(fields.first()).toBeVisible({ timeout: 6000 });
+  await inside(fields.first());
+  await inside(fields.last());
+  await page.getByTestId('back').click();
+  await page.getByTestId('tile-digits').click();
+  const sum = page.locator('.flash-text.sum');
+  await expect(sum).toBeVisible({ timeout: 6000 });
+  await inside(sum);
+});
