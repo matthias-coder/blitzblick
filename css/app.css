@@ -220,3 +220,9 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .choices.words { grid-template-columns: repeat(2, minmax(120px, 260px)); justify-content: center; }
 .choice .word { font-size: clamp(1.4rem, 6vw, 2.2rem); line-height: 1.1; white-space: nowrap; }
 .choice.right .word span, .choice.wrong .word span { color: inherit; }
+.add-row { display: flex; gap: 8px; align-items: center; }
+.add-row input { flex: 1; min-width: 0; }
+.chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.chip { display: inline-flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border-radius: 999px; background: var(--bg); font-weight: 700; }
+.chip .missing { font-weight: 400; font-size: .9rem; color: var(--muted); }
+.chip button { width: 40px; height: 40px; border-radius: 50%; background: var(--surface); font-size: 1.3rem; }
