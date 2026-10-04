@@ -108,3 +108,13 @@ test('the child name in the greeting is plain text and wraps', async ({ page }) 
   await expect(greet.locator('b')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
 });
+
+test('three enabled exercises on a 375 px phone: third tile as wide as the others', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await seed(page, (p) => { fiveLetters(p); p.settings.exercises.syllables = false; });
+  await page.goto('/');
+  const tiles = page.locator('.menu .tile');
+  await expect(tiles).toHaveCount(3);
+  const [a, , c] = await Promise.all([0, 1, 2].map((i) => tiles.nth(i).boundingBox()));
+  expect(Math.abs(c.width - a.width)).toBeLessThanOrEqual(1);
+});
