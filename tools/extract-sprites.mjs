@@ -157,8 +157,10 @@ if (mode === 'sheets' || mode === 'all') {
     fruit: ['828c248c-dfe2-4639-a5f0-fc043ac2df1d.jpg', [4, 4]],
     // v1.5: TNT (row 0, col 2) is left out, so this page is cut explicitly below
     blockworld: ['kloetzchenwelt.jpg', [4, 4]],
+    // v1.6: menu tiles, 2×2 on white
+    menu: ['menu-tiles.jpg', [2, 2]],
   };
-  const PAGE_SHEETS = Object.keys(SHEETS).filter((k) => k.length > 1 && k !== 'blockworld');
+  const PAGE_SHEETS = Object.keys(SHEETS).filter((k) => k.length > 1 && k !== 'blockworld' && k !== 'menu');
   // [sheet, row, col, output path]
   const CUTS = [
     ['e', 1, 0, 'objects/apple'], ['e', 2, 0, 'objects/duck'], ['a', 0, 2, 'objects/ladybug'],
@@ -182,6 +184,7 @@ if (mode === 'sheets' || mode === 'all') {
     ['blockworld', 0, 3, 'stickers/blockworld/grassblock'], ['blockworld', 1, 0, 'stickers/blockworld/crystal'],
     ['blockworld', 1, 1, 'stickers/blockworld/chest'], ['blockworld', 1, 2, 'stickers/blockworld/slime'],
     ['blockworld', 1, 3, 'stickers/blockworld/sixtyseven'],
+    ['menu', 0, 0, 'menu/quantity'], ['menu', 0, 1, 'menu/digits'], ['menu', 1, 0, 'menu/letters'], ['menu', 1, 1, 'menu/syllables'],
     ...PAGE_SHEETS.flatMap((id) => PAGES.find((p) => p.id === id).stickers.map((s, i) => [id, Math.floor(i / 4), i % 4, `stickers/${id}/${s}`])),
   ];
   for (const [key, [file, rowCols, lightMin = 200]] of Object.entries(SHEETS)) {
@@ -211,7 +214,7 @@ if (mode === 'sheets' || mode === 'all') {
 if (mode === 'sheet' || mode === 'all') {
   const items = [];
   const STICKER_DIRS = fs.existsSync(OUT + 'stickers') ? fs.readdirSync(OUT + 'stickers').map((d) => 'stickers/' + d) : [];
-  for (const d of ['avatars', 'decor', 'mascot', 'objects', ...STICKER_DIRS]) {
+  for (const d of ['avatars', 'decor', 'mascot', 'objects', 'menu', ...STICKER_DIRS]) {
     const dir = OUT + d; if (!fs.existsSync(dir)) continue;
     for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.png')).sort()) items.push({ name: d + '/' + f.replace('.png', ''), b64: fs.readFileSync(path.join(dir, f)).toString('base64') });
   }

@@ -3,3 +3,4 @@ test-results/
 playwright-report/
 _lokal/*
 !_lokal/README.md
+.superpowers/

@@ -39,3 +39,11 @@ export async function openParents(page) {
   await page.getByTestId('gate-submit').click();
   await expect(page.getByTestId('parents')).toBeVisible();
 }
+
+export async function setRange(locator, value) {
+  await locator.evaluate((el, v) => {
+    el.value = String(v);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }, value);
+}

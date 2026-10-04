@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { seed, readState, longPress, openParents, buildState } from './helpers.js';
+import { seed, readState, longPress, openParents, buildState, setRange } from './helpers.js';
 
 test('a short press does not open the parent area, 1.5 s does, a wrong answer returns to the menu', async ({ page }) => {
   await seed(page);
@@ -28,19 +28,23 @@ test('lowering the quantity maximum clamps the level', async ({ page }) => {
   await seed(page, (p) => { p.levels.quantity.complexity = 11; });
   await page.goto('/');
   await openParents(page);
-  await page.getByTestId('qty-max').selectOption('5');
+  await page.getByTestId('qty-max-5').click();
   const p = (await readState(page)).profiles[0];
   expect(p.settings.quantity.max).toBe(5);
   expect(p.levels.quantity.complexity).toBe(6); // 6 regular stages up to 5 + "Plus bis 5"
 });
 
-test('timing inputs are saved', async ({ page }) => {
+test('timing sliders are saved and shown in seconds', async ({ page }) => {
   await seed(page);
   await page.goto('/');
   await openParents(page);
-  await page.getByTestId('timing-start').fill('1000');
-  await page.getByTestId('timing-start').press('Enter');
+  const start = page.getByTestId('timing-start');
+  await expect(start).toHaveAttribute('type', 'range');
+  await setRange(start, 1000);
   await expect.poll(async () => (await readState(page)).profiles[0].settings.timing.startMs).toBe(1000);
+  await expect(page.getByTestId('timing-start-label')).toHaveText('1 s');
+  await setRange(page.getByTestId('timing-min'), 450);
+  await expect(page.getByTestId('timing-min-label')).toHaveText('0,45 s');
 });
 
 test('progress tab shows a card per exercise', async ({ page }) => {
@@ -95,7 +99,7 @@ test('profiles can be added, renamed and deleted; deleting the last shows the cr
   await page.getByTestId(`delete-${benId}`).click();
   expect((await readState(page)).profiles).toHaveLength(0);
   await page.getByTestId('close-parents').click();
-  await expect(page.getByTestId('create-profile')).toBeVisible();
+  await expect(page.getByTestId('welcome-start')).toBeVisible();
 });
 
 test('at least two known letters and one exercise stay enabled', async ({ page }) => {
@@ -121,8 +125,8 @@ test('the speech mode can be chosen and is saved', async ({ page }) => {
   await seed(page);
   await page.goto('/');
   await openParents(page);
-  await expect(page.getByTestId('speech')).toHaveValue('off');
-  await page.getByTestId('speech').selectOption('lots');
+  await expect(page.getByTestId('speech')).toHaveAttribute('data-value', 'off');
+  await page.getByTestId('speech-lots').click();
   expect((await readState(page)).profiles[0].settings.speech).toBe('lots');
 });
 
@@ -168,4 +172,35 @@ test('addition can be switched off per exercise', async ({ page }) => {
   const s = (await readState(page)).profiles[0].settings;
   expect(s.quantity.addition).toBe(false);
   expect(s.digits.addition).toBe(false);
+});
+
+test('parent controls are custom toggles and segments that fit a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await seed(page);
+  await page.goto('/');
+  await openParents(page);
+  // the voice select may or may not render in headless Chromium, so it is excluded
+  await expect(page.locator('.panel-body select:not([data-testid="voice"])')).toHaveCount(0);
+  await expect(page.getByTestId('qty-max')).toHaveAttribute('role', 'radiogroup');
+  await expect(page.getByTestId('ex-quantity')).toHaveAttribute('role', 'switch');
+  await page.getByTestId('sounds').check();
+  expect((await readState(page)).profiles[0].settings.sounds).toBe(true);
+  expect(await page.evaluate(() => { const a = document.getElementById('app'); return a.scrollWidth <= a.clientWidth; })).toBe(true);
+  for (const box of await page.locator('.seg').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().right))) expect(box).toBeLessThanOrEqual(375);
+  await page.getByTestId('tab-progress').click();
+  await expect(page.getByTestId('stat-quantity')).toContainText(/Anzeigedauer [\d,]+ s/);
+});
+
+test('keyboard focus survives a settings change', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await openParents(page);
+  await page.getByTestId('timing-start').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(async () => (await readState(page)).profiles[0].settings.timing.startMs).toBe(1550);
+  await expect(page.getByTestId('timing-start')).toBeFocused();
+  await page.getByTestId('speech-little').click();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(async () => (await readState(page)).profiles[0].settings.speech).toBe('lots');
+  await expect(page.getByTestId('speech-lots')).toBeFocused();
 });

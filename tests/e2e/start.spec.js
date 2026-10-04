@@ -3,6 +3,9 @@ import { seed, readState } from './helpers.js';
 
 test('first start asks for a profile and then shows the menu', async ({ page }) => {
   await page.goto('/');
+  await expect(page.getByTestId('welcome')).toContainText('Hallo! Schön, dass du da bist.');
+  await expect(page.getByTestId('create-profile')).toHaveCount(0);
+  await page.getByTestId('welcome-start').click();
   await page.getByTestId('create-profile').click();
   await expect(page.locator('.form-msg')).toHaveText(/Namen/);
   await page.locator('#profile-name').fill('Mia');
@@ -43,5 +46,90 @@ test('with two profiles the picker is shown and switches the active profile', as
 test('star badge shows the profile stars', async ({ page }) => {
   await seed(page, (p) => { p.rewards.stars = 42; });
   await page.goto('/');
+  await expect(page.getByTestId('welcome')).toHaveCount(0);
   await expect(page.getByTestId('star-badge')).toHaveText('42');
+});
+
+test('buttons use the candy system and sink when pressed', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  const album = page.getByTestId('open-album');
+  await expect(album).toHaveClass(/\bcandy\b/);
+  await expect(album).toHaveClass(/\bcandy-pill\b/);
+  const shadow = await album.evaluate((el) => getComputedStyle(el).boxShadow);
+  expect(shadow).toMatch(/0px 5px 0px/);
+  await expect(page.getByTestId('gear')).toHaveClass(/\bcandy-round\b/);
+});
+
+const fiveLetters = (p) => { p.settings.letters.known = ['A', 'E', 'L', 'M', 'O']; };
+
+test('menu shows four illustrated tiles in a 2×2 grid with a greeting', async ({ page }) => {
+  await seed(page, fiveLetters);
+  await page.goto('/');
+  const tiles = page.locator('.menu .tile');
+  await expect(tiles).toHaveCount(4);
+  for (const id of ['quantity', 'digits', 'letters', 'syllables']) {
+    await expect(page.getByTestId(`tile-${id}`).locator('img')).toHaveAttribute('src', `assets/menu/${id}.webp`);
+  }
+  const b = await Promise.all([0, 1, 2, 3].map((i) => tiles.nth(i).boundingBox()));
+  expect(Math.abs(b[0].y - b[1].y)).toBeLessThan(2);
+  expect(b[2].y).toBeGreaterThan(b[0].y + b[0].height - 1);
+  await expect(page.getByTestId('greet')).toHaveText('Hallo Mia! Was möchtest du üben?');
+});
+
+test('menu stays usable on a phone in landscape', async ({ page }) => {
+  await page.setViewportSize({ width: 667, height: 375 });
+  await seed(page, fiveLetters);
+  await page.goto('/');
+  const tiles = page.locator('.menu .tile');
+  await expect(tiles).toHaveCount(4);
+  for (let i = 0; i < 4; i++) expect((await tiles.nth(i).boundingBox()).height).toBeGreaterThanOrEqual(100);
+  const album = await page.getByTestId('open-album').boundingBox();
+  expect(album.y + album.height).toBeLessThanOrEqual(375);
+});
+
+test('menu fits a narrow phone without scrolling', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await seed(page, fiveLetters);
+  await page.goto('/');
+  const tiles = page.locator('.menu .tile');
+  await expect(tiles).toHaveCount(4);
+  for (let i = 0; i < 4; i++) {
+    const box = await tiles.nth(i).boundingBox();
+    expect(box.y + box.height).toBeLessThanOrEqual(667);
+    expect(box.width).toBeGreaterThan(120);
+  }
+  const album = await page.getByTestId('open-album').boundingBox();
+  expect(album.y + album.height).toBeLessThanOrEqual(667);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+});
+
+test('three enabled exercises: the third tile is centred below', async ({ page }) => {
+  await seed(page, (p) => { fiveLetters(p); p.settings.exercises.syllables = false; });
+  await page.goto('/');
+  const tiles = page.locator('.menu .tile');
+  await expect(tiles).toHaveCount(3);
+  const [a, b, c] = await Promise.all([0, 1, 2].map((i) => tiles.nth(i).boundingBox()));
+  expect(Math.abs(c.width - a.width)).toBeLessThan(2);
+  expect(Math.abs((c.x + c.width / 2) - (a.x + b.x + b.width) / 2)).toBeLessThan(2);
+});
+
+test('the child name in the greeting is plain text and wraps', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await seed(page, (p) => { p.name = '<b>Mia</b>-Sophie Alexandra'; });
+  await page.goto('/');
+  const greet = page.getByTestId('greet');
+  await expect(greet).toContainText('<b>Mia</b>-Sophie Alexandra');
+  await expect(greet.locator('b')).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+});
+
+test('three enabled exercises on a 375 px phone: third tile as wide as the others', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await seed(page, (p) => { fiveLetters(p); p.settings.exercises.syllables = false; });
+  await page.goto('/');
+  const tiles = page.locator('.menu .tile');
+  await expect(tiles).toHaveCount(3);
+  const [a, , c] = await Promise.all([0, 1, 2].map((i) => tiles.nth(i).boundingBox()));
+  expect(Math.abs(c.width - a.width)).toBeLessThanOrEqual(1);
 });

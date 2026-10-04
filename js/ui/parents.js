@@ -10,6 +10,8 @@ import {
 } from '../profiles.js';
 import { serializeExport, exportFilename, ImportError } from '../storage.js';
 import { summarize } from '../stats.js';
+import { formatSeconds } from '../util.js';
+import { toggle, segmented, durationSlider } from './controls.js';
 
 const TABS = [['settings', 'Einstellungen'], ['progress', 'Fortschritt'], ['profiles', 'Profile'], ['data', 'Daten']];
 
@@ -28,8 +30,8 @@ export function render(root, ctx) {
   h('p', { 'data-testid': 'gate-question', 'data-answer': String(ch.answer) }, `Wie viel ist ${ch.a} × ${ch.b}?`),
   input,
   h('div', { class: 'row' },
-    h('button', { type: 'button', class: 'secondary-btn', onClick: () => ctx.go('menu') }, 'Abbrechen'),
-    h('button', { type: 'submit', class: 'primary-btn', 'data-testid': 'gate-submit' }, 'Weiter')));
+    h('button', { type: 'button', class: 'secondary-btn candy candy-pill', onClick: () => ctx.go('menu') }, 'Abbrechen'),
+    h('button', { type: 'submit', class: 'primary-btn candy candy-pill is-primary', 'data-testid': 'gate-submit' }, 'Weiter')));
   root.append(h('main', { class: 'center' }, form));
   input.focus();
 }
@@ -42,18 +44,22 @@ function renderPanel(root, ctx, tab) {
   if (!ctx.profile && (tab === 'settings' || tab === 'progress')) tab = 'profiles';
   const rerender = () => renderPanel(root, ctx, tab);
   const body = h('section', { class: 'panel-body' });
+  const focusId = document.activeElement?.dataset?.testid;
+  const scrollTop = root.scrollTop;
   root.replaceChildren(h('div', { class: 'parents', 'data-testid': 'parents' },
     h('header', { class: 'parents-head' },
       h('h1', {}, 'Elternbereich'),
-      h('button', { class: 'primary-btn', 'data-testid': 'close-parents', onClick: () => close(ctx) }, 'Fertig')),
+      h('button', { class: 'primary-btn candy candy-pill is-primary', 'data-testid': 'close-parents', onClick: () => close(ctx) }, 'Fertig')),
     warnings(ctx),
     h('nav', { class: 'tabs' }, TABS.map(([id, label]) => h('button', {
-      class: `tab${id === tab ? ' active' : ''}`,
+      class: `tab candy candy-small${id === tab ? ' is-primary' : ''}`,
       'data-testid': `tab-${id}`,
       onClick: () => renderPanel(root, ctx, id),
     }, label))),
     body));
   ({ settings: settingsTab, progress: progressTab, profiles: profilesTab, data: dataTab })[tab](body, ctx, rerender);
+  root.scrollTop = scrollTop;
+  if (focusId) root.querySelector(`[data-testid="${focusId}"]`)?.focus({ preventScroll: true });
 }
 
 function warnings(ctx) {
@@ -65,9 +71,6 @@ function warnings(ctx) {
 }
 
 const fieldset = (legend, children) => h('fieldset', {}, h('legend', {}, legend), children);
-
-const check = (label, checked, onChange, testid, disabled = false) => h('label', { class: 'check' },
-  h('input', { type: 'checkbox', checked, disabled, 'data-testid': testid, onChange: (e) => onChange(e.target.checked) }), label);
 
 const select = (label, value, options, onChange, testid) => h('label', { class: 'field-row' },
   h('span', {}, label),
@@ -104,13 +107,13 @@ function syllablesFieldset(s, apply) {
   };
   const missing = (text) => [...new Set([...text].map(letterKey))].filter((k) => !s.letters.known.includes(k));
   return fieldset('Silben & Wörter', [
-    check('Silben farbig zeigen (blau/rot)', s.syllables.colors, (v) => apply({ syllables: { colors: v } }), 'syllables-colors'),
+    toggle('Silben farbig zeigen (blau/rot)', s.syllables.colors, (v) => apply({ syllables: { colors: v } }), 'syllables-colors'),
     h('p', { class: 'hint', 'data-testid': 'syllables-playable' },
       `Spielbar gerade: ${nSyl} Silben, ${pool.length - nSyl} Wörter – nur aus bekannten Buchstaben.`),
     h('p', { class: 'hint' }, 'Eigene Wörter, z. B. Namen aus der Familie. Silben mit | trennen (El|la) – ohne | trennt die App selbst.'),
     h('form', { class: 'add-row', onSubmit: (e) => { e.preventDefault(); add(); } },
       input,
-      h('button', { type: 'submit', class: 'secondary-btn', 'data-testid': 'syllables-custom-add' }, 'Hinzufügen')),
+      h('button', { type: 'submit', class: 'secondary-btn candy candy-pill', 'data-testid': 'syllables-custom-add' }, 'Hinzufügen')),
     msg,
     h('div', { class: 'chip-list' }, custom.map((c, i) => {
       const m = missing(c.text);
@@ -118,7 +121,7 @@ function syllablesFieldset(s, apply) {
         c.split.replaceAll('|', '·'),
         m.length ? h('span', { class: 'missing' }, `noch nicht spielbar – fehlt: ${m.join(', ')}`) : null,
         h('button', {
-          type: 'button', 'aria-label': `${c.text} löschen`, 'data-testid': `syllables-custom-${i}-remove`,
+          type: 'button', class: 'candy candy-small', 'aria-label': `${c.text} löschen`, 'data-testid': `syllables-custom-${i}-remove`,
           onClick: () => apply({ syllables: { custom: custom.filter((_, j) => j !== i) } }),
         }, '×'));
     })),
@@ -132,39 +135,30 @@ function settingsTab(body, ctx, rerender) {
     ctx.setState(updateProfile(ctx.state, p.id, (pr) => updateSettings(pr, patch)));
     rerender();
   };
-  const num = (label, value, key) => h('label', { class: 'field-row' },
-    h('span', {}, label),
-    h('input', {
-      type: 'number', min: '100', max: '5000', step: '50', value: String(value), 'data-testid': `timing-${key}`,
-      onChange: (e) => {
-        const v = Number(e.target.value);
-        if (Number.isFinite(v) && v >= 100 && v <= 5000) apply({ timing: { [key === 'start' ? 'startMs' : `${key}Ms`]: Math.round(v / 50) * 50 } });
-        else rerender();
-      },
-    }),
-    h('span', { class: 'unit' }, 'ms'));
+  const slider = (label, key) => durationSlider(label, s.timing[`${key}Ms`], (ms) => apply({ timing: { [`${key}Ms`]: ms } }), `timing-${key}`);
 
   // the last enabled exercise that is also playable cannot be switched off
   const playable = EXERCISE_ORDER.filter((id) => s.exercises[id] && EXERCISES[id].isAvailable(s));
   const lockLetters = s.letters.known.length <= MIN_LETTERS;
   body.append(
     h('h2', {}, `Einstellungen für ${p.name}`),
-    fieldset('Übungsarten', EXERCISE_ORDER.map((id) => check(EXERCISES[id].title, s.exercises[id], (v) => apply({ exercises: { [id]: v } }), `ex-${id}`,
+    fieldset('Übungsarten', EXERCISE_ORDER.map((id) => toggle(EXERCISES[id].title, s.exercises[id], (v) => apply({ exercises: { [id]: v } }), `ex-${id}`,
       playable.length <= 1 && playable.includes(id)))),
     fieldset('Anzeigedauer', [
-      check('Automatisch anpassen', s.timing.adaptive, (v) => apply({ timing: { adaptive: v } }), 'timing-adaptive'),
-      num(s.timing.adaptive ? 'Startwert' : 'Feste Dauer', s.timing.startMs, 'start'),
-      num('Kürzeste', s.timing.minMs, 'min'),
-      num('Längste', s.timing.maxMs, 'max'),
+      toggle('Automatisch anpassen', s.timing.adaptive, (v) => apply({ timing: { adaptive: v } }), 'timing-adaptive'),
+      slider(s.timing.adaptive ? 'Startwert' : 'Feste Dauer', 'start'),
+      slider('Kürzeste', 'min'),
+      slider('Längste', 'max'),
     ]),
     fieldset('Mengen', [
-      select('Höchstens', s.quantity.max, [3, 4, 5, 6, 8, 10].map((n) => [n, String(n)]), (v) => apply({ quantity: { max: Number(v) } }), 'qty-max'),
-      select('Anordnung', s.quantity.layout, [['structured', 'Strukturiert (Würfel, Zehnerfeld)'], ['random', 'Zufällig verstreut'], ['mixed', 'Gemischt']], (v) => apply({ quantity: { layout: v } }), 'qty-layout'),
-      check('Rechnen (Plus-Aufgaben auf den höchsten Stufen)', s.quantity.addition, (v) => apply({ quantity: { addition: v } }), 'qty-addition'),
+      segmented('Höchstens', s.quantity.max, [3, 4, 5, 6, 8, 10].map((n) => [n, String(n)]), (v) => apply({ quantity: { max: Number(v) } }), 'qty-max'),
+      segmented('Anordnung', s.quantity.layout, [['structured', 'Strukturiert'], ['random', 'Zufällig'], ['mixed', 'Gemischt']], (v) => apply({ quantity: { layout: v } }), 'qty-layout'),
+      h('p', { class: 'hint' }, 'Strukturiert: Würfelbild und Zehnerfeld · Zufällig: frei verstreut'),
+      toggle('Rechnen (Plus-Aufgaben auf den höchsten Stufen)', s.quantity.addition, (v) => apply({ quantity: { addition: v } }), 'qty-addition'),
     ]),
     fieldset('Zahlen', [
-      select('Zahlenraum', s.digits.range, [[9, '0–9'], [10, '0–10'], [20, '0–20']], (v) => apply({ digits: { range: Number(v) } }), 'digits-range'),
-      check('Rechnen (Plus-Aufgaben auf den höchsten Stufen)', s.digits.addition, (v) => apply({ digits: { addition: v } }), 'digits-addition'),
+      segmented('Zahlenraum', s.digits.range, [[9, '0–9'], [10, '0–10'], [20, '0–20']], (v) => apply({ digits: { range: Number(v) } }), 'digits-range'),
+      toggle('Rechnen (Plus-Aufgaben auf den höchsten Stufen)', s.digits.addition, (v) => apply({ digits: { addition: v } }), 'digits-addition'),
     ]),
     fieldset('Buchstaben', [
       h('p', { class: 'hint' }, 'Angehakte Buchstaben kennt das Kind schon – nur diese werden abgefragt (mindestens 2).'),
@@ -173,20 +167,21 @@ function settingsTab(body, ctx, rerender) {
           type: 'checkbox', checked: s.letters.known.includes(l), disabled: lockLetters && s.letters.known.includes(l), 'data-testid': `letter-${l}`, 'aria-label': l,
           onChange: (e) => apply({ letters: { known: e.target.checked ? [...s.letters.known, l] : s.letters.known.filter((x) => x !== l) } }),
         }), l))),
-      select('Schreibweise', s.letters.case, [['upper', 'Großbuchstaben'], ['lower', 'Kleinbuchstaben'], ['both', 'Groß und klein']], (v) => apply({ letters: { case: v } }), 'letters-case'),
-      select('Aussprache', s.letters.speak, [['sound', 'Als Laut („mmm“)'], ['name', 'Als Name („em“)']], (v) => apply({ letters: { speak: v } }), 'letters-speak'),
+      segmented('Schreibweise', s.letters.case, [['upper', 'Groß'], ['lower', 'Klein'], ['both', 'Beides']], (v) => apply({ letters: { case: v } }), 'letters-case'),
+      segmented('Aussprache', s.letters.speak, [['sound', 'Laut („mmm“)'], ['name', 'Name („em“)']], (v) => apply({ letters: { speak: v } }), 'letters-speak'),
     ]),
     syllablesFieldset(s, apply),
     fieldset('Ton', [
-      select('Sprachausgabe', s.speech, [['off', 'Aus'], ['little', 'Wenig (nur Lösungen und Lob)'], ['lots', 'Viel (alles ansagen)']], (v) => apply({ speech: v }), 'speech'),
+      segmented('Sprachausgabe', s.speech, [['off', 'Aus'], ['little', 'Wenig'], ['lots', 'Viel']], (v) => apply({ speech: v }), 'speech'),
+      h('p', { class: 'hint' }, 'Wenig: nur Lösungen und Lob · Viel: alles ansagen'),
       voiceSelect(ctx, rerender),
-      h('button', { type: 'button', class: 'secondary-btn', 'data-testid': 'voice-test', onClick: () => ctx.speech.speak('Hallo! So klinge ich.', { force: true }) }, 'Stimme testen'),
+      h('button', { type: 'button', class: 'secondary-btn candy candy-pill', 'data-testid': 'voice-test', onClick: () => ctx.speech.speak('Hallo! So klinge ich.', { force: true }) }, 'Stimme testen'),
       h('p', { class: 'hint' }, 'Tipp für Android: Unter Einstellungen → Sprachausgabe → Google lassen sich natürlichere deutsche Stimmen herunterladen.'),
-      check('Töne (auch Countdown vor dem Aufblitzen)', s.sounds, (v) => apply({ sounds: v }), 'sounds'),
+      toggle('Töne (auch Countdown vor dem Aufblitzen)', s.sounds, (v) => apply({ sounds: v }), 'sounds'),
     ]),
     fieldset('Schwierigkeit', [
       h('button', {
-        type: 'button', class: 'danger-btn', 'data-testid': 'reset-levels',
+        type: 'button', class: 'danger-btn candy candy-pill is-danger', 'data-testid': 'reset-levels',
         onClick: () => {
           if (!confirm('Alle Schwierigkeitsstufen auf den Anfang zurücksetzen?')) return;
           ctx.setState(updateProfile(ctx.state, p.id, resetLevels));
@@ -206,7 +201,7 @@ function progressTab(body, ctx) {
     const maxC = ex.maxComplexity(p.settings);
     const c = Math.min(lvl.complexity, maxC);
     const sum = summarize(p.history, id);
-    const duration = p.settings.timing.adaptive ? `${lvl.durationMs} ms` : `${p.settings.timing.startMs} ms (fest)`;
+    const duration = p.settings.timing.adaptive ? formatSeconds(lvl.durationMs) : `${formatSeconds(p.settings.timing.startMs)} (fest)`;
     body.append(h('div', { class: 'card stat', 'data-testid': `stat-${id}` },
       h('h3', {}, ex.title),
       h('p', {}, `Stufe ${c + 1} von ${maxC + 1} · ${ex.describeLevel(c, p.settings)} · Anzeigedauer ${duration}`),
@@ -239,9 +234,9 @@ function profilesTab(body, ctx, rerender) {
       }),
       p.id === activeProfileId
         ? h('span', { class: 'badge' }, 'aktiv')
-        : h('button', { class: 'secondary-btn', onClick: () => { ctx.setState(setActive(ctx.state, p.id)); rerender(); } }, 'Auswählen'),
+        : h('button', { class: 'secondary-btn candy candy-pill', 'data-testid': `select-${p.id}`, onClick: () => { ctx.setState(setActive(ctx.state, p.id)); rerender(); } }, 'Auswählen'),
       h('button', {
-        class: 'danger-btn', 'data-testid': `delete-${p.id}`,
+        class: 'danger-btn candy candy-pill is-danger', 'data-testid': `delete-${p.id}`,
         onClick: () => {
           if (!confirm(`Profil „${p.name}“ mit allem Fortschritt löschen?`)) return;
           ctx.setState(removeProfile(ctx.state, p.id));
@@ -253,8 +248,8 @@ function profilesTab(body, ctx, rerender) {
   const name = h('input', { type: 'text', maxlength: '20', placeholder: 'Name', 'data-testid': 'new-profile-name' });
   const pick = h('div', { class: 'avatar-pick small' }, AVATARS.map((a) => h('button', {
     type: 'button',
-    class: `avatar-opt${a === avatar ? ' selected' : ''}`,
-    'aria-label': AVATAR_LABELS[a],
+    class: `avatar-opt candy candy-round${a === avatar ? ' selected' : ''}`,
+    'aria-label': AVATAR_LABELS[a], 'data-testid': `new-avatar-${a}`,
     onClick: (e) => { avatar = a; [...pick.children].forEach((b) => b.classList.toggle('selected', b === e.currentTarget)); },
   }, avatarImg(a))));
   body.append(h('form', {
@@ -266,7 +261,7 @@ function profilesTab(body, ctx, rerender) {
       rerender();
     },
   }, h('h3', {}, 'Neues Profil'), name, h('div', { class: 'label' }, 'Bild'), pick,
-  h('div', { class: 'row' }, h('button', { class: 'primary-btn', type: 'submit', 'data-testid': 'add-profile' }, 'Anlegen'))));
+  h('div', { class: 'row' }, h('button', { class: 'primary-btn candy candy-pill is-primary', type: 'submit', 'data-testid': 'add-profile' }, 'Anlegen'))));
 }
 
 function download(filename, text) {
@@ -302,7 +297,7 @@ function dataTab(body, ctx) {
   body.append(
     h('h2', {}, 'Datensicherung'),
     h('p', {}, 'Alle Profile, Einstellungen, Fortschritt und Sticker liegen nur auf diesem Gerät. Mit einer Sicherungsdatei kannst du sie aufbewahren oder auf ein anderes Gerät übertragen.'),
-    h('button', { class: 'primary-btn', 'data-testid': 'export', onClick: () => download(exportFilename(), serializeExport(ctx.state)) }, 'Sicherung herunterladen'),
+    h('button', { class: 'primary-btn candy candy-pill is-primary', 'data-testid': 'export', onClick: () => download(exportFilename(), serializeExport(ctx.state)) }, 'Sicherung herunterladen'),
     h('h3', { style: 'margin-top:20px' }, 'Sicherung einspielen'),
     file,
     msg,

@@ -3,7 +3,7 @@ import { h } from './dom.js';
 export const uiIcon = (name) => h('img', { src: `assets/ui/${name}.svg`, alt: '' });
 
 export function iconBtn(name, label, onClick, testid) {
-  return h('button', { class: 'icon-btn', type: 'button', 'aria-label': label, 'data-testid': testid, onClick }, uiIcon(name));
+  return h('button', { class: 'icon-btn candy candy-round', type: 'button', 'aria-label': label, 'data-testid': testid, onClick }, uiIcon(name));
 }
 
 export function starBadge(stars) {

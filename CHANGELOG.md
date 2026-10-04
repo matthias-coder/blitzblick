@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.0] – 2026-10-04
+
+- Neues Menü: vier große Bildkacheln (Apfelkorb, Zahlenklötze, ABC-Klötze, klatschende Hände) in sanften Farben, der Roboter begrüßt mit Sprechblase
+- Alle Knöpfe im einheitlichen „Bonbon“-Stil: dicke Unterkante, die beim Drücken einsinkt
+- Rundenende: der neue Sticker dreht sich mit Strahlenkranz ein und fliegt ins Album
+- Elternbereich: Schalter und Auswahlknöpfe statt Browser-Standardfeldern, Anzeigedauer als Schieberegler in Sekunden
+- Beim ersten Start begrüßt der Roboter, bevor das Profil angelegt wird
+
 ## [1.5.0] – 2026-10-04
 
 - Rechnen: auf den höchsten Stufen von „Mengen“ (z. B. 3 Äpfel + 2 Äpfel) und „Zahlen“ („3 + 2“) – Summe bis 5, dann bis 10; Plus-Aufgaben werden 2,5× so lange gezeigt; im Elternbereich je Übung abschaltbar (nur bei automatischer Anzeigedauer)

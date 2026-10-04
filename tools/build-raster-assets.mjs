@@ -8,12 +8,14 @@ import { PAGES } from '../js/rewards.js';
 const AVATARS = ['astronaut', 'monster', 'superhero', 'knight', 'dino', 'dragon', 'pony', 'taco', 'singer', 'cat', 'fairy', 'chef'];
 const DECOR = ['star-big', 'badge-winner', 'bubble-yay', 'bubble-wow', 'confetti-1', 'confetti-2', 'confetti-3', 'confetti-4', 'confetti-5', 'confetti-6'];
 const MASCOT = ['robot-wave', 'robot-cheer'];
+const MENU = ['quantity', 'digits', 'letters', 'syllables'];
 const QUALITY = 0.85;
 
 const jobs = [
   ...AVATARS.map((a) => ({ name: `avatars/${a}`, square: 256 })),
   ...DECOR.map((d) => ({ name: `decor/${d}`, max: 320 })),
   ...MASCOT.map((m) => ({ name: `mascot/${m}`, max: 400 })),
+  ...MENU.map((m) => ({ name: `menu/${m}`, square: 320 })),
   ...OBJECTS.map((o) => ({ name: `objects/${o}`, square: 256 })),
   ...PAGES.flatMap((p) => p.stickers.map((s) => ({ name: `stickers/${p.id}/${s}`, square: 256 }))),
 ];

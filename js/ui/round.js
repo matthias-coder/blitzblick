@@ -17,6 +17,7 @@ export function render(root, ctx, { exerciseId }) {
   const profile = ctx.profile;
   let round = createRound(profile, exerciseId, rng);
   let alive = true;
+  let stopEnd = null;
 
   const stars = h('div', { class: 'round-stars', 'data-testid': 'round-stars' },
     Array.from({ length: ROUND_LENGTH }, () => h('span', { class: 'slot' })));
@@ -118,9 +119,9 @@ export function render(root, ctx, { exerciseId }) {
     const { profile: updated, reward } = finishRound(profile, round, rng);
     ctx.setState(updateProfile(ctx.state, profile.id, () => updated));
     const correct = round.results.filter((r) => r.correct).length;
-    renderRoundEnd(root, ctx, { exerciseId, correct, reward });
+    stopEnd = renderRoundEnd(root, ctx, { exerciseId, correct, reward });
   }
 
   playTask();
-  return () => { alive = false; };
+  return () => { alive = false; stopEnd?.(); };
 }

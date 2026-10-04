@@ -1,0 +1,29 @@
+/* candy buttons: flat face, soft top highlight, thick bottom edge that sinks on press */
+.candy {
+  --face: #fff; --edge: #CBD3EE; --depth: 6px; --r: 20px; --gloss: rgba(235, 239, 250, .9); --gloss-h: 14%;
+  position: relative; isolation: isolate; background: var(--face); border-radius: var(--r);
+  box-shadow: 0 var(--depth) 0 var(--edge); transition: transform .08s, box-shadow .08s;
+}
+.candy::before {
+  content: ''; position: absolute; z-index: -1; left: 12%; right: 12%; top: 4px; height: min(var(--gloss-h), 18px);
+  border-radius: 999px; background: var(--gloss); pointer-events: none;
+}
+.candy:active:not(:disabled), .candy.pressing { transform: translateY(var(--depth)); box-shadow: 0 0 0 var(--edge); }
+.candy:disabled { opacity: .45; cursor: default; }
+
+.candy-tile { --depth: 8px; --r: 28px; --gloss: rgba(255, 255, 255, .45); --gloss-h: 22%; }
+.candy-answer { --depth: 6px; --r: 20px; }
+.candy-round { --depth: 6px; --r: 50%; }
+.candy-round::before { left: 24%; right: 24%; top: 7px; }
+.candy-pill { --depth: 5px; --r: 999px; }
+.candy-small { --depth: 4px; --r: 12px; }
+
+.candy.is-primary { --face: var(--primary); --edge: #4A28A8; color: var(--primary-ink); }
+.candy.is-go { --face: var(--right); --edge: #1F8350; color: #fff; }
+.candy.is-danger { --edge: var(--wrong); color: var(--wrong); }
+.candy.is-primary, .candy.is-go { --gloss: rgba(255, 255, 255, .45); --gloss-h: 22%; }
+
+/* per-element tweaks */
+.profile-card.candy { --r: 28px; }
+.avatar-opt.candy { --depth: 4px; }
+.chip button.candy { --r: 50%; }

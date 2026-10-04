@@ -33,6 +33,7 @@ test('Andika fonts and license are bundled', () => {
 });
 
 const MASCOT = ['robot-wave', 'robot-cheer'];
+const MENU = ['quantity', 'digits', 'letters', 'syllables'];
 const DECOR = ['star-big', 'badge-winner', 'bubble-yay', 'bubble-wow', 'confetti-1', 'confetti-2', 'confetti-3', 'confetti-4', 'confetti-5', 'confetti-6'];
 
 function checkWebp(path) {
@@ -42,12 +43,14 @@ function checkWebp(path) {
 }
 
 test('decor sprites exist', () => { for (const d of DECOR) checkWebp(`assets/decor/${d}.webp`); });
+test('menu tile sprites exist', () => { for (const m of MENU) checkWebp(`assets/menu/${m}.webp`); });
 test('mascot sprites exist', () => { for (const m of MASCOT) checkWebp(`assets/mascot/${m}.webp`); });
 test('raster assets stay small enough for offline caching', () => {
   const paths = [
     ...AVATARS.map((a) => `assets/avatars/${a}.webp`),
     ...DECOR.map((d) => `assets/decor/${d}.webp`),
     ...MASCOT.map((m) => `assets/mascot/${m}.webp`),
+    ...MENU.map((m) => `assets/menu/${m}.webp`),
     ...OBJECTS.map(objectUrl),
     ...PAGES.flatMap((p) => p.stickers.map((s) => stickerUrl(stickerId(p.id, s)))),
   ];
