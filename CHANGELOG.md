@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.0] – 2026-10-04
+
+- Sticker-Tausch: Sterne werden im Album gegen Sticker-Tüten getauscht (Level 1–4: 10/15/20/25, Bonusseiten: 30 Sterne). Es gibt keine automatischen Sticker mehr
+- Doppelte Sticker zählen mit und zeigen eine Zahl; nach spätestens drei Doppelten in Folge kommt ein neuer Sticker
+- Level-Geschenk: Wer ein neues Level erreicht, bekommt eine Tüte dieser Stufe geschenkt
+- Vier Bonusseiten: Garten, Baustelle, Krabbeltiere, Alltagsfiguren – frei, wenn alle vier Seiten einer Übung voll sind
+- Mengenblitz zählt jetzt auch Garten-, Baustellen- und Krabbeltier-Sticker
+
 ## [1.7.1] – 2026-10-04
 
 - Geheime Albumseite „Unfug-Bande“: Wer in einer Runde gar nichts richtig hat, bekommt einen geheimen Sticker – höchstens einen pro Tag. Die Seite erscheint im Album erst, wenn der erste gefunden ist
