@@ -234,7 +234,7 @@ function profilesTab(body, ctx, rerender) {
       }),
       p.id === activeProfileId
         ? h('span', { class: 'badge' }, 'aktiv')
-        : h('button', { class: 'secondary-btn candy candy-pill', onClick: () => { ctx.setState(setActive(ctx.state, p.id)); rerender(); } }, 'Auswählen'),
+        : h('button', { class: 'secondary-btn candy candy-pill', 'data-testid': `select-${p.id}`, onClick: () => { ctx.setState(setActive(ctx.state, p.id)); rerender(); } }, 'Auswählen'),
       h('button', {
         class: 'danger-btn candy candy-pill is-danger', 'data-testid': `delete-${p.id}`,
         onClick: () => {
@@ -249,7 +249,7 @@ function profilesTab(body, ctx, rerender) {
   const pick = h('div', { class: 'avatar-pick small' }, AVATARS.map((a) => h('button', {
     type: 'button',
     class: `avatar-opt candy candy-round${a === avatar ? ' selected' : ''}`,
-    'aria-label': AVATAR_LABELS[a],
+    'aria-label': AVATAR_LABELS[a], 'data-testid': `new-avatar-${a}`,
     onClick: (e) => { avatar = a; [...pick.children].forEach((b) => b.classList.toggle('selected', b === e.currentTarget)); },
   }, avatarImg(a))));
   body.append(h('form', {

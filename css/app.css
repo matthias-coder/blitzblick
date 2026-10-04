@@ -155,7 +155,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .big-btn.bump { animation: bump .45s; }
 @keyframes bump { 40% { transform: scale(1.18); } }
 .sticker-reveal img { width: 80%; height: 80%; }
-.bonus { position: relative; z-index: 1; font-size: 2.5rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.bonus { animation: pop .5s .2s both; position: relative; z-index: 1; font-size: 2.5rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
 .bonus img { width: 56px; }
 .sticker-hint { display: flex; align-items: center; gap: 12px; padding: 14px 22px; background: var(--surface); border-radius: 24px; box-shadow: var(--shadow); font-size: 1.3rem; font-weight: 700; text-align: left; }
 .sticker-hint img { width: 40px; opacity: .6; }
@@ -229,8 +229,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); height: 32px; }
 .profile-row input[type="text"] { flex: 1; min-width: 140px; width: auto; }
 .profile-row select { width: auto; }
 .badge { background: var(--primary); color: #fff; padding: 6px 12px; border-radius: 999px; font-weight: 700; }
-@media (max-width: 480px) { .field-row { grid-template-columns: 1fr auto; } .field-row > span:first-child { grid-column: 1 / -1; } .field-row.seg-row { grid-template-columns: 1fr; } .seg { flex-basis: 28%; } }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+@media (max-width: 480px) { .field-row { grid-template-columns: 1fr auto; } .field-row > span:first-child { grid-column: 1 / -1; } .field-row.seg-row { grid-template-columns: 1fr; } .seg { flex: 1 1 0; min-width: max-content; padding: 8px 4px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; animation-iteration-count: 1 !important; } }
 
 /* mascot */
 #app { position: relative; }
@@ -242,6 +242,13 @@ input[type="range"] { width: 100%; accent-color: var(--primary); height: 32px; }
 .center { overflow-y: auto; align-items: safe center; }
 @media (max-width: 480px) {
   .greet-robot { width: 56px; } .bubble { font-size: 1.1rem; padding: 8px 12px; } .menu { --menu-gap: 12px; padding: 12px; } .album-btn img { width: 40px; height: 40px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .greet { display: none; }            /* the greeting is still spoken */
+  .menu { grid-template-columns: repeat(4, 1fr); }
+  .menu.count-3 { grid-template-columns: repeat(3, 1fr); }
+  .menu.count-2 { grid-template-columns: 1fr 1fr; }
+  .menu.count-3 .tile:last-child { grid-column: auto; width: auto; }
 }
 
 .round-end { position: relative; overflow: hidden; }

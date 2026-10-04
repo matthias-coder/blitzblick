@@ -77,6 +77,17 @@ test('menu shows four illustrated tiles in a 2×2 grid with a greeting', async (
   await expect(page.getByTestId('greet')).toHaveText('Hallo Mia! Was möchtest du üben?');
 });
 
+test('menu stays usable on a phone in landscape', async ({ page }) => {
+  await page.setViewportSize({ width: 667, height: 375 });
+  await seed(page, fiveLetters);
+  await page.goto('/');
+  const tiles = page.locator('.menu .tile');
+  await expect(tiles).toHaveCount(4);
+  for (let i = 0; i < 4; i++) expect((await tiles.nth(i).boundingBox()).height).toBeGreaterThanOrEqual(100);
+  const album = await page.getByTestId('open-album').boundingBox();
+  expect(album.y + album.height).toBeLessThanOrEqual(375);
+});
+
 test('menu fits a narrow phone without scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 667 });
   await seed(page, fiveLetters);
