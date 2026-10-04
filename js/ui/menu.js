@@ -2,14 +2,6 @@ import { h } from './dom.js';
 import { EXERCISES, EXERCISE_ORDER } from '../exercises/index.js';
 import { iconBtn, starBadge, avatarImg, uiIcon } from './widgets.js';
 import { attachLongPress } from './gate.js';
-import { objectUrl } from '../exercises/quantity.js';
-
-const TILE_CONTENT = {
-  quantity: () => h('span', { class: 'tile-apples' }, [0, 1, 2].map(() => h('img', { src: objectUrl('apple'), alt: '' }))),
-  digits: () => '1 2 3',
-  letters: () => 'A B C',
-  syllables: () => h('span', { class: 'tile-syl' }, h('span', {}, 'Ma'), h('span', {}, 'ma')),
-};
 
 export function render(root, ctx) {
   const p = ctx.profile;
@@ -20,18 +12,21 @@ export function render(root, ctx) {
   const who = ctx.state.profiles.length > 1
     ? h('button', { class: 'icon-btn candy candy-round', 'data-testid': 'switch-profile', 'aria-label': 'Profil wechseln', onClick: () => ctx.go('profiles') }, avatarImg(p.avatar))
     : h('div', { class: 'icon-btn' }, avatarImg(p.avatar));
+  const hello = `Hallo ${p.name}! Was möchtest du üben?`;
   root.append(
     h('header', { class: 'topbar' }, who, h('div', { class: 'spacer' }), starBadge(p.rewards.stars), gear),
-    h('main', { class: 'menu' }, ids.map((id) => h('button', {
-      class: `tile tile-${id}`,
+    h('div', { class: 'greet' },
+      h('img', { class: 'greet-robot', src: 'assets/mascot/robot-wave.webp', alt: '' }),
+      h('p', { class: 'bubble', 'data-testid': 'greet' }, hello)),
+    h('main', { class: `menu count-${ids.length}` }, ids.map((id) => h('button', {
+      class: `tile tile-${id} candy candy-tile`,
       'data-testid': `tile-${id}`,
       'aria-label': EXERCISES[id].title,
       onClick: () => ctx.go('round', { exerciseId: id }),
-    }, TILE_CONTENT[id]()))),
+    }, h('img', { src: `assets/menu/${id}.webp`, alt: '' })))),
     h('footer', { class: 'menu-foot' }, h('button', {
       class: 'album-btn candy candy-pill', 'data-testid': 'open-album', 'aria-label': 'Sammelalbum', onClick: () => ctx.go('album'),
     }, uiIcon('album'), h('span', {}, String(p.rewards.stickers.length)))),
-    h('img', { class: 'mascot', src: 'assets/mascot/robot-wave.webp', alt: '' }),
   );
-  ctx.speech.speak(`Hallo ${p.name}! Was möchtest du üben?`, { extra: true });
+  ctx.speech.speak(hello, { extra: true });
 }

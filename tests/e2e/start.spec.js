@@ -56,3 +56,55 @@ test('buttons use the candy system and sink when pressed', async ({ page }) => {
   expect(shadow).toMatch(/0px 5px 0px/);
   await expect(page.getByTestId('gear')).toHaveClass(/\bcandy-round\b/);
 });
+
+const fiveLetters = (p) => { p.settings.letters.known = ['A', 'E', 'L', 'M', 'O']; };
+
+test('menu shows four illustrated tiles in a 2×2 grid with a greeting', async ({ page }) => {
+  await seed(page, fiveLetters);
+  await page.goto('/');
+  const tiles = page.locator('.menu .tile');
+  await expect(tiles).toHaveCount(4);
+  for (const id of ['quantity', 'digits', 'letters', 'syllables']) {
+    await expect(page.getByTestId(`tile-${id}`).locator('img')).toHaveAttribute('src', `assets/menu/${id}.webp`);
+  }
+  const b = await Promise.all([0, 1, 2, 3].map((i) => tiles.nth(i).boundingBox()));
+  expect(Math.abs(b[0].y - b[1].y)).toBeLessThan(2);
+  expect(b[2].y).toBeGreaterThan(b[0].y + b[0].height - 1);
+  await expect(page.getByTestId('greet')).toHaveText('Hallo Mia! Was möchtest du üben?');
+});
+
+test('menu fits a narrow phone without scrolling', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await seed(page, fiveLetters);
+  await page.goto('/');
+  const tiles = page.locator('.menu .tile');
+  await expect(tiles).toHaveCount(4);
+  for (let i = 0; i < 4; i++) {
+    const box = await tiles.nth(i).boundingBox();
+    expect(box.y + box.height).toBeLessThanOrEqual(667);
+    expect(box.width).toBeGreaterThan(120);
+  }
+  const album = await page.getByTestId('open-album').boundingBox();
+  expect(album.y + album.height).toBeLessThanOrEqual(667);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+});
+
+test('three enabled exercises: the third tile is centred below', async ({ page }) => {
+  await seed(page, (p) => { fiveLetters(p); p.settings.exercises.syllables = false; });
+  await page.goto('/');
+  const tiles = page.locator('.menu .tile');
+  await expect(tiles).toHaveCount(3);
+  const [a, b, c] = await Promise.all([0, 1, 2].map((i) => tiles.nth(i).boundingBox()));
+  expect(Math.abs(c.width - a.width)).toBeLessThan(2);
+  expect(Math.abs((c.x + c.width / 2) - (a.x + b.x + b.width) / 2)).toBeLessThan(2);
+});
+
+test('the child name in the greeting is plain text and wraps', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await seed(page, (p) => { p.name = '<b>Mia</b>-Sophie Alexandra'; });
+  await page.goto('/');
+  const greet = page.getByTestId('greet');
+  await expect(greet).toContainText('<b>Mia</b>-Sophie Alexandra');
+  await expect(greet.locator('b')).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+});
