@@ -112,6 +112,7 @@ function syllablesFieldset(s, apply) {
     h('p', { class: 'hint', 'data-testid': 'syllables-playable' },
       `Spielbar gerade: ${nSyl} Silben, ${pool.length - nSyl} Wörter – nur aus bekannten Buchstaben.`),
     h('p', { class: 'hint' }, 'Eigene Wörter, z. B. Namen aus der Familie. Silben mit | trennen (El|la) – ohne | trennt die App selbst.'),
+    h('p', { class: 'hint' }, 'Namen und Nomen bitte groß schreiben (Ella, Ball).'),
     h('form', { class: 'add-row', onSubmit: (e) => { e.preventDefault(); add(); } },
       input,
       h('button', { type: 'submit', class: 'secondary-btn candy candy-pill', 'data-testid': 'syllables-custom-add' }, 'Hinzufügen')),

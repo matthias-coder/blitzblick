@@ -111,7 +111,11 @@ export function buildPool(settings) {
     const key = text.toLowerCase();
     if (!entries.has(key) && playable(text)) entries.set(key, { text, parts, level });
   };
+  // a built-in word wins over a custom entry that differs only in case (exact matches keep the custom split)
+  const builtIn = new Map(WORDS.map((w) => w.replaceAll('|', '')).map((t) => [t.toLowerCase(), t]));
   for (const c of settings.syllables?.custom ?? []) {
+    const b = builtIn.get(c.text.toLowerCase());
+    if (b !== undefined && b !== c.text) continue;
     const parts = c.split.split('|');
     add(c.text, parts, wordLevel(parts));
   }

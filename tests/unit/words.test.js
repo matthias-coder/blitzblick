@@ -105,3 +105,13 @@ test('custom words only accept the explicit letter whitelist', () => {
   assert.ok(parseCustomWord('ſofa').error);
   for (const w of ['Ella', 'ella', 'Straße', 'Öl']) assert.equal(parseCustomWord(w).error, undefined, w);
 });
+
+test('built-in words win over custom entries that differ only in case', () => {
+  const known = [...LETTERS];
+  const pool = buildPool(S(known, [{ text: 'ball', split: 'ball' }]));
+  const texts = pool.map((e) => e.text);
+  assert.ok(texts.includes('Ball'));
+  assert.ok(!texts.includes('ball'));
+  const same = buildPool(S(known, [{ text: 'Ball', split: 'Ba|ll' }])).find((e) => e.text === 'Ball');
+  assert.deepEqual(same.parts, ['Ba', 'll']);
+});
