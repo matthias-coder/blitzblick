@@ -4,6 +4,10 @@ Web-App für Erstklässler: Mengen, Zahlen, Buchstaben oder Silben und kurze Wö
 
 **App öffnen:** <https://matthias-coder.github.io/blitzblick/> – auf dem Tablet im Browser „Zum Home-Bildschirm“ wählen.
 
+<img src="docs/qr-code.svg" alt="QR-Code zur App: matthias-coder.github.io/blitzblick" width="200">
+
+Mit der Tablet-Kamera scannen, um die App direkt zu öffnen.
+
 - Läuft im Browser auf Tablet und PC, installierbar als App, offline nutzbar.
 - Schwierigkeit passt sich automatisch an; Elternbereich (Zahnrad 1,5 s halten) für Grenzen, bekannte Buchstaben, Profile und Datensicherung.
 - Alle Daten bleiben auf dem Gerät (localStorage).
