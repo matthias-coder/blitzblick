@@ -3,20 +3,35 @@ import assert from 'node:assert/strict';
 import { EXERCISES, EXERCISE_ORDER } from '../../js/exercises/index.js';
 import {
   DEFAULT_SETTINGS, createProfile, addProfile, removeProfile, setActive, getActive,
-  updateProfile, updateSettings, resetLevels, normalizeProfile,
+  updateProfile, updateSettings, resetLevels, normalizeProfile, setGrade, setLevel,
 } from '../../js/profiles.js';
+import { GRADES, LEVEL_COUNT } from '../../js/levels.js';
 import { parseImport } from '../../js/storage.js';
 
 const empty = () => ({ schemaVersion: 1, activeProfileId: null, profiles: [] });
 const mk = (id, name = 'Mia') => createProfile({ name, avatar: 'astronaut' }, { id, now: new Date(2026, 9, 3) });
 
 test('every exercise implements the module contract', () => {
-  const fns = ['isAvailable', 'stages', 'maxComplexity', 'startComplexity', 'describeLevel', 'createTask', 'renderStimulus', 'renderChoices', 'speakPrompt', 'speakSolution'];
+  const fns = ['isAvailable', 'createTask', 'renderStimulus', 'renderChoices', 'speakPrompt', 'speakSolution'];
   assert.deepEqual(Object.keys(EXERCISES).sort(), [...EXERCISE_ORDER].sort());
   for (const [key, ex] of Object.entries(EXERCISES)) {
     assert.equal(ex.id, key);
     assert.equal(typeof ex.title, 'string');
+    assert.match(ex.menuTitle, /blitz$/);
     for (const f of fns) assert.equal(typeof ex[f], 'function', `${key}.${f}`);
+  }
+});
+
+test('every exercise has exactly four levels with steps for every grade', () => {
+  for (const [key, ex] of Object.entries(EXERCISES)) {
+    for (const g of GRADES) {
+      const ladder = ex.LADDERS[g];
+      assert.equal(ladder?.length, LEVEL_COUNT, `${key}/${g}`);
+      for (const l of ladder) {
+        assert.equal(typeof l.label, 'string');
+        assert.ok(l.steps.length >= 1, `${key}/${g}/${l.label}`);
+      }
+    }
   }
 });
 
@@ -26,9 +41,11 @@ test('createProfile uses defaults, trims the name and creates a level per exerci
   assert.equal(p.avatar, 'cat');
   assert.deepEqual(p.settings, DEFAULT_SETTINGS);
   assert.notEqual(p.settings, DEFAULT_SETTINGS);
-  assert.equal(p.levels.quantity.complexity, 4);
-  assert.equal(p.levels.digits.durationMs, 1500);
-  assert.deepEqual(p.rewards, { stars: 0, stickers: [], unlockedPages: 1 });
+  assert.equal(p.settings.grade, 'pre');
+  for (const key of Object.keys(EXERCISES)) {
+    assert.deepEqual(p.levels[key], { level: 0, step: 0, durationMs: 2000, streak: 0, recent: [], mastered: false });
+  }
+  assert.deepEqual(p.rewards, { stars: 0, stickers: [], reached: { quantity: 0, digits: 0, letters: 0, syllables: 0 } });
   assert.deepEqual(p.history, []);
 });
 
@@ -64,9 +81,9 @@ test('updateProfile changes only the target profile', () => {
 test('updateSettings merges nested values and replaces arrays', () => {
   const p = updateSettings(mk('p1'), { letters: { known: ['B', 'D'] }, timing: { startMs: 1000 } });
   assert.deepEqual(p.settings.letters.known, ['B', 'D']);
-  assert.equal(p.settings.letters.case, 'upper');
+  assert.equal(p.settings.letters.speak, 'sound');
   assert.equal(p.settings.timing.startMs, 1000);
-  assert.equal(p.settings.timing.maxMs, 3000);
+  assert.equal(p.settings.timing.maxMs, 3500);
 });
 
 test('updateSettings normalizes timing so that min ≤ start ≤ max', () => {
@@ -76,16 +93,61 @@ test('updateSettings normalizes timing so that min ≤ start ≤ max', () => {
 
 test('updateSettings clamps levels when the parent lowers limits', () => {
   let p = mk('p1');
-  p = { ...p, levels: { ...p.levels, quantity: { ...p.levels.quantity, complexity: 11, durationMs: 300 } } };
-  p = updateSettings(p, { quantity: { max: 5 }, timing: { minMs: 500 } });
-  assert.equal(p.levels.quantity.complexity, 6); // 6 regular stages up to 5 + "Plus bis 5"
+  p = { ...p, levels: { ...p.levels, quantity: { ...p.levels.quantity, level: 2, step: 9, durationMs: 300 } } };
+  p = updateSettings(p, { timing: { minMs: 500 } });
+  assert.equal(p.levels.quantity.step, 2); // Vorschule level 3 has three steps
   assert.equal(p.levels.quantity.durationMs, 500);
 });
 
-test('resetLevels returns to start values', () => {
-  let p = mk('p1');
-  p = { ...p, levels: { ...p.levels, digits: { durationMs: 300, complexity: 1, streak: 2, recent: [true] } } };
-  assert.deepEqual(resetLevels(p).levels.digits, { durationMs: 1500, complexity: 0, streak: 0, recent: [] });
+test('resetLevels returns every exercise to level 1 but keeps hold switches', () => {
+  let p = updateSettings(setLevel(mk('p1'), 'digits', 3), { hold: { digits: true } });
+  p = resetLevels(p);
+  assert.deepEqual(p.levels.digits, { level: 0, step: 0, durationMs: 2000, streak: 0, recent: [], mastered: false });
+  assert.equal(p.settings.hold.digits, true);
+});
+
+test('setLevel starts the chosen level and opens its sticker page', () => {
+  const p = setLevel(mk('p1'), 'letters', 2);
+  assert.equal(p.levels.letters.level, 2);
+  assert.equal(p.levels.letters.step, 0);
+  assert.equal(p.rewards.reached.letters, 2);
+  assert.equal(setLevel(p, 'letters', 0).rewards.reached.letters, 2);
+  assert.equal(setLevel(p, 'letters', 7), p);
+});
+
+test('setGrade restarts at level 1 with the grade timing and keeps album, letters and hold', () => {
+  let p = updateSettings(setLevel(mk('p1'), 'quantity', 3), { hold: { quantity: true }, letters: { known: ['A', 'M', 'L'] } });
+  p = { ...p, rewards: { ...p.rewards, stars: 40, stickers: ['fruit/pear'] } };
+  const g = setGrade(p, 'g1');
+  assert.equal(g.settings.grade, 'g1');
+  assert.deepEqual(g.settings.timing, { startMs: 1500, minMs: 300, maxMs: 3000, adaptive: true });
+  assert.equal(g.levels.quantity.level, 0);
+  assert.equal(g.levels.quantity.durationMs, 1500);
+  assert.equal(g.settings.hold.quantity, true);
+  assert.deepEqual(g.settings.letters.known, ['A', 'M', 'L']);
+  assert.deepEqual(g.rewards, p.rewards);
+  assert.equal(setGrade(g, 'g1'), g);
+  assert.equal(setGrade(g, 'g9'), g);
+});
+
+test('grade, hold and lineature are sanitized', () => {
+  const raw = mk('p1');
+  raw.settings.grade = 'uni';
+  raw.settings.hold = { digits: 'yes', letters: true };
+  raw.settings.letters.lineature = 'no';
+  const p = normalizeProfile(raw);
+  assert.equal(p.settings.grade, 'pre');
+  assert.deepEqual(p.settings.hold, { quantity: false, digits: false, letters: true, syllables: false });
+  assert.equal(p.settings.letters.lineature, true);
+});
+
+test('reached is never below the current level', () => {
+  const raw = mk('p1');
+  raw.levels.digits.level = 2;
+  raw.rewards.reached = { digits: 1, letters: 'x' };
+  const p = normalizeProfile(raw);
+  assert.equal(p.rewards.reached.digits, 2);
+  assert.equal(p.rewards.reached.letters, 0);
 });
 
 test('normalizeProfile fills missing settings, levels and rewards', () => {
@@ -125,16 +187,18 @@ test('a hand-damaged backup normalizes to a playable profile', () => {
   const p = parseImport(JSON.stringify(data)).profiles[0];
   assert.equal(p.rewards.stars, 0);
   assert.deepEqual(p.rewards.stickers, []);
-  assert.equal(p.rewards.unlockedPages, 1);
+  assert.deepEqual(Object.keys(p.rewards.reached).sort(), Object.keys(EXERCISES).sort());
+  assert.equal('unlockedPages' in p.rewards, false);
   assert.equal(p.history.length, 1);
   assert.deepEqual(p.settings.letters.known, ['A', 'B']);
   assert.ok(Object.values(p.settings.exercises).some(Boolean));
   for (const t of Object.values(p.settings.timing).filter((v) => typeof v !== 'boolean')) assert.ok(Number.isFinite(t));
   for (const [key, ex] of Object.entries(EXERCISES)) {
     const l = p.levels[key];
-    for (const f of ['durationMs', 'complexity', 'streak']) assert.ok(Number.isFinite(l[f]), key + f);
+    for (const f of ['level', 'step', 'durationMs', 'streak']) assert.ok(Number.isFinite(l[f]), key + f);
     assert.ok(Array.isArray(l.recent));
-    const task = ex.createTask({ durationMs: l.durationMs, complexity: l.complexity }, p.settings, Math.random, ex.prepareRound ? ex.prepareRound(Math.random) : {});
+    const step = ex.LADDERS[p.settings.grade][l.level].steps[l.step];
+    const task = ex.createTask(step, p.settings, Math.random, ex.prepareRound ? ex.prepareRound(Math.random) : {});
     assert.ok(task.choices.length >= 2, key);
   }
 });
@@ -190,23 +254,4 @@ test('settings that would leave no playable exercise are refused or reset', () =
   raw.settings.letters.known = ['A', 'M'];
   const p = normalizeProfile(raw);
   assert.equal(p.settings.exercises.quantity, true);
-});
-
-test('addition is on by default and old settings without the key get it', () => {
-  const p = createProfile({ name: 'A', avatar: 'cat' }, { id: 'x' });
-  assert.equal(p.settings.quantity.addition, true);
-  assert.equal(p.settings.digits.addition, true);
-  const old = structuredClone(p);
-  delete old.settings.quantity.addition;
-  delete old.settings.digits.addition;
-  const q = parseImport(JSON.stringify({ schemaVersion: 1, activeProfileId: 'x', profiles: [old] })).profiles[0].settings;
-  assert.equal(q.quantity.addition, true);
-  assert.equal(q.digits.addition, true);
-});
-
-test('switching addition off clamps a level that sat on an addition stage', () => {
-  let p = createProfile({ name: 'A', avatar: 'cat' }, { id: 'x' });
-  p = { ...p, levels: { ...p.levels, digits: { ...p.levels.digits, complexity: 3 } } }; // range 9: [5, 9, +5, +10]
-  p = updateSettings(p, { digits: { addition: false } });
-  assert.equal(p.levels.digits.complexity, 1);
 });

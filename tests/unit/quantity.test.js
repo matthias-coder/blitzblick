@@ -1,56 +1,74 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as quantity from '../../js/exercises/quantity.js';
-import { layoutPositions, MIN_DIST } from '../../js/exercises/quantity-layout.js';
+import { layoutPositions, MIN_DIST, PATTERNS, patternsFor, structuredPositions, twentyFrame } from '../../js/exercises/quantity-layout.js';
 import { mulberry32 } from '../../js/rng.js';
 
-const S = (max = 10, layout = 'mixed') => ({ quantity: { max, layout } });
+const S = { quantity: {} };
+const step = (grade, level, i = 0) => quantity.LADDERS[grade][level].steps[i];
 const minDistance = (pts) => {
   let m = Infinity;
   for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) m = Math.min(m, Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y));
   return m;
 };
+const inside = (pts, lo = 0.1, hi = 0.9) => pts.every((p) => p.x >= lo - 1e-9 && p.x <= hi + 1e-9 && p.y >= lo - 1e-9 && p.y <= hi + 1e-9);
 
-test('mixed stages go structured then mixed for each max', () => {
-  assert.deepEqual(quantity.stages(S(5, 'mixed')), [
-    { max: 3, layout: 'structured' }, { max: 3, layout: 'mixed' },
-    { max: 4, layout: 'structured' }, { max: 4, layout: 'mixed' },
-    { max: 5, layout: 'structured' }, { max: 5, layout: 'mixed' },
-  ]);
+test('ladders: Vorschule from 3 with a pattern up to 10, Klasse 1 up to Plus and the Zwanzigerfeld', () => {
+  assert.deepEqual(quantity.LADDERS.pre.map((l) => Math.max(...l.steps.map((s) => s.max))), [3, 5, 6, 10]);
+  assert.ok(quantity.LADDERS.pre.every((l) => l.steps.every((s) => !s.add)));
+  assert.ok(quantity.LADDERS.g1[2].steps.every((s) => s.add));
+  assert.ok(quantity.LADDERS.g1[3].steps.every((s) => s.layout === 'twenty'));
 });
 
-test('structured and random settings use a single layout', () => {
-  assert.ok(quantity.stages(S(10, 'structured')).every((s) => s.layout === 'structured'));
-  assert.ok(quantity.stages(S(10, 'random')).every((s) => s.layout === 'random'));
-  assert.equal(quantity.stages(S(10, 'random')).length, 6);
-});
-
-test('start complexity is the first stage with max 5', () => {
-  assert.equal(quantity.startComplexity(S(10, 'mixed')), 4);
-  assert.equal(quantity.startComplexity(S(10, 'random')), 2);
-  assert.equal(quantity.startComplexity(S(3, 'mixed')), 1);
-});
-
-test('count is within 1..max and choices are 1..max', () => {
-  const s = S(10, 'mixed');
-  for (let c = 0; c <= quantity.maxComplexity(s); c++) {
-    const { max } = quantity.stages(s)[c];
-    for (let seed = 0; seed < 100; seed++) {
-      const t = quantity.createTask({ complexity: c }, s, mulberry32(seed), { object: 'apple' });
-      assert.ok(t.answer >= 1 && t.answer <= max);
-      assert.equal(t.stimulus.count, t.answer);
-      assert.equal(t.stimulus.positions.length, t.answer);
-      assert.deepEqual(t.choices, Array.from({ length: max }, (_, i) => i + 1));
-      assert.equal(t.stimulus.object, 'apple');
+test('count is within 1..max and choices are 1..max for regular steps', () => {
+  for (const grade of ['pre', 'g1']) {
+    for (const st of quantity.LADDERS[grade].flatMap((l) => l.steps).filter((x) => !x.add && x.layout !== 'twenty')) {
+      const ctx = quantity.prepareRound(mulberry32(1));
+      for (let seed = 0; seed < 100; seed++) {
+        const t = quantity.createTask(st, S, mulberry32(seed), ctx);
+        assert.ok(t.answer >= 1 && t.answer <= st.max);
+        assert.equal(t.stimulus.count, t.answer);
+        assert.equal(t.stimulus.positions.length, t.answer);
+        assert.deepEqual(t.choices, Array.from({ length: st.max }, (_, i) => i + 1));
+        assert.equal(t.stimulus.object, ctx.object);
+      }
     }
   }
 });
 
-test('structured layouts have the right count and do not overlap', () => {
-  for (let n = 1; n <= 10; n++) {
-    const pts = layoutPositions(n, 'structured', mulberry32(n));
-    assert.equal(pts.length, n);
-    if (n > 1) assert.ok(minDistance(pts) >= MIN_DIST - 1e-9, `n=${n}`);
+test('every pattern, count and turn stays inside the field and keeps the minimum distance', () => {
+  for (const [name, p] of Object.entries(PATTERNS)) {
+    for (let n = p.min; n <= p.max; n++) {
+      for (let seed = 0; seed < 40; seed++) {
+        const rng = mulberry32(seed * 31 + n);
+        let pts;
+        // force this pattern by excluding nothing and retrying until it comes up
+        for (let k = 0; k < 200; k++) { const r = structuredPositions(n, rng); if (r.pattern === name) { pts = r.positions; break; } }
+        assert.ok(pts, `${name} ${n}`);
+        assert.equal(pts.length, n);
+        assert.ok(inside(pts), `${name} ${n} inside`);
+        if (n > 1) assert.ok(minDistance(pts) >= MIN_DIST - 1e-9, `${name} ${n} distance`);
+      }
+    }
+  }
+});
+
+test('more than one pattern exists for every count from 2 to 10, so it is not always the dice', () => {
+  for (let n = 2; n <= 10; n++) assert.ok(patternsFor(n).length >= 2, `n=${n}`);
+  const seen = new Set();
+  const rng = mulberry32(3);
+  for (let i = 0; i < 200; i++) seen.add(structuredPositions(5, rng).pattern);
+  assert.deepEqual([...seen].sort(), ['dice', 'groups', 'pairs', 'ring', 'row']);
+});
+
+test('the same pattern does not come twice in a row within a round', () => {
+  const ctx = {};
+  const rng = mulberry32(9);
+  let last = null;
+  for (let i = 0; i < 300; i++) {
+    layoutPositions(1 + (i % 8) + 1, 'structured', rng, ctx);
+    assert.notEqual(ctx.lastPattern, last);
+    last = ctx.lastPattern;
   }
 });
 
@@ -59,7 +77,31 @@ test('random layouts keep minimum distance and stay inside the field', () => {
     const pts = layoutPositions(10, 'random', mulberry32(seed));
     assert.equal(pts.length, 10);
     assert.ok(minDistance(pts) >= MIN_DIST - 1e-9);
-    assert.ok(pts.every((p) => p.x >= 0.05 && p.x <= 0.95 && p.y >= 0.05 && p.y <= 0.95));
+    assert.ok(inside(pts, 0.05, 0.95));
+  }
+});
+
+test('Zwanzigerfeld: two ten-frames filled row by row, inside the field, no overlap', () => {
+  for (let n = 1; n <= 20; n++) {
+    const pts = twentyFrame(n);
+    assert.equal(pts.length, n);
+    assert.ok(inside(pts));
+    if (n > 1) assert.ok(minDistance(pts) >= MIN_DIST - 1e-9);
+  }
+  assert.ok(twentyFrame(11)[10].y > 0.5); // the 11th starts the second frame
+});
+
+test('Zwanzigerfeld tasks offer four sorted choices around the answer', () => {
+  for (const st of quantity.LADDERS.g1[3].steps) {
+    for (let seed = 0; seed < 100; seed++) {
+      const t = quantity.createTask(st, S, mulberry32(seed), { object: 'apple' });
+      assert.ok(t.answer >= st.min && t.answer <= st.max);
+      assert.equal(t.stimulus.twenty, true);
+      assert.equal(t.choices.length, 4);
+      assert.ok(t.choices.includes(t.answer));
+      assert.deepEqual(t.choices, [...t.choices].sort((a, b) => a - b));
+      assert.ok(t.choices.every((c) => c >= 1 && c <= 20));
+    }
   }
 });
 
@@ -71,31 +113,12 @@ test('texts', () => {
   assert.equal(quantity.speakPrompt(), 'Wie viele waren es?');
   assert.equal(quantity.speakSolution({ answer: 1 })[0], 'Es war einer.');
   assert.equal(quantity.speakSolution({ answer: 6 })[0], 'Es waren 6.');
-  for (const v of quantity.speakSolution({ answer: 6 })) assert.ok(v.includes('6'));
 });
 
-const SA = (max = 10, layout = 'mixed') => ({ quantity: { max, layout, addition: true } });
-
-test('addition stages follow the regular stages, limited by max', () => {
-  const s = quantity.stages(SA(10));
-  assert.deepEqual(s.slice(-2), [{ add: true, sum: 5 }, { add: true, sum: 10 }]);
-  assert.deepEqual(quantity.stages(SA(8)).slice(-1), [{ add: true, sum: 5 }]);
-  assert.ok(quantity.stages(SA(4)).every((st) => !st.add));
-  assert.equal(quantity.stages({ quantity: { max: 10, layout: 'mixed', addition: false } }).length, s.length - 2);
-});
-
-test('fixed complexity is the top regular stage', () => {
-  const s = quantity.stages(SA(10));
-  assert.equal(quantity.fixedComplexity(SA(10)), s.length - 3);
-  assert.equal(quantity.maxComplexity(SA(10)), s.length - 1);
-});
-
-test('addition tasks show two structured groups and ask for the sum', () => {
-  const settings = SA(10);
-  const top = quantity.maxComplexity(settings);
+test('Plus tasks show two groups and ask for the sum', () => {
   const rng = mulberry32(11);
   for (let i = 0; i < 200; i++) {
-    const t = quantity.createTask({ complexity: top }, settings, rng, { object: 'duck' });
+    const t = quantity.createTask(step('g1', 2, 1), S, rng, { object: 'duck' });
     const { a, b } = t.stimulus;
     assert.equal(t.stimulus.add, true);
     assert.ok(a >= 1 && b >= 1 && a + b <= 10);
@@ -105,12 +128,10 @@ test('addition tasks show two structured groups and ask for the sum', () => {
     assert.deepEqual(t.choices, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     assert.equal(t.durationFactor, 2.5);
   }
-  assert.equal(quantity.describeLevel(top, settings), 'Plus bis 10');
 });
 
-test('addition speech says "zusammen" and names both addends', () => {
+test('Plus speech says "zusammen" and names both addends', () => {
   const t = { answer: 5, stimulus: { add: true, a: 3, b: 2 } };
   assert.equal(quantity.speakPrompt(t), 'Wie viele waren es zusammen?');
   assert.deepEqual(quantity.speakSolution(t), ['3 und 2 sind 5.']);
-  assert.equal(quantity.speakPrompt({ answer: 4, stimulus: {} }), 'Wie viele waren es?');
 });

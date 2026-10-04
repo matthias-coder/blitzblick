@@ -7,7 +7,9 @@ import { mulberry32 } from '../../js/rng.js';
 const S = (known, extra = {}) => ({
   letters: { known }, syllables: { colors: true, custom: [] }, speech: 'little', ...extra,
 });
-const make = (settings, complexity, seed, ctx = { last: null }) => syl.createTask({ complexity }, settings, mulberry32(seed), ctx);
+const KIND = ['syllable', 'open', 'all'];
+const step = (k, choices = 4, colors = true) => ({ kind: typeof k === 'number' ? KIND[Math.min(k, 2)] : k, choices, colors });
+const make = (settings, kind, seed, ctx = { last: null }) => syl.createTask(step(kind), settings, mulberry32(seed), ctx);
 const capitalized = (t) => t[0] === letterKey(t[0]) && t.slice(1) === t.slice(1).toLowerCase();
 
 test('availability needs at least 4 playable entries', () => {
@@ -16,11 +18,33 @@ test('availability needs at least 4 playable entries', () => {
   assert.equal(syl.isAvailable(S(['A', 'M', 'O'])), true);
 });
 
-test('stages grow with the available material', () => {
-  assert.equal(syl.maxComplexity(S(['A', 'M', 'O'])), 1);
-  assert.equal(syl.maxComplexity(S(['A', 'M', 'O', 'L', 'E'])), 2);
-  assert.equal(syl.startComplexity(), 0);
-  assert.equal(syl.describeLevel(0, S(['A', 'M', 'O'])), 'Silben');
+test('levels are playable only with enough material of their kind', () => {
+  const [syll, open, all] = syl.LADDERS.g1;
+  assert.equal(syl.levelAvailable(syll, S(['A', 'M', 'O'])), true);
+  assert.equal(syl.levelAvailable(open, S(['A', 'M', 'O'])), false); // only Mama, Oma
+  assert.equal(syl.levelAvailable(open, S(['A', 'M', 'O', 'L', 'E', 'N', 'I'])), true);
+  assert.equal(syl.levelAvailable(all, S(['A', 'M', 'O', 'L', 'E', 'N', 'I'])), true);
+  assert.equal(syl.levelAvailable(syll, S(['A', 'M'])), false);
+});
+
+test('ladders: three answers first in Vorschule, no colour help on level 4', () => {
+  assert.equal(syl.LADDERS.pre[0].steps[0].choices, 3);
+  for (const g of ['pre', 'g1']) assert.equal(syl.LADDERS[g][3].steps[0].colors, false);
+});
+
+test('a step without colour help switches colours off, the parent switch can only switch them off too', () => {
+  const s = S(['A', 'M', 'O', 'L', 'E', 'N', 'I']);
+  assert.equal(syl.createTask(step('all', 4, false), s, mulberry32(1)).colors, false);
+  assert.equal(syl.createTask(step('all'), s, mulberry32(1)).colors, true);
+  assert.equal(syl.createTask(step('all'), { ...s, syllables: { colors: false, custom: [] } }, mulberry32(1)).colors, false);
+});
+
+test('three-answer steps offer three choices', () => {
+  for (let seed = 0; seed < 100; seed++) {
+    const t = syl.createTask(step('syllable', 3), S(['A', 'M', 'O', 'L']), mulberry32(seed));
+    assert.equal(t.choices.length, 3);
+    assert.ok(t.choices.includes(t.answer));
+  }
 });
 
 test('tasks with A, M, O: 4 distinct choices from known letters, all capitalized like the answer', () => {
@@ -40,18 +64,15 @@ test('tasks with A, M, O: 4 distinct choices from known letters, all capitalized
   }
 });
 
-test('level 0 asks for syllables, higher levels mostly for words', () => {
+test('syllable steps ask for syllables, word steps only for words of their kind', () => {
   const s = S(['A', 'M', 'O', 'L', 'E', 'N', 'I']);
-  for (let seed = 0; seed < 50; seed++) assert.equal(make(s, 0, seed).kind, 'syllable');
-  const words = Array.from({ length: 100 }, (_, seed) => make(s, 2, seed)).filter((t) => t.kind === 'word');
-  assert.ok(words.length >= 50);
+  for (let seed = 0; seed < 50; seed++) assert.equal(make(s, 'syllable', seed).kind, 'syllable');
+  for (let seed = 0; seed < 50; seed++) assert.equal(make(s, 'all', seed).kind, 'word');
+  for (let seed = 0; seed < 50; seed++) assert.equal(make(s, 'open', seed).stimulus.parts.length, 2);
 });
 
-test('thin level mixes in lower entries, complexity beyond the top still works', () => {
-  const s = S(['A', 'M', 'O']);
-  const kinds = new Set(Array.from({ length: 100 }, (_, seed) => make(s, 1, seed).kind));
-  assert.deepEqual([...kinds].sort(), ['syllable', 'word']);
-  assert.doesNotThrow(() => make(s, 5, 1));
+test('a kind without material falls back to the whole pool', () => {
+  assert.doesNotThrow(() => make(S(['A', 'M', 'O']), 'all', 1));
 });
 
 test('the same entry does not come twice in a row when there is a choice', () => {

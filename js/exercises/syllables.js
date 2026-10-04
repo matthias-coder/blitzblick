@@ -6,32 +6,38 @@ import { buildPool, syllabify, letterKey, applyCase, VOWELS } from './words.js';
 
 export const id = 'syllables';
 export const title = 'Silben & Wörter';
-const LEVEL_LABELS = ['Silben', 'Wörter aus zwei offenen Silben', 'alle Wörter'];
+export const menuTitle = 'Silbenblitz';
 const SIMILAR = [['M', 'N', 'W'], ['E', 'F'], ['O', 'Q', 'C', 'G'], ['P', 'R', 'B'], ['I', 'L', 'T'], ['U', 'V'],
   ['B', 'D', 'P', 'Q'], ['N', 'U', 'H', 'M'], ['I', 'L', 'J'], ['A', 'O', 'E'], ['A', 'Ä'], ['O', 'Ö'], ['U', 'Ü'], ['S', 'ß']];
 
+// kinds: syllable = generated syllables, open = words of two open syllables, all = every word
+const st = (kind, choices, colors = true) => ({ kind, choices, colors });
+
+export const LADDERS = {
+  pre: [
+    { label: 'Silben, 3 Antworten', steps: [st('syllable', 3)] },
+    { label: 'Silben, 4 Antworten', steps: [st('syllable', 4)] },
+    { label: 'Wörter aus zwei offenen Silben', steps: [st('open', 4)] },
+    { label: 'dieselben Wörter ohne Farbhilfe', steps: [st('open', 4, false)] },
+  ],
+  g1: [
+    { label: 'Silben', steps: [st('syllable', 4)] },
+    { label: 'Wörter aus zwei offenen Silben', steps: [st('open', 4)] },
+    { label: 'alle Wörter', steps: [st('all', 4)] },
+    { label: 'alle Wörter ohne Farbhilfe', steps: [st('all', 4, false)] },
+  ],
+};
+
 const knownKeys = (settings) => LETTERS.filter((l) => settings.letters.known.includes(l));
+const KIND_LEVELS = { syllable: [0], open: [1], all: [1, 2] };
+export const candidatesFor = (pool, kind) => pool.filter((e) => KIND_LEVELS[kind].includes(e.level));
 
 export function isAvailable(settings) { return buildPool(settings).length >= 4; }
-export function stages(settings) {
-  const top = Math.max(0, ...buildPool(settings).map((e) => e.level));
-  return LEVEL_LABELS.slice(0, top + 1);
-}
-export function maxComplexity(settings) { return stages(settings).length - 1; }
-export function startComplexity() { return 0; }
-export function describeLevel(complexity, settings) {
-  const s = stages(settings);
-  return s[Math.min(complexity, s.length - 1)];
+export function levelAvailable(level, settings) {
+  const pool = buildPool(settings);
+  return pool.length >= 4 && level.steps.every((s) => candidatesFor(pool, s.kind).length >= 3);
 }
 export function prepareRound() { return { last: null }; }
-
-function candidates(pool, complexity, rng) {
-  const exact = pool.filter((e) => e.level === complexity);
-  const lower = pool.filter((e) => e.level < complexity);
-  if (exact.length === 0) return lower.length ? lower : pool;
-  if (exact.length < 3 && lower.length && rng() < 0.5) return lower;
-  return exact;
-}
 
 function variants(answer, keys) {
   const chars = [...answer];
@@ -56,14 +62,14 @@ function variants(answer, keys) {
   return { swaps, replacements };
 }
 
-export function buildDistractors(answer, pool, keys, rng) {
+export function buildDistractors(answer, pool, keys, rng, count = 3) {
   const len = [...answer].length;
   const out = [];
   const chars = [...answer];
   // a capital letter is never swapped for ß ("ßofa")
   const badEszett = (t) => [...t].some((c, i) => c === 'ß' && chars[i] !== undefined && chars[i] !== 'ß' && chars[i] === chars[i].toUpperCase() && chars[i] !== chars[i].toLowerCase());
   const add = (t) => {
-    if (out.length < 3 && t && t !== answer && !badEszett(t) && !out.includes(t) && [...t].every((c) => keys.includes(letterKey(c)))) out.push(t);
+    if (out.length < count && t && t !== answer && !badEszett(t) && !out.includes(t) && [...t].every((c) => keys.includes(letterKey(c)))) out.push(t);
   };
   const { swaps, replacements } = variants(answer, keys);
   const s = shuffle(rng, swaps);
@@ -73,7 +79,7 @@ export function buildDistractors(answer, pool, keys, rng) {
   add(r[0]);
   [...r.slice(1), ...s.slice(1), ...near].forEach(add);
   // last resort for tiny alphabets: random strings of known letters with the answer's casing
-  for (let i = 0; out.length < 3 && i < 500; i++) add(applyCase(Array.from({ length: len }, () => pick(rng, keys)), [...answer]));
+  for (let i = 0; out.length < count && i < 500; i++) add(applyCase(Array.from({ length: len }, () => pick(rng, keys)), [...answer]));
   return out;
 }
 
@@ -87,14 +93,15 @@ function partsFor(text, pool, answer) {
   return answer.parts.map((p) => chars.slice(i, (i += [...p].length)).join(''));
 }
 
-export function createTask(level, settings, rng, ctx = { last: null }) {
+export function createTask(step, settings, rng, ctx = { last: null }) {
   const pool = buildPool(settings);
   if (pool.length === 0) throw new Error('no playable syllables or words');
-  const cands = candidates(pool, level.complexity, rng);
+  const own = candidatesFor(pool, step.kind);
+  const cands = own.length ? own : pool;
   let entry = pick(rng, cands);
   if (entry.text === ctx.last && cands.length > 1) entry = pick(rng, cands.filter((e) => e.text !== ctx.last));
   ctx.last = entry.text;
-  const choices = shuffle(rng, [entry.text, ...buildDistractors(entry.text, pool, knownKeys(settings), rng)]);
+  const choices = shuffle(rng, [entry.text, ...buildDistractors(entry.text, pool, knownKeys(settings), rng, step.choices - 1)]);
   return {
     exercise: id,
     stimulus: { text: entry.text, parts: entry.parts },
@@ -102,7 +109,7 @@ export function createTask(level, settings, rng, ctx = { last: null }) {
     choices,
     parts: Object.fromEntries(choices.map((c) => [c, partsFor(c, pool, entry)])),
     kind: entry.level === 0 ? 'syllable' : 'word',
-    colors: settings.syllables?.colors !== false,
+    colors: settings.syllables?.colors !== false && step.colors !== false,
   };
 }
 
@@ -112,11 +119,11 @@ function wordEl(tag, cls, text, parts, colors) {
 }
 
 export function renderStimulus(task, el) {
-  el.replaceChildren(wordEl('div', 'flash-text flash-word', task.answer, task.stimulus.parts, task.colors));
+  el.replaceChildren(wordEl('div', 'flash-text flash-word school', task.answer, task.stimulus.parts, task.colors));
 }
 
 export function renderChoices(task, el, onPick) {
-  const buttons = renderChoiceButtons(el, task.choices, (v) => wordEl('span', 'word', v, task.parts[v], task.colors), onPick);
+  const buttons = renderChoiceButtons(el, task.choices, (v) => wordEl('span', 'word school', v, task.parts[v], task.colors), onPick);
   el.firstElementChild.classList.add('words');
   return buttons;
 }
