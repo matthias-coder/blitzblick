@@ -35,6 +35,7 @@ Audience: children 4–7 (mostly non-readers) and their parents; tablet, phone a
 
 **#20 Create profile (H2)**
 - Name and avatar choice come first; the parent information moves into its own boxed block below.
+- Addition (user request, 2026-10-04): the boxed parent block also asks for the child's **age** (whole years 3–10, optional) and the **grade** ("Vorschule" / "Klasse 1"). The age preselects the grade (≤ 5 → Vorschule, ≥ 6 → Klasse 1) until the parents pick one themselves. The profile stores `age` (or `null`) and starts with the chosen grade and its display durations. Both forms that create a profile (first start and the parent area) ask for it; the age can be edited in the parent area's profile list.
 
 ## Items implemented as proposed by the review
 - **#10** Answer buttons with long words at 320 px: the measure-and-shrink fit from 1.8.1 (#1) also applies to answer buttons at narrow widths.
@@ -58,6 +59,6 @@ Audience: children 4–7 (mostly non-readers) and their parents; tablet, phone a
 - **#35** Looping `bob` / `breathe` animations limited to a few iterations.
 
 ## Testing
-- Unit: replay neutrality in the adaptive engine; `intro` flag defaults and persistence; sticker name table covers every sticker id; album world selection (last played exercise, fallback).
+- Unit: replay neutrality in the adaptive engine; `intro` flag defaults and persistence; sticker name table covers every sticker id; album world selection (last played exercise, fallback); age parsing, grade preselection and a new profile starting in the chosen grade.
 - E2E: back confirmation (with and without answered tasks, Escape); 🔊/👁 buttons (replay once, then disabled); demo run on first start only; album chips switch worlds; pack dialog Escape + focus return; gate input numeric; contrast checks via computed colours for #19/#21/#22; 320 px answer button fit; round-end ring visible.
 - Screenshots at 360×640, 640×360 and 1024×700 of menu, round, round end, album.
