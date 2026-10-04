@@ -2,7 +2,7 @@ import { LETTERS } from './letters.js';
 
 export const VOWELS = ['A', 'E', 'I', 'O', 'U', 'Ä', 'Ö', 'Ü'];
 export const MAX_CUSTOM = 50;
-const VOWEL_UNITS = ['ei', 'ai', 'au', 'eu', 'äu', 'ie'];
+const VOWEL_UNITS = ['ei', 'ai', 'au', 'eu', 'äu', 'ie', 'aa', 'ee', 'oo'];
 const CONSONANT_UNITS = ['sch', 'ch', 'ck', 'qu'];
 // consonants that make readable consonant+vowel / vowel+consonant syllables
 const CV_CONSONANTS = ['B', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'R', 'S', 'T', 'W', 'Z'];

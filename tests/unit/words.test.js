@@ -92,3 +92,10 @@ test('no syllables are generated with ß or for unknown vowels', () => {
   assert.ok(pool.every((e) => !e.text.includes('ß') || e.level > 0));
   assert.deepEqual(buildPool(S(['M', 'N'])), []);
 });
+
+test('doubled vowels aa/ee/oo stay together', () => {
+  assert.deepEqual(syllabify('Kaffee'), ['Kaf', 'fee']);
+  assert.deepEqual(syllabify('Saal'), ['Saal']);
+  assert.deepEqual(syllabify('Boot'), ['Boot']);
+  assert.deepEqual(syllabify('Tee'), ['Tee']);
+});
