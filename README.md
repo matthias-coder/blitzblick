@@ -14,4 +14,6 @@ Web-App für Erstklässler: Mengen, Zahlen oder Buchstaben blitzen kurz auf, dan
     npm test           # Unit-Tests
     npm run e2e        # Playwright
 
+Hinweis: Der Service Worker cached auch auf localhost:4173. Nach Änderungen im Browser hart neu laden bzw. den Service Worker in den DevTools (Application) abmelden.
+
 Design: `docs/superpowers/specs/2026-10-03-blitzblick-design.md`

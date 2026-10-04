@@ -5,6 +5,7 @@ import {
   DEFAULT_SETTINGS, createProfile, addProfile, removeProfile, setActive, getActive,
   updateProfile, updateSettings, resetLevels, normalizeProfile,
 } from '../../js/profiles.js';
+import { parseImport } from '../../js/storage.js';
 
 const empty = () => ({ schemaVersion: 1, activeProfileId: null, profiles: [] });
 const mk = (id, name = 'Mia') => createProfile({ name, avatar: 'astronaut' }, { id, now: new Date(2026, 9, 3) });
@@ -105,4 +106,35 @@ test('normalizeProfile does not share references to DEFAULT_SETTINGS', () => {
   assert.notEqual(p.settings.letters, DEFAULT_SETTINGS.letters);
   assert.notEqual(p.settings.letters.known, DEFAULT_SETTINGS.letters.known);
   assert.deepEqual(p.settings.letters, DEFAULT_SETTINGS.letters);
+});
+
+test('updateSettings refuses fewer than 2 letters or zero exercises', () => {
+  const p = mk('p1');
+  assert.equal(updateSettings(p, { letters: { known: ['A'] } }), p);
+  assert.equal(updateSettings(p, { exercises: { quantity: false, digits: false, letters: false } }), p);
+  assert.deepEqual(updateSettings(p, { letters: { known: ['A', 'B'] } }).settings.letters.known, ['A', 'B']);
+});
+
+test('a hand-damaged backup normalizes to a playable profile', () => {
+  const raw = mk('p1');
+  raw.rewards = { stars: '5', stickers: 'x', unlockedPages: null };
+  raw.settings = { timing: null, quantity: { max: 'many', layout: 7 }, digits: { range: 99 }, letters: { known: ['A', 'B', 'A', 5], case: 'x', speak: 1 }, exercises: { quantity: false, digits: false, letters: false } };
+  raw.levels = { quantity: {}, digits: { durationMs: 'fast', complexity: null, streak: 'a', recent: 'no' }, letters: null };
+  raw.history = [null, { date: 1 }, { date: '2026-10-01', exercise: 'nope', correct: 1, total: 2 }, { date: '2026-10-01', exercise: 'digits', correct: '1', total: 2 }, { date: '2026-10-01', exercise: 'digits', correct: 1, total: 2 }];
+  const data = { schemaVersion: 1, activeProfileId: 'p1', profiles: [raw] };
+  const p = parseImport(JSON.stringify(data)).profiles[0];
+  assert.equal(p.rewards.stars, 0);
+  assert.deepEqual(p.rewards.stickers, []);
+  assert.equal(p.rewards.unlockedPages, 1);
+  assert.equal(p.history.length, 1);
+  assert.deepEqual(p.settings.letters.known, ['A', 'B']);
+  assert.ok(Object.values(p.settings.exercises).some(Boolean));
+  for (const t of Object.values(p.settings.timing).filter((v) => typeof v !== 'boolean')) assert.ok(Number.isFinite(t));
+  for (const [key, ex] of Object.entries(EXERCISES)) {
+    const l = p.levels[key];
+    for (const f of ['durationMs', 'complexity', 'streak']) assert.ok(Number.isFinite(l[f]), key + f);
+    assert.ok(Array.isArray(l.recent));
+    const task = ex.createTask({ durationMs: l.durationMs, complexity: l.complexity }, p.settings, Math.random, ex.prepareRound ? ex.prepareRound(Math.random) : {});
+    assert.ok(task.choices.length >= 2, key);
+  }
 });

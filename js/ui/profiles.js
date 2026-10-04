@@ -1,6 +1,6 @@
 import { h } from './dom.js';
 import { avatarImg } from './widgets.js';
-import { AVATARS, createProfile, addProfile, setActive } from '../profiles.js';
+import { AVATARS, AVATAR_LABELS, createProfile, addProfile, setActive } from '../profiles.js';
 
 function renderCreate(root, ctx) {
   let avatar = AVATARS[0];
@@ -9,7 +9,7 @@ function renderCreate(root, ctx) {
     type: 'button',
     class: `avatar-opt${a === avatar ? ' selected' : ''}`,
     'data-testid': `avatar-${a}`,
-    'aria-label': a,
+    'aria-label': AVATAR_LABELS[a],
     onClick: (e) => {
       avatar = a;
       [...pick.children].forEach((b) => b.classList.toggle('selected', b === e.currentTarget));

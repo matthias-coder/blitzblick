@@ -5,7 +5,7 @@ import { EXERCISES, EXERCISE_ORDER } from '../exercises/index.js';
 import { LETTERS } from '../exercises/letters.js';
 import {
   AVATARS, AVATAR_LABELS, createProfile, addProfile, removeProfile, setActive,
-  updateProfile, updateSettings, resetLevels,
+  updateProfile, updateSettings, resetLevels, MIN_LETTERS,
 } from '../profiles.js';
 import { serializeExport, exportFilename, ImportError } from '../storage.js';
 import { summarize } from '../stats.js';
@@ -65,8 +65,8 @@ function warnings(ctx) {
 
 const fieldset = (legend, children) => h('fieldset', {}, h('legend', {}, legend), children);
 
-const check = (label, checked, onChange, testid) => h('label', { class: 'check' },
-  h('input', { type: 'checkbox', checked, 'data-testid': testid, onChange: (e) => onChange(e.target.checked) }), label);
+const check = (label, checked, onChange, testid, disabled = false) => h('label', { class: 'check' },
+  h('input', { type: 'checkbox', checked, disabled, 'data-testid': testid, onChange: (e) => onChange(e.target.checked) }), label);
 
 const select = (label, value, options, onChange, testid) => h('label', { class: 'field-row' },
   h('span', {}, label),
@@ -92,9 +92,12 @@ function settingsTab(body, ctx, rerender) {
     }),
     h('span', { class: 'unit' }, 'ms'));
 
+  const enabledCount = EXERCISE_ORDER.filter((id) => s.exercises[id]).length;
+  const lockLetters = s.letters.known.length <= MIN_LETTERS;
   body.append(
     h('h2', {}, `Einstellungen für ${p.name}`),
-    fieldset('Übungsarten', EXERCISE_ORDER.map((id) => check(EXERCISES[id].title, s.exercises[id], (v) => apply({ exercises: { [id]: v } }), `ex-${id}`))),
+    fieldset('Übungsarten', EXERCISE_ORDER.map((id) => check(EXERCISES[id].title, s.exercises[id], (v) => apply({ exercises: { [id]: v } }), `ex-${id}`,
+      s.exercises[id] && enabledCount <= 1))),
     fieldset('Anzeigedauer', [
       check('Automatisch anpassen', s.timing.adaptive, (v) => apply({ timing: { adaptive: v } }), 'timing-adaptive'),
       num(s.timing.adaptive ? 'Startwert' : 'Feste Dauer', s.timing.startMs, 'start'),
@@ -112,7 +115,7 @@ function settingsTab(body, ctx, rerender) {
       h('p', { class: 'hint' }, 'Angehakte Buchstaben kennt das Kind schon – nur diese werden abgefragt (mindestens 2).'),
       h('div', { class: 'letter-grid' }, LETTERS.map((l) => h('label', { class: `letter${s.letters.known.includes(l) ? ' on' : ''}` },
         h('input', {
-          type: 'checkbox', checked: s.letters.known.includes(l), 'data-testid': `letter-${l}`, 'aria-label': l,
+          type: 'checkbox', checked: s.letters.known.includes(l), disabled: lockLetters && s.letters.known.includes(l), 'data-testid': `letter-${l}`, 'aria-label': l,
           onChange: (e) => apply({ letters: { known: e.target.checked ? [...s.letters.known, l] : s.letters.known.filter((x) => x !== l) } }),
         }), l))),
       select('Schreibweise', s.letters.case, [['upper', 'Großbuchstaben'], ['lower', 'Kleinbuchstaben'], ['both', 'Groß und klein']], (v) => apply({ letters: { case: v } }), 'letters-case'),

@@ -96,3 +96,21 @@ test('profiles can be added, renamed and deleted; deleting the last shows the cr
   await page.getByTestId('close-parents').click();
   await expect(page.getByTestId('create-profile')).toBeVisible();
 });
+
+test('at least two known letters and one exercise stay enabled', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await openParents(page);
+  await page.getByTestId('letter-A').uncheck();
+  await expect(page.getByTestId('letter-M')).toBeDisabled();
+  await expect(page.getByTestId('letter-O')).toBeDisabled();
+  await expect(page.getByTestId('letter-B')).toBeEnabled();
+  await page.getByTestId('letter-B').check();
+  await expect(page.getByTestId('letter-M')).toBeEnabled();
+  await page.getByTestId('ex-quantity').uncheck();
+  await page.getByTestId('ex-digits').uncheck();
+  await expect(page.getByTestId('ex-letters')).toBeDisabled();
+  const s = (await readState(page)).profiles[0].settings;
+  expect(s.letters.known.length).toBe(3);
+  expect(Object.values(s.exercises).filter(Boolean)).toHaveLength(1);
+});

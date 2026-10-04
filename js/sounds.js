@@ -5,7 +5,7 @@ export function createSounds() {
     if (!enabled) return;
     try {
       ac ??= new (globalThis.AudioContext || globalThis.webkitAudioContext)();
-      if (ac.state === 'suspended') ac.resume();
+      if (ac.state === 'suspended') ac.resume().catch(() => {});
       const t0 = ac.currentTime;
       for (const [freq, start, dur] of notes) {
         const osc = ac.createOscillator();

@@ -1,5 +1,7 @@
 import { EXERCISES } from './exercises/index.js';
 import { initialLevel, clampLevel } from './adaptive.js';
+import { MAXES } from './exercises/quantity.js';
+import { LETTERS } from './exercises/letters.js';
 
 export const AVATARS = ['astronaut', 'monster', 'superhero', 'knight', 'dino', 'dragon', 'pony', 'taco', 'singer', 'cat', 'fairy', 'chef'];
 export const AVATAR_LABELS = {
@@ -16,6 +18,9 @@ export const DEFAULT_SETTINGS = {
   speech: true,
   sounds: true,
 };
+
+export const MIN_LETTERS = 2;
+const DIGIT_RANGES = [9, 10, 20];
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
@@ -66,15 +71,74 @@ export function createProfile({ name, avatar }, { now = new Date(), id = newId()
   };
 }
 
+const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
+const bool = (v, d) => (typeof v === 'boolean' ? v : d);
+const oneOf = (v, allowed, d) => (allowed.includes(v) ? v : d);
+
+function sanitizeSettings(raw) {
+  const r = isObj(raw) ? raw : {};
+  const d = DEFAULT_SETTINGS;
+  const sub = (k) => (isObj(r[k]) ? r[k] : {});
+  const known = Array.isArray(sub('letters').known)
+    ? [...new Set(sub('letters').known.filter((l) => LETTERS.includes(l)))] : null;
+  const exercises = Object.fromEntries(Object.keys(d.exercises).map((k) => [k, bool(sub('exercises')[k], d.exercises[k])]));
+  if (!Object.values(exercises).some(Boolean)) Object.assign(exercises, d.exercises);
+  return {
+    exercises,
+    timing: {
+      startMs: num(sub('timing').startMs, d.timing.startMs),
+      minMs: num(sub('timing').minMs, d.timing.minMs),
+      maxMs: num(sub('timing').maxMs, d.timing.maxMs),
+      adaptive: bool(sub('timing').adaptive, d.timing.adaptive),
+    },
+    quantity: {
+      max: oneOf(sub('quantity').max, MAXES, d.quantity.max),
+      layout: oneOf(sub('quantity').layout, ['structured', 'random', 'mixed'], d.quantity.layout),
+    },
+    digits: { range: oneOf(sub('digits').range, DIGIT_RANGES, d.digits.range) },
+    letters: {
+      known: known ?? [...d.letters.known],
+      case: oneOf(sub('letters').case, ['upper', 'lower', 'both'], d.letters.case),
+      speak: oneOf(sub('letters').speak, ['sound', 'name'], d.letters.speak),
+    },
+    speech: bool(r.speech, d.speech),
+    sounds: bool(r.sounds, d.sounds),
+  };
+}
+
+function sanitizeLevel(l) {
+  return {
+    ...l,
+    durationMs: num(l.durationMs, DEFAULT_SETTINGS.timing.startMs),
+    complexity: num(l.complexity, 0),
+    streak: num(l.streak, 0),
+    recent: Array.isArray(l.recent) ? l.recent.filter((x) => typeof x === 'boolean') : [],
+  };
+}
+
+function sanitizeHistory(history) {
+  if (!Array.isArray(history)) return [];
+  return history.filter((e) => isObj(e) && typeof e.date === 'string' && Object.hasOwn(EXERCISES, e.exercise)
+    && Number.isFinite(e.correct) && Number.isFinite(e.total) && typeof e.correct === 'number' && typeof e.total === 'number');
+}
+
 export function normalizeProfile(raw) {
-  const settings = normalizeSettings(mergeDeep(structuredClone(DEFAULT_SETTINGS), raw.settings));
+  const settings = normalizeSettings(sanitizeSettings(raw.settings));
+  const rw = isObj(raw.rewards) ? raw.rewards : {};
+  const lv = isObj(raw.levels) ? raw.levels : {};
+  const levels = Object.fromEntries(Object.keys(EXERCISES).filter((k) => isObj(lv[k])).map((k) => [k, sanitizeLevel(lv[k])]));
   return {
     ...raw,
     avatar: AVATARS.includes(raw.avatar) ? raw.avatar : AVATARS[0],
     settings,
-    levels: buildLevels(raw.levels ?? {}, settings),
-    rewards: { stars: 0, stickers: [], unlockedPages: 1, ...raw.rewards },
-    history: Array.isArray(raw.history) ? raw.history : [],
+    levels: buildLevels(levels, settings),
+    rewards: {
+      ...rw,
+      stars: num(rw.stars, 0),
+      stickers: Array.isArray(rw.stickers) ? rw.stickers.filter((x) => typeof x === 'string') : [],
+      unlockedPages: Math.max(1, num(rw.unlockedPages, 1)),
+    },
+    history: sanitizeHistory(raw.history),
   };
 }
 
@@ -101,7 +165,11 @@ export function removeProfile(state, id) {
 }
 
 export function updateSettings(profile, patch) {
-  const settings = normalizeSettings(mergeDeep(profile.settings, patch));
+  const merged = mergeDeep(profile.settings, patch);
+  const known = merged.letters.known.length;
+  if (known < MIN_LETTERS && known < profile.settings.letters.known.length) return profile;
+  if (!Object.values(merged.exercises).some(Boolean)) return profile;
+  const settings = normalizeSettings(merged);
   return { ...profile, settings, levels: buildLevels(profile.levels, settings) };
 }
 

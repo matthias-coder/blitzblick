@@ -102,8 +102,9 @@ export function createStore(backend) {
       }
     },
     save(state, today = new Date()) {
+      const json = JSON.stringify(pruneHistory(state, today));
       try {
-        store.setItem(STORAGE_KEY, JSON.stringify(pruneHistory(state, today)));
+        store.setItem(STORAGE_KEY, json);
       } catch {
         warnings.add('unavailable');
       }
