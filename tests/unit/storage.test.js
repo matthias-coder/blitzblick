@@ -37,7 +37,7 @@ test('JSON that is not a backup is rejected', () => {
 });
 
 test('a backup from a newer version is rejected', () => {
-  assert.throws(() => parseImport('{"schemaVersion":2,"profiles":[]}'), (e) => /neueren Version/.test(e.message));
+  assert.throws(() => parseImport('{"schemaVersion":3,"profiles":[]}'), (e) => /neueren Version/.test(e.message));
 });
 
 test('migrate fills defaults and repairs an unknown active profile', () => {

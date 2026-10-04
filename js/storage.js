@@ -1,8 +1,9 @@
 import { normalizeProfile } from './profiles.js';
+import { upgradeV1toV2 } from './migrate-v1.js';
 import { localDate } from './util.js';
 
 export const STORAGE_KEY = 'blitzblick.v1';
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 export const HISTORY_DAYS = 90;
 const PRE_IMPORT_KEY = 'blitzblick.pre-import';
 
@@ -30,7 +31,8 @@ export function migrate(data) {
   if (!data.profiles.every(validProfile)) {
     throw new ImportError('Die Sicherung ist unvollständig oder beschädigt.');
   }
-  // Future schema upgrades go here: if (data.schemaVersion === 1) data = upgradeV1toV2(data);
+  if (data.schemaVersion === 1) data = upgradeV1toV2(data);
+  // Future schema upgrades go here: if (data.schemaVersion === 2) data = upgradeV2toV3(data);
   const profiles = structuredClone(data.profiles).map(normalizeProfile);
   const activeProfileId = profiles.some((p) => p.id === data.activeProfileId) ? data.activeProfileId : (profiles[0]?.id ?? null);
   return { schemaVersion: SCHEMA_VERSION, activeProfileId, profiles };

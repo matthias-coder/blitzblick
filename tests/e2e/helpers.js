@@ -1,12 +1,13 @@
 import { expect } from '@playwright/test';
 import { createProfile } from '../../js/profiles.js';
+import { SCHEMA_VERSION } from '../../js/storage.js';
 
 export function buildState(mutate = () => {}, name = 'Mia') {
   const p = createProfile({ name, avatar: 'astronaut' }, { id: 'p1' });
   p.settings.speech = 'off';
   p.settings.sounds = false;
   mutate(p);
-  return { schemaVersion: 1, activeProfileId: 'p1', profiles: [p] };
+  return { schemaVersion: SCHEMA_VERSION, activeProfileId: 'p1', profiles: [p] };
 }
 
 export async function seed(page, mutate) {

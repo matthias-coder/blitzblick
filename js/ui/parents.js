@@ -6,11 +6,12 @@ import { LETTERS } from '../exercises/letters.js';
 import { buildPool, parseCustomWord, letterKey, MAX_CUSTOM } from '../exercises/words.js';
 import {
   AVATARS, AVATAR_LABELS, createProfile, addProfile, removeProfile, setActive,
-  updateProfile, updateSettings, resetLevels, MIN_LETTERS,
+  updateProfile, updateSettings, resetLevels, setGrade, setLevel, MIN_LETTERS,
 } from '../profiles.js';
+import { GRADES, GRADE_LABELS, LEVEL_COUNT, ladderOf } from '../levels.js';
 import { serializeExport, exportFilename, ImportError } from '../storage.js';
 import { summarize } from '../stats.js';
-import { currentComplexity } from '../session.js';
+import { currentLevel } from '../session.js';
 import { formatSeconds } from '../util.js';
 import { toggle, segmented, durationSlider } from './controls.js';
 
@@ -130,6 +131,37 @@ function syllablesFieldset(s, apply) {
   ]);
 }
 
+function levelsFieldset(ctx, rerender) {
+  const p = ctx.profile;
+  const s = p.settings;
+  const lastGrade = GRADES.indexOf(s.grade) === GRADES.length - 1;
+  return fieldset('Level', [
+    h('p', { class: 'hint' }, 'Das gewählte Level ist der Start: Beherrscht das Kind es, geht es von selbst ein Level höher (nie tiefer). „Festhalten“ bleibt beim gewählten Level.'),
+    ...EXERCISE_ORDER.map((id) => {
+      const ladder = ladderOf(id, s);
+      const state = p.levels[id];
+      const cur = currentLevel(p, id);
+      const notes = [];
+      if (cur.played !== state.level) notes.push(`Gerade nicht spielbar (zu wenige bekannte Buchstaben) – gespielt wird Level ${cur.played + 1}.`);
+      const done = state.level === LEVEL_COUNT - 1 && state.mastered;
+      return h('div', { class: 'level-row', 'data-testid': `level-row-${id}` },
+        h('h3', {}, EXERCISES[id].title),
+        segmented('Level', state.level, ladder.map((_, i) => [i, String(i + 1)]), (v) => {
+          ctx.setState(updateProfile(ctx.state, p.id, (pr) => setLevel(pr, id, Number(v))));
+          rerender();
+        }, `level-${id}`),
+        h('p', { class: 'hint', 'data-testid': `level-${id}-label` }, `Level ${state.level + 1}: ${ladder[state.level].label}`),
+        notes.map((t) => h('p', { class: 'hint warn' }, t)),
+        done ? h('p', { class: 'hint done', 'data-testid': `level-${id}-done` },
+          h('img', { src: 'assets/decor/medal.webp', alt: '' }), lastGrade ? 'Alle Level geschafft!' : 'Alle Level geschafft – nächste Klassenstufe?') : null,
+        toggle('Level festhalten', s.hold[id], (v) => {
+          ctx.setState(updateProfile(ctx.state, p.id, (pr) => updateSettings(pr, { hold: { [id]: v } })));
+          rerender();
+        }, `hold-${id}`));
+    }),
+  ]);
+}
+
 function settingsTab(body, ctx, rerender) {
   const p = ctx.profile;
   const s = p.settings;
@@ -142,8 +174,19 @@ function settingsTab(body, ctx, rerender) {
   // the last enabled exercise that is also playable cannot be switched off
   const playable = EXERCISE_ORDER.filter((id) => s.exercises[id] && EXERCISES[id].isAvailable(s));
   const lockLetters = s.letters.known.length <= MIN_LETTERS;
+  const changeGrade = (g) => {
+    if (g === s.grade) return;
+    if (!confirm(`Auf „${GRADE_LABELS[g]}“ umstellen? Alle Übungen starten dann bei Level 1 der neuen Klassenstufe.`)) { rerender(); return; }
+    ctx.setState(updateProfile(ctx.state, p.id, (pr) => setGrade(pr, g)));
+    rerender();
+  };
   body.append(
     h('h2', {}, `Einstellungen für ${p.name}`),
+    fieldset('Klassenstufe', [
+      segmented('Stufe des Kindes', s.grade, GRADES.map((g) => [g, GRADE_LABELS[g]]), changeGrade, 'grade'),
+      h('p', { class: 'hint' }, 'Jede Klassenstufe hat eigene Level und eigene Anzeigedauern. Sticker und Sterne bleiben beim Wechsel erhalten.'),
+    ]),
+    levelsFieldset(ctx, rerender),
     fieldset('Übungsarten', EXERCISE_ORDER.flatMap((id) => [
       toggle(EXERCISES[id].title, s.exercises[id], (v) => apply({ exercises: { [id]: v } }), `ex-${id}`,
         playable.length <= 1 && playable.includes(id)),
@@ -157,16 +200,6 @@ function settingsTab(body, ctx, rerender) {
       slider('Kürzeste', 'min'),
       slider('Längste', 'max'),
     ]),
-    fieldset('Mengen', [
-      segmented('Höchstens', s.quantity.max, [3, 4, 5, 6, 8, 10].map((n) => [n, String(n)]), (v) => apply({ quantity: { max: Number(v) } }), 'qty-max'),
-      segmented('Anordnung', s.quantity.layout, [['structured', 'Strukturiert'], ['random', 'Zufällig'], ['mixed', 'Gemischt']], (v) => apply({ quantity: { layout: v } }), 'qty-layout'),
-      h('p', { class: 'hint' }, 'Strukturiert: Würfelbild und Zehnerfeld · Zufällig: frei verstreut'),
-      toggle('Rechnen (Plus-Aufgaben auf den höchsten Stufen)', s.quantity.addition, (v) => apply({ quantity: { addition: v } }), 'qty-addition'),
-    ]),
-    fieldset('Zahlen', [
-      segmented('Zahlenraum', s.digits.range, [[9, '0–9'], [10, '0–10'], [20, '0–20']], (v) => apply({ digits: { range: Number(v) } }), 'digits-range'),
-      toggle('Rechnen (Plus-Aufgaben auf den höchsten Stufen)', s.digits.addition, (v) => apply({ digits: { addition: v } }), 'digits-addition'),
-    ]),
     fieldset('Buchstaben', [
       h('p', { class: 'hint' }, 'Angehakte Buchstaben kennt das Kind schon – nur diese werden abgefragt (mindestens 2).'),
       h('div', { class: 'letter-grid' }, LETTERS.map((l) => h('label', { class: `letter${s.letters.known.includes(l) ? ' on' : ''}` },
@@ -174,7 +207,7 @@ function settingsTab(body, ctx, rerender) {
           type: 'checkbox', checked: s.letters.known.includes(l), disabled: lockLetters && s.letters.known.includes(l), 'data-testid': `letter-${l}`, 'aria-label': l,
           onChange: (e) => apply({ letters: { known: e.target.checked ? [...s.letters.known, l] : s.letters.known.filter((x) => x !== l) } }),
         }), l))),
-      segmented('Schreibweise', s.letters.case, [['upper', 'Groß'], ['lower', 'Klein'], ['both', 'Beides']], (v) => apply({ letters: { case: v } }), 'letters-case'),
+      toggle('Buchstaben auf Schreiblinien zeigen (Lineatur 1)', s.letters.lineature, (v) => apply({ letters: { lineature: v } }), 'letters-lineature'),
       segmented('Aussprache', s.letters.speak, [['sound', 'Laut („mmm“)'], ['name', 'Name („em“)']], (v) => apply({ letters: { speak: v } }), 'letters-speak'),
     ]),
     syllablesFieldset(s, apply),
@@ -190,11 +223,11 @@ function settingsTab(body, ctx, rerender) {
       h('button', {
         type: 'button', class: 'danger-btn candy candy-pill is-danger', 'data-testid': 'reset-levels',
         onClick: () => {
-          if (!confirm('Alle Schwierigkeitsstufen auf den Anfang zurücksetzen?')) return;
+          if (!confirm('Alle Übungen auf Level 1 zurücksetzen?')) return;
           ctx.setState(updateProfile(ctx.state, p.id, resetLevels));
           rerender();
         },
-      }, 'Stufen zurücksetzen'),
+      }, 'Alle auf Level 1 zurücksetzen'),
     ]),
   );
 }
@@ -204,14 +237,13 @@ function progressTab(body, ctx) {
   body.append(h('h2', {}, `Fortschritt von ${p.name}`), h('p', {}, `Sterne: ${p.rewards.stars} · Sticker: ${p.rewards.stickers.length}`));
   for (const id of EXERCISE_ORDER) {
     const ex = EXERCISES[id];
-    const lvl = p.levels[id];
-    const maxC = ex.maxComplexity(p.settings);
-    const c = currentComplexity(p, id);
+    const c = currentLevel(p, id);
     const sum = summarize(p.history, id);
-    const duration = p.settings.timing.adaptive ? formatSeconds(lvl.durationMs) : `${formatSeconds(p.settings.timing.startMs)} (fest)`;
+    const duration = p.settings.timing.adaptive ? formatSeconds(c.durationMs) : `${formatSeconds(p.settings.timing.startMs)} (fest)`;
+    const step = c.steps > 1 ? ` · Schritt ${c.step + 1} von ${c.steps}` : '';
     body.append(h('div', { class: 'card stat', 'data-testid': `stat-${id}` },
       h('h3', {}, ex.title),
-      h('p', {}, `Stufe ${c + 1} von ${maxC + 1} · ${ex.describeLevel(c, p.settings)} · Anzeigedauer ${duration}`),
+      h('p', {}, `${GRADE_LABELS[p.settings.grade]} · Level ${c.played + 1} von ${LEVEL_COUNT}: ${c.label}${step} · Anzeigedauer ${duration}${p.settings.hold[id] ? ' · festgehalten' : ''}${c.mastered ? ' · beherrscht' : ''}`),
       h('p', {}, sum.accuracy7 == null ? 'Letzte 7 Tage: noch keine Runden' : `Letzte 7 Tage: ${sum.rounds7} Runden, ${sum.accuracy7} % richtig`),
       h('div', { class: 'bars', 'aria-label': 'Runden pro Tag' }, sum.roundsByDay.map((d) => h('div', { class: 'bar', title: `${d.date}: ${d.count}` },
         h('span', { style: `height:${Math.min(100, d.count * 20)}%` }), h('small', {}, d.date.slice(8))))),

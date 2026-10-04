@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ROUND_LENGTH, createRound, nextTask, answerTask, finishRound, abortRound } from '../../js/session.js';
-import { createProfile, updateSettings } from '../../js/profiles.js';
+import { createProfile, updateSettings, setGrade, setLevel } from '../../js/profiles.js';
 import { mulberry32 } from '../../js/rng.js';
 
 const profile = () => createProfile({ name: 'Mia', avatar: 'astronaut' }, { id: 'p1', now: new Date(2026, 9, 3) });
@@ -15,15 +15,16 @@ function playAll(p, exerciseId, rng, answerFn = (t) => t.answer) {
   return r;
 }
 
-test('a round has 10 tasks and finishes on the 10th answer', () => {
+test('a round has 5 tasks and finishes on the 5th answer', () => {
+  assert.equal(ROUND_LENGTH, 5);
   const rng = mulberry32(3);
   const p = profile();
   let r = createRound(p, 'digits', rng);
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 5; i++) {
     r = nextTask(r, p, rng);
     const res = answerTask(r, p, r.task.answer);
     assert.equal(res.correct, true);
-    assert.equal(res.finished, i === 9);
+    assert.equal(res.finished, i === 4);
     r = res.round;
   }
 });
@@ -41,7 +42,7 @@ test('double tap: a second answer to the same task is ignored', () => {
 test('nextTask uses the effective duration', () => {
   const rng = mulberry32(5);
   let p = profile();
-  assert.equal(nextTask(createRound(p, 'digits', rng), p, rng).durationMs, 1500);
+  assert.equal(nextTask(createRound(p, 'digits', rng), p, rng).durationMs, 2000);
   p = updateSettings(p, { timing: { adaptive: false, startMs: 800 } });
   assert.equal(nextTask(createRound(p, 'digits', rng), p, rng).durationMs, 800);
 });
@@ -54,24 +55,25 @@ test('three correct answers make the next task faster', () => {
     r = nextTask(r, p, rng);
     r = answerTask(r, p, r.task.answer).round;
   }
-  assert.equal(nextTask(r, p, rng).durationMs, 1250);
+  assert.equal(nextTask(r, p, rng).durationMs, 1700);
 });
 
 test('finishRound stores level, rewards and a history entry with local date and confusions', () => {
   const rng = mulberry32(7);
   const p = profile();
-  const r = playAll(p, 'digits', rng, (t, i) => (i < 2 ? (t.choices.find((c) => c !== t.answer)) : t.answer));
+  const r = playAll(p, 'digits', rng, (t, i) => (i < 1 ? (t.choices.find((c) => c !== t.answer)) : t.answer));
   const { profile: next, reward } = finishRound(p, r, rng, new Date(2026, 9, 3, 23, 50));
-  assert.equal(next.rewards.stars, 8);
+  assert.equal(next.rewards.stars, 4);
   assert.equal(next.rewards.stickers.length, 1);
-  assert.ok(reward.sticker);
+  assert.ok(reward.sticker.startsWith('toys/'));
+  assert.equal(reward.levelUp, null);
   assert.deepEqual(next.levels.digits, r.level);
   const h = next.history.at(-1);
   assert.equal(h.date, '2026-10-03');
   assert.equal(h.exercise, 'digits');
-  assert.equal(h.correct, 8);
-  assert.equal(h.total, 10);
-  assert.equal(Object.values(h.confusions).reduce((a, b) => a + b, 0), 2);
+  assert.equal(h.correct, 4);
+  assert.equal(h.total, 5);
+  assert.equal(Object.values(h.confusions).reduce((a, b) => a + b, 0), 1);
   assert.ok(Object.keys(h.confusions).every((k) => /^\d+>\d+$/.test(k)));
 });
 
@@ -84,7 +86,7 @@ test('abortRound keeps level changes but awards nothing', () => {
     r = answerTask(r, p, r.task.answer).round;
   }
   const next = abortRound(p, r);
-  assert.equal(next.levels.digits.durationMs, 1250);
+  assert.equal(next.levels.digits.durationMs, 1700);
   assert.equal(next.rewards.stars, 0);
   assert.equal(next.history.length, 0);
 });
@@ -103,8 +105,8 @@ test('quantity rounds keep one object for the whole round', () => {
 });
 
 test('nextTask scales the flash duration by the task duration factor', () => {
-  const p = profile();
-  const top = { ...p, levels: { ...p.levels, digits: { ...p.levels.digits, complexity: 99, durationMs: 600 } } };
+  const p = setLevel(setGrade(profile(), 'g1'), 'digits', 2);
+  const top = { ...p, levels: { ...p.levels, digits: { ...p.levels.digits, durationMs: 600 } } };
   const r = nextTask(createRound(top, 'digits', mulberry32(2)), top, mulberry32(2));
   assert.equal(r.task.durationFactor, 2.5);
   assert.equal(r.durationMs, 1500);
@@ -112,27 +114,79 @@ test('nextTask scales the flash duration by the task duration factor', () => {
 
 test('nextTask keeps the base duration for regular tasks', () => {
   const p = profile();
-  const low = { ...p, levels: { ...p.levels, digits: { ...p.levels.digits, complexity: 0, durationMs: 600 } } };
+  const low = { ...p, levels: { ...p.levels, digits: { ...p.levels.digits, durationMs: 600 } } };
   const r = nextTask(createRound(low, 'digits', mulberry32(2)), low, mulberry32(2));
   assert.equal(r.durationMs, 600);
 });
 
-test('with adaptive timing off a round stays on the top regular stage', () => {
-  const p = updateSettings(profile(), { timing: { adaptive: false } });
+test('with fixed display duration the level set by the parents is played, on its last step', () => {
+  const p = updateSettings(setLevel(setGrade(profile(), 'g1'), 'quantity', 0), { timing: { adaptive: false } });
   const rng = mulberry32(4);
-  let r = createRound(p, 'digits', rng);
-  for (let i = 0; i < 20; i++) { r = nextTask(r, p, rng); assert.ok(!r.task.stimulus.add); r = answerTask(r, p, r.task.answer).round; }
+  let r = createRound(p, 'quantity', rng);
+  const counts = new Set();
+  for (let i = 0; i < 40; i++) {
+    r = nextTask(r, p, rng);
+    assert.ok(!r.task.stimulus.add);
+    assert.deepEqual(r.task.choices.length, 10); // last step of "bis 10 mit Muster"
+    counts.add(r.task.answer);
+    r = answerTask(r, p, r.task.answer).round;
+  }
+  assert.equal(r.level.level, 0);
+  assert.equal(r.level.mastered, false);
 });
 
-test('currentComplexity follows fixed timing like the session does', async () => {
-  const { currentComplexity } = await import('../../js/session.js');
-  const { EXERCISES } = await import('../../js/exercises/index.js');
-  const p = updateSettings(profile(), { timing: { adaptive: false } });
-  const fixed = EXERCISES.digits.fixedComplexity(p.settings);
-  assert.equal(p.levels.digits.complexity < fixed, true);
-  assert.equal(currentComplexity(p, 'digits'), fixed);
-  const a = profile();
-  assert.equal(currentComplexity(a, 'digits'), Math.min(a.levels.digits.complexity, EXERCISES.digits.maxComplexity(a.settings)));
+test('currentLevel reports level, step and label like the session uses them', async () => {
+  const { currentLevel } = await import('../../js/session.js');
+  const p = setLevel(profile(), 'quantity', 1);
+  assert.deepEqual(currentLevel(p, 'quantity'), { level: 1, played: 1, step: 0, steps: 2, durationMs: 2000, label: 'bis 5 mit Muster', mastered: false });
+  const fixed = updateSettings(p, { timing: { adaptive: false, startMs: 900 } });
+  assert.equal(currentLevel(fixed, 'quantity').step, 1);
+  assert.equal(currentLevel(fixed, 'quantity').durationMs, 900);
+});
+
+const master = (p, ex) => ({ ...p, levels: { ...p.levels, [ex]: { ...p.levels[ex], durationMs: p.settings.timing.minMs, step: 99 } } });
+
+test('a mastered level moves up at the end of the round, opens the next page and starts fresh', () => {
+  const rng = mulberry32(12);
+  const p = master(profile(), 'digits');
+  const r = playAll(p, 'digits', rng);
+  assert.equal(r.level.mastered, true);
+  assert.equal(r.level.level, 0); // not during the round
+  const { profile: next, reward } = finishRound(p, r, rng);
+  assert.deepEqual(reward.levelUp, { from: 0, to: 1 });
+  assert.deepEqual(next.levels.digits, { level: 1, step: 0, durationMs: 2000, streak: 0, recent: [], mastered: false });
+  assert.equal(next.rewards.reached.digits, 1);
+  assert.deepEqual(reward.newlyUnlockedPages, ['vehicles']);
+  assert.ok(reward.sticker.startsWith('toys/')); // the sticker comes from the level just played
+});
+
+test('"Level festhalten" keeps a mastered level', () => {
+  const rng = mulberry32(13);
+  const p = master(updateSettings(profile(), { hold: { digits: true } }), 'digits');
+  const { profile: next, reward } = finishRound(p, playAll(p, 'digits', rng), rng);
+  assert.equal(reward.levelUp, null);
+  assert.equal(next.levels.digits.level, 0);
+});
+
+test('level 4 is the top: no level-up beyond it, no grade change', () => {
+  const rng = mulberry32(14);
+  const p = master(setLevel(profile(), 'digits', 3), 'digits');
+  const { profile: next, reward } = finishRound(p, playAll(p, 'digits', rng), rng);
+  assert.equal(reward.levelUp, null);
+  assert.equal(next.levels.digits.level, 3);
+  assert.equal(next.levels.digits.mastered, true);
+  assert.equal(next.settings.grade, 'pre');
+});
+
+test('an unplayable level falls back to the highest playable one below and does not climb', () => {
+  const rng = mulberry32(15);
+  // A, M, O: only two open words, so syllables level 3 (open words) is not playable → level 2 (syllables, 4 answers)
+  const p = master(setLevel(profile(), 'syllables', 2), 'syllables');
+  const r = playAll(p, 'syllables', rng);
+  assert.equal(r.played, 1);
+  assert.equal(r.task.kind, 'syllable');
+  const { reward } = finishRound(p, r, rng);
+  assert.equal(reward.levelUp, null);
 });
 
 test('addition mistakes are not counted as confusions', () => {

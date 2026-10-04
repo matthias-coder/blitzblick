@@ -133,3 +133,19 @@ test('three enabled exercises on a 375 px phone: third tile as wide as the other
   const [a, , c] = await Promise.all([0, 1, 2].map((i) => tiles.nth(i).boundingBox()));
   expect(Math.abs(c.width - a.width)).toBeLessThanOrEqual(1);
 });
+
+test('menu tiles carry their names and fit them on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await seed(page);
+  await page.goto('/');
+  const names = { quantity: 'Mengenblitz', digits: 'Zahlenblitz', letters: 'Buchstabenblitz', syllables: 'Silbenblitz' };
+  for (const [id, name] of Object.entries(names)) {
+    const tile = page.getByTestId(`tile-${id}`);
+    await expect(tile).toHaveAttribute('aria-label', name);
+    const label = tile.locator('.tile-name');
+    await expect(label).toHaveText(name);
+    const [t, l] = [await tile.boundingBox(), await label.boundingBox()];
+    expect(l.x).toBeGreaterThanOrEqual(t.x - 1);
+    expect(l.x + l.width).toBeLessThanOrEqual(t.x + t.width + 1);
+  }
+});

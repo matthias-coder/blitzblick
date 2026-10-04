@@ -21,9 +21,9 @@ export function render(root, ctx) {
     h('main', { class: `menu count-${ids.length}` }, ids.map((id) => h('button', {
       class: `tile tile-${id} candy candy-tile`,
       'data-testid': `tile-${id}`,
-      'aria-label': EXERCISES[id].title,
+      'aria-label': EXERCISES[id].menuTitle,
       onClick: () => ctx.go('round', { exerciseId: id }),
-    }, h('img', { src: `assets/menu/${id}.webp`, alt: '' })))),
+    }, h('img', { src: `assets/menu/${id}.webp`, alt: '' }), h('span', { class: 'tile-name', 'aria-hidden': 'true' }, EXERCISES[id].menuTitle)))),
     h('footer', { class: 'menu-foot' }, h('button', {
       class: 'album-btn candy candy-pill', 'data-testid': 'open-album', 'aria-label': 'Sammelalbum', onClick: () => ctx.go('album'),
     }, uiIcon('album'), h('span', {}, String(p.rewards.stickers.length)))),

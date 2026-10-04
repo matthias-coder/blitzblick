@@ -6,10 +6,11 @@ import { OBJECTS } from '../js/exercises/quantity.js';
 import { PAGES } from '../js/rewards.js';
 
 const AVATARS = ['astronaut', 'monster', 'superhero', 'knight', 'dino', 'dragon', 'pony', 'taco', 'singer', 'cat', 'fairy', 'chef'];
-const DECOR = ['star-big', 'badge-winner', 'bubble-yay', 'bubble-wow', 'confetti-1', 'confetti-2', 'confetti-3', 'confetti-4', 'confetti-5', 'confetti-6'];
-const MASCOT = ['robot-wave', 'robot-cheer'];
+const DECOR = ['star-big', 'badge-winner', 'bubble-yay', 'bubble-wow', 'confetti-1', 'confetti-2', 'confetti-3', 'confetti-4', 'confetti-5', 'confetti-6', 'medal'];
+const MASCOT = ['robot-wave', 'robot-cheer', 'robot-trophy'];
 const MENU = ['quantity', 'digits', 'letters', 'syllables'];
 const QUALITY = 0.85;
+const PLACEHOLDERS = ['decor/medal', 'mascot/robot-trophy'];
 
 const jobs = [
   ...AVATARS.map((a) => ({ name: `avatars/${a}`, square: 256 })),
@@ -23,7 +24,10 @@ const jobs = [
 const { browser, page } = await openBrowser();
 let total = 0;
 for (const j of jobs) {
-  const buf = fs.readFileSync(`_lokal/extracted/${j.name}.png`);
+  const src = `_lokal/extracted/${j.name}.png`;
+  // v1.7 level celebration: until the artwork is cut, assets/ keeps its committed placeholder
+  if (!fs.existsSync(src) && PLACEHOLDERS.includes(j.name)) { console.log('placeholder kept:', j.name); continue; }
+  const buf = fs.readFileSync(src);
   const { w, h } = await decodePng(page, buf);
   let outW, outH;
   if (j.square) { outW = outH = j.square; } else {

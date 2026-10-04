@@ -15,3 +15,13 @@ export function h(tag, props = {}, ...children) {
 }
 
 export const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+// namespace-aware twin of h() for inline SVG; attributes only, no event handlers
+export function svg(tag, attrs = {}, ...children) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs ?? {})) if (v != null && v !== false) el.setAttribute(k, String(v));
+  for (const c of children.flat(Infinity)) if (c != null && c !== false) el.append(c.nodeType ? c : String(c));
+  return el;
+}

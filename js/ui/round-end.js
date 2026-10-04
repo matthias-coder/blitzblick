@@ -2,10 +2,15 @@ import { h } from './dom.js';
 import { uiIcon } from './widgets.js';
 import { stickerUrl, STICKER_MIN_CORRECT } from '../rewards.js';
 import { ROUND_LENGTH } from '../session.js';
-import { PRAISE, STICKER, BONUS, ALMOST } from '../phrases.js';
+import { PRAISE, STICKER, BONUS, ALMOST, levelUpText } from '../phrases.js';
 
 const decor = (name, cls) => h('img', { class: cls, src: `assets/decor/${name}.webp`, alt: '' });
 export const HOLD_MS = 1800;
+
+// thresholds as shares of the round so they keep working with any round length
+export const GREAT = 0.8;
+export const GOOD = 0.5;
+const share = (correct) => correct / ROUND_LENGTH;
 
 function confetti() {
   return h('div', { class: 'confetti', 'aria-hidden': 'true' }, Array.from({ length: 18 }, (_, i) => {
@@ -55,7 +60,18 @@ export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
   const unlocked = reward.newlyUnlockedPages.length
     ? h('div', { class: 'unlock', 'data-testid': 'page-unlocked' }, uiIcon('album'), '+', String(reward.newlyUnlockedPages.length))
     : null;
-  const bubble = correct >= 8 ? decor('bubble-yay', 'end-bubble') : correct >= 5 ? decor('bubble-wow', 'end-bubble') : null;
+  // level-up: the robot holds a trophy and a medal shows the new level number
+  const levelUp = reward.levelUp
+    ? h('div', { class: 'level-up', 'data-testid': 'level-up', role: 'img', 'aria-label': `Level ${reward.levelUp.to + 1}` },
+      decor('medal', 'medal'), h('span', { class: 'medal-num', 'data-testid': 'level-up-num' }, String(reward.levelUp.to + 1)))
+    : null;
+  // medal and unlocked page share a row; on phones the trophy robot joins them instead of hiding behind the buttons
+  const prizeRow = levelUp || unlocked
+    ? h('div', { class: 'end-row' },
+      levelUp ? h('img', { class: 'level-up-robot', src: 'assets/mascot/robot-trophy.webp', alt: '' }) : null, levelUp, unlocked)
+    : null;
+  const mascot = reward.levelUp ? 'robot-trophy' : share(correct) >= GOOD ? 'robot-cheer' : 'robot-wave';
+  const bubble = share(correct) >= GREAT ? decor('bubble-yay', 'end-bubble') : share(correct) >= GOOD ? decor('bubble-wow', 'end-bubble') : null;
   const btn = (icon, testid, label, onClick, extra = '') =>
     h('button', { class: `big-btn candy candy-round ${extra}`, 'data-testid': testid, 'aria-label': label, onClick }, uiIcon(icon));
   const count = h('span', { class: 'album-count', 'data-testid': 'album-count' }, String(card && motion ? total - 1 : total));
@@ -70,17 +86,17 @@ export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
           bubble,
           h('div', { class: 'big-stars' }, decor('star-big', 'big-star'), h('span', {}, String(correct)))),
         prize,
-        unlocked),
+        prizeRow),
       h('div', { class: 'end-actions' },
         btn('again', 'play-again', 'Nochmal', () => ctx.go('round', { exerciseId })),
         albumBtn,
         btn('check', 'round-done', 'Fertig', () => ctx.go('menu'), 'is-go'))),
-    h('img', { class: 'mascot', src: `assets/mascot/${correct >= 5 ? 'robot-cheer' : 'robot-wave'}.webp`, alt: '' }),
+    h('img', { class: reward.levelUp ? 'mascot mascot-trophy' : 'mascot', src: `assets/mascot/${mascot}.webp`, 'data-testid': 'end-mascot', alt: '' }),
   );
   if (card && motion) playReveal({ card, rays, target: albumBtn, count, total }, track);
   ctx.sounds.fanfare();
-  const praise = ctx.pick('praise', PRAISE[correct >= 8 ? 'great' : correct >= 5 ? 'good' : 'practiced']);
+  const praise = ctx.pick('praise', PRAISE[share(correct) >= GREAT ? 'great' : share(correct) >= GOOD ? 'good' : 'practiced']);
   const news = !reward.earned ? ctx.pick('almost', ALMOST) : reward.sticker ? ctx.pick('sticker', STICKER) : ctx.pick('bonus', BONUS);
-  ctx.speech.speak(`${praise} ${news}`);
+  ctx.speech.speak([praise, reward.levelUp ? levelUpText(reward.levelUp.from) : null, news].filter(Boolean).join(' '));
   return () => { timers.forEach(clearTimeout); animations.forEach((a) => a.cancel()); };
 }
