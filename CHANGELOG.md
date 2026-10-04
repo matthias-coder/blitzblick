@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.6.1] – 2026-10-04
+
+- Rundenende im Querformat am Handy: die drei Knöpfe werden nicht mehr abgeschnitten (Text und Preis links, Knöpfe rechts)
+- Elternbereich „Fortschritt“: zeigt bei fester Anzeigedauer nicht mehr fälschlich eine Plus-Stufe an
+- Plus-Aufgaben zählen nicht mehr als „oft verwechselt“
+- Silben: aa, ee und oo bleiben zusammen (Kaf|fee, Saal, Boot)
+- Silben: kein „ßofa“ mehr als Auswahl – ß ersetzt nie einen Großbuchstaben
+- Eigene Wörter: nur noch echte Buchstaben (A–Z, Ä, Ö, Ü, ß) erlaubt
+- Eigene Wörter: Hinweis zur Großschreibung; eingebaute Wörter haben Vorrang vor gleich geschriebenen Kleinschreib-Einträgen
+- Elternbereich: ein Hinweis erklärt, warum eine eingeschaltete Übung gerade nicht im Menü erscheint
 ## [1.6.0] – 2026-10-04
 
 - Neues Menü: vier große Bildkacheln (Apfelkorb, Zahlenklötze, ABC-Klötze, klatschende Hände) in sanften Farben, der Roboter begrüßt mit Sprechblase
