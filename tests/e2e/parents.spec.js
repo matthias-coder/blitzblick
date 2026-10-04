@@ -2,12 +2,13 @@ import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { seed, readState, longPress, openParents, buildState } from './helpers.js';
 
-test('a short press does not open the parent area, a wrong answer returns to the menu', async ({ page }) => {
+test('a short press does not open the parent area, 1.5 s does, a wrong answer returns to the menu', async ({ page }) => {
   await seed(page);
   await page.goto('/');
-  await longPress(page, page.getByTestId('gear'), 800);
+  await longPress(page, page.getByTestId('gear'), 1000);
   await expect(page.getByTestId('tile-quantity')).toBeVisible();
-  await longPress(page, page.getByTestId('gear'));
+  await longPress(page, page.getByTestId('gear'), 1600);
+  await expect(page.getByTestId('gate-answer')).toBeVisible();
   await page.getByTestId('gate-answer').fill('1');
   await page.getByTestId('gate-submit').click();
   await expect(page.getByTestId('tile-quantity')).toBeVisible();
@@ -109,10 +110,11 @@ test('at least two known letters and one exercise stay enabled', async ({ page }
   await expect(page.getByTestId('letter-M')).toBeEnabled();
   await page.getByTestId('ex-quantity').uncheck();
   await page.getByTestId('ex-digits').uncheck();
+  // with M, O, B the syllables exercise is not playable, so letters is the last playable one
   await expect(page.getByTestId('ex-letters')).toBeDisabled();
   const s = (await readState(page)).profiles[0].settings;
   expect(s.letters.known.length).toBe(3);
-  expect(Object.values(s.exercises).filter(Boolean)).toHaveLength(1);
+  expect(Object.values(s.exercises).filter(Boolean)).toHaveLength(2);
 });
 
 test('the speech mode can be chosen and is saved', async ({ page }) => {
@@ -122,4 +124,37 @@ test('the speech mode can be chosen and is saved', async ({ page }) => {
   await expect(page.getByTestId('speech')).toHaveValue('off');
   await page.getByTestId('speech').selectOption('lots');
   expect((await readState(page)).profiles[0].settings.speech).toBe('lots');
+});
+
+test('custom words can be added, are validated and can be removed', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await openParents(page);
+  await expect(page.getByTestId('syllables-playable')).toContainText('4 Silben, 2 Wörter');
+  await page.getByTestId('syllables-custom-input').fill('Lo|la');
+  await page.getByTestId('syllables-custom-add').click();
+  await expect(page.getByTestId('syllables-custom-0')).toContainText('fehlt: L');
+  expect((await readState(page)).profiles[0].settings.syllables.custom).toEqual([{ text: 'Lola', split: 'Lo|la' }]);
+
+  await page.getByTestId('syllables-custom-input').fill('Max1');
+  await page.getByTestId('syllables-custom-add').click();
+  await expect(page.getByTestId('syllables-custom-msg')).toContainText('Nur Buchstaben');
+  await page.getByTestId('syllables-custom-input').fill('lola');
+  await page.getByTestId('syllables-custom-add').click();
+  await expect(page.getByTestId('syllables-custom-msg')).toContainText('schon in der Liste');
+  expect((await readState(page)).profiles[0].settings.syllables.custom).toHaveLength(1);
+
+  await page.getByTestId('syllables-custom-0-remove').click();
+  await expect(page.getByTestId('syllables-custom-0')).toHaveCount(0);
+  expect((await readState(page)).profiles[0].settings.syllables.custom).toEqual([]);
+});
+
+test('the syllable color switch is saved and survives a reload', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await openParents(page);
+  await page.getByTestId('syllables-colors').uncheck();
+  expect((await readState(page)).profiles[0].settings.syllables.colors).toBe(false);
+  await page.reload();
+  expect((await readState(page)).profiles[0].settings.syllables.colors).toBe(false);
 });

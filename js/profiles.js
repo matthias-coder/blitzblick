@@ -2,6 +2,7 @@ import { EXERCISES } from './exercises/index.js';
 import { initialLevel, clampLevel } from './adaptive.js';
 import { MAXES } from './exercises/quantity.js';
 import { LETTERS } from './exercises/letters.js';
+import { sanitizeCustom } from './exercises/words.js';
 import { SPEECH_MODES } from './speech.js';
 
 export const AVATARS = ['astronaut', 'monster', 'superhero', 'knight', 'dino', 'dragon', 'pony', 'taco', 'singer', 'cat', 'fairy', 'chef'];
@@ -11,17 +12,21 @@ export const AVATAR_LABELS = {
 };
 
 export const DEFAULT_SETTINGS = {
-  exercises: { quantity: true, digits: true, letters: true },
+  exercises: { quantity: true, digits: true, letters: true, syllables: true },
   timing: { startMs: 1500, minMs: 300, maxMs: 3000, adaptive: true },
   quantity: { max: 10, layout: 'mixed' },
   digits: { range: 9 },
   letters: { known: ['A', 'M', 'O'], case: 'upper', speak: 'sound' },
+  syllables: { colors: true, custom: [] },
   speech: 'little',
   sounds: true,
 };
 
 export const MIN_LETTERS = 2;
 const DIGIT_RANGES = [9, 10, 20];
+
+// at least one exercise must be enabled and playable, otherwise the menu is empty
+const hasPlayable = (s) => Object.entries(EXERCISES).some(([k, ex]) => s.exercises[k] && ex.isAvailable(s));
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
@@ -77,6 +82,11 @@ const bool = (v, d) => (typeof v === 'boolean' ? v : d);
 const oneOf = (v, allowed, d) => (allowed.includes(v) ? v : d);
 
 function sanitizeSettings(raw) {
+  const s = sanitizeFields(raw);
+  return hasPlayable(s) ? s : { ...s, exercises: { ...DEFAULT_SETTINGS.exercises } };
+}
+
+function sanitizeFields(raw) {
   const r = isObj(raw) ? raw : {};
   const d = DEFAULT_SETTINGS;
   const sub = (k) => (isObj(r[k]) ? r[k] : {});
@@ -101,6 +111,10 @@ function sanitizeSettings(raw) {
       known: known ?? [...d.letters.known],
       case: oneOf(sub('letters').case, ['upper', 'lower', 'both'], d.letters.case),
       speak: oneOf(sub('letters').speak, ['sound', 'name'], d.letters.speak),
+    },
+    syllables: {
+      colors: bool(sub('syllables').colors, d.syllables.colors),
+      custom: sanitizeCustom(sub('syllables').custom),
     },
     speech: r.speech === true ? 'little' : r.speech === false ? 'off' : oneOf(r.speech, SPEECH_MODES, d.speech),
     sounds: bool(r.sounds, d.sounds),
@@ -169,7 +183,7 @@ export function updateSettings(profile, patch) {
   const merged = mergeDeep(profile.settings, patch);
   const known = merged.letters.known.length;
   if (known < MIN_LETTERS && known < profile.settings.letters.known.length) return profile;
-  if (!Object.values(merged.exercises).some(Boolean)) return profile;
+  if (!hasPlayable(merged)) return profile;
   const settings = normalizeSettings(merged);
   return { ...profile, settings, levels: buildLevels(profile.levels, settings) };
 }

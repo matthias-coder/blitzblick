@@ -24,7 +24,7 @@ export async function readState(page) {
   return page.evaluate(() => JSON.parse(localStorage.getItem('blitzblick.v1')));
 }
 
-export async function longPress(page, locator, ms = 3300) {
+export async function longPress(page, locator, ms = 1800) {
   const box = await locator.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();

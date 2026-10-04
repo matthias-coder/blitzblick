@@ -3,6 +3,7 @@ import { makeChallenge } from './gate.js';
 import { avatarImg } from './widgets.js';
 import { EXERCISES, EXERCISE_ORDER } from '../exercises/index.js';
 import { LETTERS } from '../exercises/letters.js';
+import { buildPool, parseCustomWord, letterKey, MAX_CUSTOM } from '../exercises/words.js';
 import {
   AVATARS, AVATAR_LABELS, createProfile, addProfile, removeProfile, setActive,
   updateProfile, updateSettings, resetLevels, MIN_LETTERS,
@@ -87,6 +88,43 @@ function voiceSelect(ctx, rerender) {
   }, 'voice');
 }
 
+function syllablesFieldset(s, apply) {
+  const pool = buildPool(s);
+  const nSyl = pool.filter((e) => e.level === 0).length;
+  const custom = s.syllables.custom;
+  const msg = h('p', { class: 'form-msg', 'data-testid': 'syllables-custom-msg' });
+  const input = h('input', { type: 'text', maxlength: '40', placeholder: 'z. B. El|la', 'aria-label': 'Eigenes Wort', 'data-testid': 'syllables-custom-input' });
+  const fail = (text) => { msg.textContent = text; msg.classList.add('error'); };
+  const add = () => {
+    const r = parseCustomWord(input.value);
+    if (r.error) return fail(r.error);
+    if (custom.some((c) => c.text.toLowerCase() === r.text.toLowerCase())) return fail('Dieses Wort ist schon in der Liste.');
+    if (custom.length >= MAX_CUSTOM) return fail(`Höchstens ${MAX_CUSTOM} eigene Wörter.`);
+    return apply({ syllables: { custom: [...custom, r] } });
+  };
+  const missing = (text) => [...new Set([...text].map(letterKey))].filter((k) => !s.letters.known.includes(k));
+  return fieldset('Silben & Wörter', [
+    check('Silben farbig zeigen (blau/rot)', s.syllables.colors, (v) => apply({ syllables: { colors: v } }), 'syllables-colors'),
+    h('p', { class: 'hint', 'data-testid': 'syllables-playable' },
+      `Spielbar gerade: ${nSyl} Silben, ${pool.length - nSyl} Wörter – nur aus bekannten Buchstaben.`),
+    h('p', { class: 'hint' }, 'Eigene Wörter, z. B. Namen aus der Familie. Silben mit | trennen (El|la) – ohne | trennt die App selbst.'),
+    h('form', { class: 'add-row', onSubmit: (e) => { e.preventDefault(); add(); } },
+      input,
+      h('button', { type: 'submit', class: 'secondary-btn', 'data-testid': 'syllables-custom-add' }, 'Hinzufügen')),
+    msg,
+    h('div', { class: 'chip-list' }, custom.map((c, i) => {
+      const m = missing(c.text);
+      return h('span', { class: 'chip', 'data-testid': `syllables-custom-${i}` },
+        c.split.replaceAll('|', '·'),
+        m.length ? h('span', { class: 'missing' }, `noch nicht spielbar – fehlt: ${m.join(', ')}`) : null,
+        h('button', {
+          type: 'button', 'aria-label': `${c.text} löschen`, 'data-testid': `syllables-custom-${i}-remove`,
+          onClick: () => apply({ syllables: { custom: custom.filter((_, j) => j !== i) } }),
+        }, '×'));
+    })),
+  ]);
+}
+
 function settingsTab(body, ctx, rerender) {
   const p = ctx.profile;
   const s = p.settings;
@@ -106,12 +144,13 @@ function settingsTab(body, ctx, rerender) {
     }),
     h('span', { class: 'unit' }, 'ms'));
 
-  const enabledCount = EXERCISE_ORDER.filter((id) => s.exercises[id]).length;
+  // the last enabled exercise that is also playable cannot be switched off
+  const playable = EXERCISE_ORDER.filter((id) => s.exercises[id] && EXERCISES[id].isAvailable(s));
   const lockLetters = s.letters.known.length <= MIN_LETTERS;
   body.append(
     h('h2', {}, `Einstellungen für ${p.name}`),
     fieldset('Übungsarten', EXERCISE_ORDER.map((id) => check(EXERCISES[id].title, s.exercises[id], (v) => apply({ exercises: { [id]: v } }), `ex-${id}`,
-      s.exercises[id] && enabledCount <= 1))),
+      playable.length <= 1 && playable.includes(id)))),
     fieldset('Anzeigedauer', [
       check('Automatisch anpassen', s.timing.adaptive, (v) => apply({ timing: { adaptive: v } }), 'timing-adaptive'),
       num(s.timing.adaptive ? 'Startwert' : 'Feste Dauer', s.timing.startMs, 'start'),
@@ -135,6 +174,7 @@ function settingsTab(body, ctx, rerender) {
       select('Schreibweise', s.letters.case, [['upper', 'Großbuchstaben'], ['lower', 'Kleinbuchstaben'], ['both', 'Groß und klein']], (v) => apply({ letters: { case: v } }), 'letters-case'),
       select('Aussprache', s.letters.speak, [['sound', 'Als Laut („mmm“)'], ['name', 'Als Name („em“)']], (v) => apply({ letters: { speak: v } }), 'letters-speak'),
     ]),
+    syllablesFieldset(s, apply),
     fieldset('Ton', [
       select('Sprachausgabe', s.speech, [['off', 'Aus'], ['little', 'Wenig (nur Lösungen und Lob)'], ['lots', 'Viel (alles ansagen)']], (v) => apply({ speech: v }), 'speech'),
       voiceSelect(ctx, rerender),
