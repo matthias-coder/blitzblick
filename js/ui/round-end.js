@@ -1,9 +1,8 @@
 import { h } from './dom.js';
 import { uiIcon } from './widgets.js';
-import { stickerUrl } from '../rewards.js';
-const STICKER_MIN_CORRECT = 4; // interim until Task 5 rewrites the round end
+import { stickerUrl, packTarget } from '../rewards.js';
 import { ROUND_LENGTH } from '../session.js';
-import { PRAISE, STICKER, BONUS, ALMOST, SECRET, levelUpText } from '../phrases.js';
+import { PRAISE, SECRET, TRADE, SAVE, levelUpText } from '../phrases.js';
 
 const decor = (name, cls) => h('img', { class: cls, src: `assets/decor/${name}.webp`, alt: '' });
 export const HOLD_MS = 1800;
@@ -45,26 +44,31 @@ function playReveal({ card, rays, target, count, total }, track) {
   }, HOLD_MS));
 }
 
-export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
+export function renderRoundEnd(root, ctx, { exerciseId, level, correct, reward }) {
   const total = ctx.profile.rewards.stickers.length;
   const motion = !matchMedia('(prefers-reduced-motion: reduce)').matches && typeof Element.prototype.animate === 'function';
   const animations = [], timers = [];
   const track = (x) => (typeof x === 'number' ? timers.push(x) : animations.push(x));
   const rays = h('div', { class: 'rays', 'aria-hidden': 'true' });
   const card = reward.sticker ? h('div', { class: 'sticker-reveal' }, h('img', { src: stickerUrl(reward.sticker), alt: '' })) : null;
-  const prize = !reward.earned && !reward.secret
-    ? h('div', { class: 'sticker-hint', 'data-testid': 'sticker-hint' },
-      uiIcon('lock'), h('span', {}, `${correct} von ${ROUND_LENGTH} – ab ${STICKER_MIN_CORRECT} gibt's einen Sticker`))
-    : card
-      ? h('div', { class: 'reveal', 'data-testid': 'new-sticker', 'data-sticker': reward.sticker }, rays, card)
-      : h('div', { class: 'reveal' }, rays, h('div', { class: 'bonus', 'data-testid': 'bonus-stars' }, `+${reward.bonusStars}`, uiIcon('star')));
+  const target = packTarget(reward.rewards, exerciseId, level);
+  const prize = card
+    ? h('div', { class: 'reveal', 'data-testid': 'new-sticker', 'data-sticker': reward.sticker }, rays, card)
+    : !target ? null
+      : target.affordable
+        ? h('button', { class: 'candy trade-hint', 'data-testid': 'trade-hint', onClick: () => ctx.go('album', { page: target.page.id }) },
+          uiIcon('album'), h('span', {}, 'Sticker-Tüte öffnen!'))
+        : h('div', { class: 'pack-progress', 'data-testid': 'pack-progress' },
+          h('span', {}, `Noch ${target.price - reward.rewards.stars}`), uiIcon('star'), h('span', {}, 'bis zur nächsten Tüte'),
+          h('div', { class: 'pack-bar' }, h('div', { class: 'pack-fill', style: `width:${Math.round(100 * reward.rewards.stars / target.price)}%` })));
   const unlocked = reward.newlyUnlockedPages.length
     ? h('div', { class: 'unlock', 'data-testid': 'page-unlocked' }, uiIcon('album'), '+', String(reward.newlyUnlockedPages.length))
     : null;
   // level-up: the robot holds a trophy and a medal shows the new level number
   const levelUp = reward.levelUp
     ? h('div', { class: 'level-up', 'data-testid': 'level-up', role: 'img', 'aria-label': `Level ${reward.levelUp.to + 1}` },
-      decor('medal', 'medal'), h('span', { class: 'medal-num', 'data-testid': 'level-up-num' }, String(reward.levelUp.to + 1)))
+      decor('medal', 'medal'), h('span', { class: 'medal-num', 'data-testid': 'level-up-num' }, String(reward.levelUp.to + 1)),
+      reward.gift ? h('span', { class: 'level-gift', 'data-testid': 'level-gift' }, `+${reward.gift}`, uiIcon('star')) : null)
     : null;
   // medal and unlocked page share a row; on phones the trophy robot joins them instead of hiding behind the buttons
   const prizeRow = levelUp || unlocked
@@ -81,7 +85,7 @@ export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
 
   root.replaceChildren(
     h('main', { class: 'round-end', 'data-testid': 'round-end' },
-      reward.earned ? confetti() : null,
+      share(correct) >= GREAT ? confetti() : null,
       h('div', { class: 'end-main' },
         h('div', { class: 'end-head' },
           bubble,
@@ -97,7 +101,7 @@ export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
   if (card && motion) playReveal({ card, rays, target: albumBtn, count, total }, track);
   ctx.sounds.fanfare();
   const praise = ctx.pick('praise', PRAISE[share(correct) >= GREAT ? 'great' : share(correct) >= GOOD ? 'good' : 'practiced']);
-  const news = reward.secret ? ctx.pick('secret', SECRET) : !reward.earned ? ctx.pick('almost', ALMOST) : reward.sticker ? ctx.pick('sticker', STICKER) : ctx.pick('bonus', BONUS);
-  ctx.speech.speak([praise, reward.levelUp ? levelUpText(reward.levelUp.from) : null, news].filter(Boolean).join(' '));
+  const news = reward.secret ? ctx.pick('secret', SECRET) : target?.affordable ? ctx.pick('trade', TRADE) : target ? ctx.pick('save', SAVE) : null;
+  ctx.speech.speak([praise, reward.levelUp ? levelUpText(reward.levelUp.from) : null, reward.gift ? `Und ${reward.gift} Sterne als Geschenk!` : null, news].filter(Boolean).join(' '));
   return () => { timers.forEach(clearTimeout); animations.forEach((a) => a.cancel()); };
 }

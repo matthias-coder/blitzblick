@@ -119,7 +119,7 @@ export function render(root, ctx, { exerciseId }) {
     const { profile: updated, reward } = finishRound(profile, round, rng);
     ctx.setState(updateProfile(ctx.state, profile.id, () => updated));
     const correct = round.results.filter((r) => r.correct).length;
-    stopEnd = renderRoundEnd(root, ctx, { exerciseId, correct, reward });
+    stopEnd = renderRoundEnd(root, ctx, { exerciseId, level: round.played, correct, reward });
   }
 
   playTask();

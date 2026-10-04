@@ -343,3 +343,10 @@ input[type="range"] { width: 100%; accent-color: var(--primary); height: 32px; }
 .sticker-count { position: absolute; right: 4%; bottom: 4%; min-width: 1.6em; height: 1.6em; border-radius: 999px; background: #ff8a3d; color: #fff; font-weight: 800; display: grid; place-items: center; font-size: .9rem; box-shadow: 0 1px 3px #0004; }
 .pack-reveal { position: fixed; inset: 0; display: grid; place-items: center; align-content: center; gap: 12px; background: #0006; z-index: 20; }
 .pack-count { display: inline-flex; align-items: center; gap: 6px; font-size: 2rem; font-weight: 800; color: #fff; text-shadow: 0 2px 4px #0008; }
+
+/* v1.8: round end trade hint */
+.candy.trade-hint { display: inline-flex; align-items: center; gap: 10px; font-size: 1.3rem; padding: 12px 24px; }
+.pack-progress { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; font-weight: 700; }
+.pack-bar { flex-basis: 100%; height: 12px; border-radius: 999px; background: #0001; overflow: hidden; max-width: 260px; }
+.pack-fill { height: 100%; background: linear-gradient(90deg, #ffd34d, #ff9f1c); }
+.level-gift { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; }
