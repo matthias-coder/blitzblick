@@ -2,7 +2,7 @@
 // Usage: node tools/build-raster-assets.mjs
 import fs from 'node:fs';
 import { openBrowser, decodePng } from './sprite-lib.mjs';
-import { OBJECTS } from '../js/exercises/quantity.js';
+import { BASE_OBJECTS } from '../js/exercises/quantity.js';
 import { PAGES } from '../js/rewards.js';
 
 const AVATARS = ['astronaut', 'monster', 'superhero', 'knight', 'dino', 'dragon', 'pony', 'taco', 'singer', 'cat', 'fairy', 'chef'];
@@ -17,7 +17,7 @@ const jobs = [
   ...DECOR.map((d) => ({ name: `decor/${d}`, max: 320 })),
   ...MASCOT.map((m) => ({ name: `mascot/${m}`, max: 400 })),
   ...MENU.map((m) => ({ name: `menu/${m}`, square: 320 })),
-  ...OBJECTS.map((o) => ({ name: `objects/${o}`, square: 256 })),
+  ...BASE_OBJECTS.map((o) => ({ name: `objects/${o}`, square: 256 })),
   ...PAGES.flatMap((p) => p.stickers.map((s) => ({ name: `stickers/${p.id}/${s}`, square: 256 }))),
 ];
 

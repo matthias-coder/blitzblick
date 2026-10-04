@@ -1,4 +1,5 @@
 import { randInt, pick } from '../rng.js';
+import { PAGES, stickerId, stickerUrl } from '../rewards.js';
 import { layoutPositions } from './quantity-layout.js';
 import { buildChoices } from './choices.js';
 import { h } from '../ui/dom.js';
@@ -8,8 +9,21 @@ import { addends, ARITH_DURATION_FACTOR } from './arithmetic.js';
 export const id = 'quantity';
 export const title = 'Mengen';
 export const menuTitle = 'Mengenblitz';
-export const OBJECTS = ['apple', 'duck', 'ladybug', 'fish', 'car', 'balloon'];
-export const objectUrl = (object) => `assets/objects/${object}.webp`;
+export const BASE_OBJECTS = ['apple', 'duck', 'ladybug', 'fish', 'car', 'balloon'];
+// album stickers that also work as counting objects: listed pages only (new pages are opt-in, Quatschwesen stay album-only),
+// minus motifs that show several things, carry countable dots/digits or get too thin at counting size
+const COUNT_PAGES = ['fruit', 'veggies', 'treats', 'food', 'toys', 'vehicles', 'space', 'blockworld', 'animals', 'sea', 'dinos', 'room', 'kitchen', 'cooking', 'magic'];
+const NOT_COUNTABLE = new Set([
+  'fruit/cherry', 'treats/grapes', 'room/pencils', 'room/flowers', 'room/sneakers', 'magic/crystals', 'blockworld/crystal',
+  'toys/blocks', 'kitchen/salad', 'kitchen/cereal', 'food/spaghetti',
+  'blockworld/sixtyseven', 'food/birthdaycake', 'food/pizza', 'veggies/toadstool', 'dinos/egg', 'dinos/footprint',
+  'kitchen/spatula', 'kitchen/whisk', 'cooking/ladle', 'magic/wand', 'magic/broom', 'magic/telescope', 'sea/jellyfish', 'vehicles/bike', 'cooking/pan',
+]);
+export const STICKER_OBJECTS = COUNT_PAGES
+  .flatMap((id) => PAGES.find((p) => p.id === id).stickers.map((s) => stickerId(id, s)))
+  .filter((o) => !NOT_COUNTABLE.has(o));
+export const OBJECTS = [...BASE_OBJECTS, ...STICKER_OBJECTS];
+export const objectUrl = (object) => (object.includes('/') ? stickerUrl(object) : `assets/objects/${object}.webp`);
 
 // s = with a pattern, m = pattern or scattered, r = scattered, twenty = Zwanzigerfeld
 const s = (max) => ({ max, layout: 'structured' });

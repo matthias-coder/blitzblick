@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { PAGES, stickerId, stickerUrl } from '../../js/rewards.js';
-import { OBJECTS, objectUrl } from '../../js/exercises/quantity.js';
+import { OBJECTS, BASE_OBJECTS, objectUrl } from '../../js/exercises/quantity.js';
 import { AVATARS } from '../../js/profiles.js';
 
 const UI = ['gear', 'back', 'album', 'again', 'check', 'lock', 'star'];
@@ -51,7 +51,7 @@ test('raster assets stay small enough for offline caching', () => {
     ...DECOR.map((d) => `assets/decor/${d}.webp`),
     ...MASCOT.map((m) => `assets/mascot/${m}.webp`),
     ...MENU.map((m) => `assets/menu/${m}.webp`),
-    ...OBJECTS.map(objectUrl),
+    ...BASE_OBJECTS.map(objectUrl),
     ...PAGES.flatMap((p) => p.stickers.map((s) => stickerUrl(stickerId(p.id, s)))),
   ];
   const total = paths.reduce((sum, p) => sum + statSync(file(p)).size, 0);

@@ -355,3 +355,15 @@ test('Zwanzigerfeld: twenty objects fit on the board', async ({ page }) => {
   const { choices } = await waitForChoices(page);
   await expect(choices.locator('button.choice')).toHaveCount(4);
 });
+
+test('quantity can count album stickers, and the sticker image loads', async ({ page }) => {
+  await seed(page, fixed(3000));
+  await page.goto('/');
+  // the next random draw picks the round's object: the last one in the pool is a sticker
+  await page.evaluate(() => { const real = Math.random; Math.random = () => { Math.random = real; return 0.999; }; });
+  await page.getByTestId('tile-quantity').click();
+  const obj = page.getByTestId('stimulus').locator('.obj').first();
+  await expect(obj).toBeVisible({ timeout: 6000 });
+  await expect(obj).toHaveAttribute('src', /^assets\/stickers\/[a-z]+\/[a-z]+\.webp$/);
+  expect(await obj.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
+});

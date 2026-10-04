@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as quantity from '../../js/exercises/quantity.js';
 import { layoutPositions, MIN_DIST, PATTERNS, patternsFor, structuredPositions, twentyFrame } from '../../js/exercises/quantity-layout.js';
 import { mulberry32 } from '../../js/rng.js';
+import { PAGES, stickerId } from '../../js/rewards.js';
 
 const S = { quantity: {} };
 const step = (grade, level, i = 0) => quantity.LADDERS[grade][level].steps[i];
@@ -107,6 +108,35 @@ test('Zwanzigerfeld tasks offer four sorted choices around the answer', () => {
 
 test('prepareRound picks one of the objects', () => {
   assert.ok(quantity.OBJECTS.includes(quantity.prepareRound(mulberry32(1)).object));
+});
+
+test('the object pool is the base objects plus checked stickers from the album', () => {
+  assert.deepEqual(quantity.OBJECTS, [...quantity.BASE_OBJECTS, ...quantity.STICKER_OBJECTS]);
+  assert.equal(new Set(quantity.OBJECTS).size, quantity.OBJECTS.length);
+  const ids = new Set(PAGES.flatMap((p) => p.stickers.map((s) => stickerId(p.id, s))));
+  for (const o of quantity.STICKER_OBJECTS) assert.ok(ids.has(o), `${o} is not an album sticker`);
+  assert.ok(quantity.STICKER_OBJECTS.length >= 90);
+});
+
+test('stickers that are hard to count stay out of the pool', () => {
+  const out = ['fruit/cherry', 'treats/grapes', 'room/pencils', 'room/flowers', 'room/sneakers', 'magic/crystals', 'blockworld/crystal',
+    'toys/blocks', 'kitchen/salad', 'kitchen/cereal', 'food/spaghetti', 'blockworld/sixtyseven', 'food/birthdaycake', 'food/pizza',
+    'veggies/toadstool', 'dinos/egg', 'dinos/footprint', 'kitchen/spatula', 'kitchen/whisk', 'cooking/ladle', 'magic/wand',
+    'magic/broom', 'magic/telescope', 'sea/jellyfish', 'vehicles/bike', 'cooking/pan'];
+  for (const o of out) assert.ok(!quantity.OBJECTS.includes(o), `${o} must not be counted`);
+  assert.ok(!quantity.OBJECTS.some((o) => o.startsWith('silly/')), 'Quatschwesen stay album-only');
+});
+
+test('objectUrl maps base objects and stickers', () => {
+  assert.equal(quantity.objectUrl('apple'), 'assets/objects/apple.webp');
+  assert.equal(quantity.objectUrl('fruit/pear'), 'assets/stickers/fruit/pear.webp');
+});
+
+test('prepareRound reaches sticker motifs', () => {
+  const rng = mulberry32(3);
+  const seen = new Set(Array.from({ length: 200 }, () => quantity.prepareRound(rng).object));
+  assert.ok([...seen].some((o) => o.includes('/')));
+  assert.ok(seen.size > 50);
 });
 
 test('texts', () => {

@@ -9,6 +9,7 @@
 - Runden mit 5 statt 10 Aufgaben, Sticker ab 4 Richtigen
 - Sammelalbum nach Übung und Level geordnet: jede Seite gehört zu einem Level und öffnet sich, sobald es erreicht ist; schon gesammelte Sticker bleiben sichtbar
 - Mengen nicht mehr nur als Würfelbild: auch Reihe, Paare, zwei Gruppen und Kreis, gedreht und gespiegelt
+- Mengenblitz zählt jetzt fast 100 verschiedene Motive: zu den sechs bisherigen Dingen kommen gut zählbare Bilder aus dem Sammelalbum
 - Klasse 1: Mengen bis 20 im Zwanzigerfeld, Plus und Minus bis 10
 - Buchstaben auf Schreiblinien (Lineatur 1) mit Häuschen am linken Rand, im Elternbereich abschaltbar
 - Grundschrift (Playwrite DE Grund) für Zahlen, Buchstaben und Silben auf der Karte und den Antwortknöpfen
