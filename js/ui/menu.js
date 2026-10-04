@@ -18,7 +18,7 @@ export function render(root, ctx) {
   gear.classList.add('gear');
   attachLongPress(gear, 1500, () => ctx.go('parents'));
   const who = ctx.state.profiles.length > 1
-    ? h('button', { class: 'icon-btn', 'data-testid': 'switch-profile', 'aria-label': 'Profil wechseln', onClick: () => ctx.go('profiles') }, avatarImg(p.avatar))
+    ? h('button', { class: 'icon-btn candy candy-round', 'data-testid': 'switch-profile', 'aria-label': 'Profil wechseln', onClick: () => ctx.go('profiles') }, avatarImg(p.avatar))
     : h('div', { class: 'icon-btn' }, avatarImg(p.avatar));
   root.append(
     h('header', { class: 'topbar' }, who, h('div', { class: 'spacer' }), starBadge(p.rewards.stars), gear),
@@ -29,7 +29,7 @@ export function render(root, ctx) {
       onClick: () => ctx.go('round', { exerciseId: id }),
     }, TILE_CONTENT[id]()))),
     h('footer', { class: 'menu-foot' }, h('button', {
-      class: 'album-btn', 'data-testid': 'open-album', 'aria-label': 'Sammelalbum', onClick: () => ctx.go('album'),
+      class: 'album-btn candy candy-pill', 'data-testid': 'open-album', 'aria-label': 'Sammelalbum', onClick: () => ctx.go('album'),
     }, uiIcon('album'), h('span', {}, String(p.rewards.stickers.length)))),
     h('img', { class: 'mascot', src: 'assets/mascot/robot-wave.webp', alt: '' }),
   );

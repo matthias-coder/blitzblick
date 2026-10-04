@@ -3,7 +3,7 @@ import { h } from './dom.js';
 export function renderChoiceButtons(el, choices, label, onPick) {
   let done = false;
   const buttons = choices.map((value) => {
-    const btn = h('button', { class: 'choice', type: 'button', 'data-value': String(value) }, label(value));
+    const btn = h('button', { class: 'choice candy candy-answer', type: 'button', 'data-value': String(value) }, label(value));
     btn.addEventListener('click', () => {
       if (done) return;
       done = true;

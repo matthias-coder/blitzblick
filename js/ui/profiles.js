@@ -7,7 +7,7 @@ function renderCreate(root, ctx) {
   const name = h('input', { id: 'profile-name', type: 'text', maxlength: '20', autocomplete: 'off', placeholder: 'Name des Kindes' });
   const pick = h('div', { class: 'avatar-pick' }, AVATARS.map((a) => h('button', {
     type: 'button',
-    class: `avatar-opt${a === avatar ? ' selected' : ''}`,
+    class: `avatar-opt candy candy-round${a === avatar ? ' selected' : ''}`,
     'data-testid': `avatar-${a}`,
     'aria-label': AVATAR_LABELS[a],
     onClick: (e) => {
@@ -30,7 +30,7 @@ function renderCreate(root, ctx) {
   h('label', { for: 'profile-name' }, 'Name'), name,
   h('div', { class: 'label' }, 'Bild'), pick,
   msg,
-  h('button', { class: 'primary-btn', type: 'submit', 'data-testid': 'create-profile' }, 'Profil anlegen'));
+  h('button', { class: 'primary-btn candy candy-pill is-primary', type: 'submit', 'data-testid': 'create-profile' }, 'Profil anlegen'));
   root.append(h('main', { class: 'center' }, form));
 }
 
@@ -38,7 +38,7 @@ export function render(root, ctx) {
   const { profiles } = ctx.state;
   if (!profiles.length) return renderCreate(root, ctx);
   root.append(h('main', { class: 'profile-picker' }, profiles.map((p) => h('button', {
-    class: 'profile-card',
+    class: 'profile-card candy candy-pill',
     'data-testid': `profile-${p.id}`,
     onClick: () => { ctx.setState(setActive(ctx.state, p.id)); ctx.go('menu'); },
   }, avatarImg(p.avatar), h('span', {}, p.name)))));

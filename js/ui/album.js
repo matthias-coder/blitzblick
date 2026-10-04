@@ -12,7 +12,7 @@ export function render(root, ctx, { highlight = null } = {}) {
     tabs.replaceChildren(...PAGES.map((pg, i) => {
       const locked = i >= r.unlockedPages;
       return h('button', {
-        class: `album-tab${i === pageIndex ? ' active' : ''}${locked ? ' locked' : ''}`,
+        class: `album-tab candy candy-small${i === pageIndex ? ' active' : ''}${locked ? ' locked' : ''}`,
         'data-testid': `album-tab-${pg.id}`,
         'aria-label': pg.title,
         onClick: () => { pageIndex = i; draw(); },

@@ -28,8 +28,8 @@ export function render(root, ctx) {
   h('p', { 'data-testid': 'gate-question', 'data-answer': String(ch.answer) }, `Wie viel ist ${ch.a} × ${ch.b}?`),
   input,
   h('div', { class: 'row' },
-    h('button', { type: 'button', class: 'secondary-btn', onClick: () => ctx.go('menu') }, 'Abbrechen'),
-    h('button', { type: 'submit', class: 'primary-btn', 'data-testid': 'gate-submit' }, 'Weiter')));
+    h('button', { type: 'button', class: 'secondary-btn candy candy-pill', onClick: () => ctx.go('menu') }, 'Abbrechen'),
+    h('button', { type: 'submit', class: 'primary-btn candy candy-pill is-primary', 'data-testid': 'gate-submit' }, 'Weiter')));
   root.append(h('main', { class: 'center' }, form));
   input.focus();
 }
@@ -45,10 +45,10 @@ function renderPanel(root, ctx, tab) {
   root.replaceChildren(h('div', { class: 'parents', 'data-testid': 'parents' },
     h('header', { class: 'parents-head' },
       h('h1', {}, 'Elternbereich'),
-      h('button', { class: 'primary-btn', 'data-testid': 'close-parents', onClick: () => close(ctx) }, 'Fertig')),
+      h('button', { class: 'primary-btn candy candy-pill is-primary', 'data-testid': 'close-parents', onClick: () => close(ctx) }, 'Fertig')),
     warnings(ctx),
     h('nav', { class: 'tabs' }, TABS.map(([id, label]) => h('button', {
-      class: `tab${id === tab ? ' active' : ''}`,
+      class: `tab candy candy-small${id === tab ? ' is-primary' : ''}`,
       'data-testid': `tab-${id}`,
       onClick: () => renderPanel(root, ctx, id),
     }, label))),
@@ -110,7 +110,7 @@ function syllablesFieldset(s, apply) {
     h('p', { class: 'hint' }, 'Eigene Wörter, z. B. Namen aus der Familie. Silben mit | trennen (El|la) – ohne | trennt die App selbst.'),
     h('form', { class: 'add-row', onSubmit: (e) => { e.preventDefault(); add(); } },
       input,
-      h('button', { type: 'submit', class: 'secondary-btn', 'data-testid': 'syllables-custom-add' }, 'Hinzufügen')),
+      h('button', { type: 'submit', class: 'secondary-btn candy candy-pill', 'data-testid': 'syllables-custom-add' }, 'Hinzufügen')),
     msg,
     h('div', { class: 'chip-list' }, custom.map((c, i) => {
       const m = missing(c.text);
@@ -118,7 +118,7 @@ function syllablesFieldset(s, apply) {
         c.split.replaceAll('|', '·'),
         m.length ? h('span', { class: 'missing' }, `noch nicht spielbar – fehlt: ${m.join(', ')}`) : null,
         h('button', {
-          type: 'button', 'aria-label': `${c.text} löschen`, 'data-testid': `syllables-custom-${i}-remove`,
+          type: 'button', class: 'candy candy-small', 'aria-label': `${c.text} löschen`, 'data-testid': `syllables-custom-${i}-remove`,
           onClick: () => apply({ syllables: { custom: custom.filter((_, j) => j !== i) } }),
         }, '×'));
     })),
@@ -180,13 +180,13 @@ function settingsTab(body, ctx, rerender) {
     fieldset('Ton', [
       select('Sprachausgabe', s.speech, [['off', 'Aus'], ['little', 'Wenig (nur Lösungen und Lob)'], ['lots', 'Viel (alles ansagen)']], (v) => apply({ speech: v }), 'speech'),
       voiceSelect(ctx, rerender),
-      h('button', { type: 'button', class: 'secondary-btn', 'data-testid': 'voice-test', onClick: () => ctx.speech.speak('Hallo! So klinge ich.', { force: true }) }, 'Stimme testen'),
+      h('button', { type: 'button', class: 'secondary-btn candy candy-pill', 'data-testid': 'voice-test', onClick: () => ctx.speech.speak('Hallo! So klinge ich.', { force: true }) }, 'Stimme testen'),
       h('p', { class: 'hint' }, 'Tipp für Android: Unter Einstellungen → Sprachausgabe → Google lassen sich natürlichere deutsche Stimmen herunterladen.'),
       check('Töne (auch Countdown vor dem Aufblitzen)', s.sounds, (v) => apply({ sounds: v }), 'sounds'),
     ]),
     fieldset('Schwierigkeit', [
       h('button', {
-        type: 'button', class: 'danger-btn', 'data-testid': 'reset-levels',
+        type: 'button', class: 'danger-btn candy candy-pill is-danger', 'data-testid': 'reset-levels',
         onClick: () => {
           if (!confirm('Alle Schwierigkeitsstufen auf den Anfang zurücksetzen?')) return;
           ctx.setState(updateProfile(ctx.state, p.id, resetLevels));
@@ -239,9 +239,9 @@ function profilesTab(body, ctx, rerender) {
       }),
       p.id === activeProfileId
         ? h('span', { class: 'badge' }, 'aktiv')
-        : h('button', { class: 'secondary-btn', onClick: () => { ctx.setState(setActive(ctx.state, p.id)); rerender(); } }, 'Auswählen'),
+        : h('button', { class: 'secondary-btn candy candy-pill', onClick: () => { ctx.setState(setActive(ctx.state, p.id)); rerender(); } }, 'Auswählen'),
       h('button', {
-        class: 'danger-btn', 'data-testid': `delete-${p.id}`,
+        class: 'danger-btn candy candy-pill is-danger', 'data-testid': `delete-${p.id}`,
         onClick: () => {
           if (!confirm(`Profil „${p.name}“ mit allem Fortschritt löschen?`)) return;
           ctx.setState(removeProfile(ctx.state, p.id));
@@ -253,7 +253,7 @@ function profilesTab(body, ctx, rerender) {
   const name = h('input', { type: 'text', maxlength: '20', placeholder: 'Name', 'data-testid': 'new-profile-name' });
   const pick = h('div', { class: 'avatar-pick small' }, AVATARS.map((a) => h('button', {
     type: 'button',
-    class: `avatar-opt${a === avatar ? ' selected' : ''}`,
+    class: `avatar-opt candy candy-round${a === avatar ? ' selected' : ''}`,
     'aria-label': AVATAR_LABELS[a],
     onClick: (e) => { avatar = a; [...pick.children].forEach((b) => b.classList.toggle('selected', b === e.currentTarget)); },
   }, avatarImg(a))));
@@ -266,7 +266,7 @@ function profilesTab(body, ctx, rerender) {
       rerender();
     },
   }, h('h3', {}, 'Neues Profil'), name, h('div', { class: 'label' }, 'Bild'), pick,
-  h('div', { class: 'row' }, h('button', { class: 'primary-btn', type: 'submit', 'data-testid': 'add-profile' }, 'Anlegen'))));
+  h('div', { class: 'row' }, h('button', { class: 'primary-btn candy candy-pill is-primary', type: 'submit', 'data-testid': 'add-profile' }, 'Anlegen'))));
 }
 
 function download(filename, text) {
@@ -302,7 +302,7 @@ function dataTab(body, ctx) {
   body.append(
     h('h2', {}, 'Datensicherung'),
     h('p', {}, 'Alle Profile, Einstellungen, Fortschritt und Sticker liegen nur auf diesem Gerät. Mit einer Sicherungsdatei kannst du sie aufbewahren oder auf ein anderes Gerät übertragen.'),
-    h('button', { class: 'primary-btn', 'data-testid': 'export', onClick: () => download(exportFilename(), serializeExport(ctx.state)) }, 'Sicherung herunterladen'),
+    h('button', { class: 'primary-btn candy candy-pill is-primary', 'data-testid': 'export', onClick: () => download(exportFilename(), serializeExport(ctx.state)) }, 'Sicherung herunterladen'),
     h('h3', { style: 'margin-top:20px' }, 'Sicherung einspielen'),
     file,
     msg,

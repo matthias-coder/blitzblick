@@ -29,7 +29,7 @@ export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
     : null;
   const bubble = correct >= 8 ? decor('bubble-yay', 'end-bubble') : correct >= 5 ? decor('bubble-wow', 'end-bubble') : null;
   const btn = (icon, testid, label, onClick, extra = '') =>
-    h('button', { class: `big-btn ${extra}`, 'data-testid': testid, 'aria-label': label, onClick }, uiIcon(icon));
+    h('button', { class: `big-btn candy candy-round ${extra}`, 'data-testid': testid, 'aria-label': label, onClick }, uiIcon(icon));
 
   root.replaceChildren(
     h('main', { class: 'round-end', 'data-testid': 'round-end' },
@@ -42,7 +42,7 @@ export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
       h('div', { class: 'end-actions' },
         btn('again', 'play-again', 'Nochmal', () => ctx.go('round', { exerciseId })),
         btn('album', 'to-album', 'Album', () => ctx.go('album', { highlight: reward.sticker })),
-        btn('check', 'round-done', 'Fertig', () => ctx.go('menu'), 'go'))),
+        btn('check', 'round-done', 'Fertig', () => ctx.go('menu'), 'is-go'))),
     h('img', { class: 'mascot', src: 'assets/mascot/robot-wave.webp', alt: '' }),
   );
   ctx.sounds.fanfare();

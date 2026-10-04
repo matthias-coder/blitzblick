@@ -45,3 +45,14 @@ test('star badge shows the profile stars', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByTestId('star-badge')).toHaveText('42');
 });
+
+test('buttons use the candy system and sink when pressed', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  const album = page.getByTestId('open-album');
+  await expect(album).toHaveClass(/\bcandy\b/);
+  await expect(album).toHaveClass(/\bcandy-pill\b/);
+  const shadow = await album.evaluate((el) => getComputedStyle(el).boxShadow);
+  expect(shadow).toMatch(/0px 5px 0px/);
+  await expect(page.getByTestId('gear')).toHaveClass(/\bcandy-round\b/);
+});
