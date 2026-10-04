@@ -216,3 +216,15 @@ test('no compare tasks with the toggle off or on levels without compare', () => 
     assert.ok(roundOf(seed, quantity.LADDERS.g1[2]).every((t) => !t.stimulus.compare));
   }
 });
+
+const cmpTask = (left, right) => ({
+  stimulus: { compare: true, left, right },
+  answer: left === right ? 'equal' : left > right ? 'left' : 'right',
+});
+
+test('compare speech: prompt and solutions', () => {
+  assert.equal(quantity.speakPrompt(cmpTask(7, 4)), 'Wo waren mehr?');
+  assert.deepEqual(quantity.speakSolution(cmpTask(7, 4)), ['Links waren mehr: 7 gegen 4.']);
+  assert.deepEqual(quantity.speakSolution(cmpTask(3, 8)), ['Rechts waren mehr: 8 gegen 3.']);
+  assert.deepEqual(quantity.speakSolution(cmpTask(5, 5)), ['Es waren gleich viele.']);
+});

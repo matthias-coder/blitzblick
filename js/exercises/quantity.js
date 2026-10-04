@@ -96,8 +96,8 @@ export function createTask(step, settings, rng, ctx = { object: OBJECTS[0] }) {
   };
 }
 
-function field(object, positions, cls = 'field') {
-  return h('div', { class: cls }, positions.map((p) => h('img', {
+function field(object, positions, cls = 'field', scale = 1) {
+  return h('div', { class: cls, style: `--obj-scale:${scale}` }, positions.map((p) => h('img', {
     class: 'obj',
     src: objectUrl(object),
     alt: '',
@@ -107,6 +107,12 @@ function field(object, positions, cls = 'field') {
 
 export function renderStimulus(task, el) {
   const st = task.stimulus;
+  if (st.compare) {
+    el.replaceChildren(h('div', { class: 'compare-row', 'data-testid': 'compare-stimulus' },
+      field(st.objectLeft, st.positionsLeft, 'field', st.scaleLeft),
+      field(st.objectRight, st.positionsRight, 'field', st.scaleRight)));
+    return;
+  }
   el.replaceChildren(st.add
     ? h('div', { class: 'plus-row', 'data-testid': 'add-stimulus' },
       field(st.object, st.positionsA), h('span', { class: 'plus' }, '+'), field(st.object, st.positionsB))
@@ -120,13 +126,31 @@ function dots(n) {
     n > 5 ? h('span', {}, '•'.repeat(n - 5)) : null);
 }
 
+const SIDE_LABEL = { left: 'links', right: 'rechts' };
+
 export function renderChoices(task, el, onPick) {
+  if (task.stimulus?.compare) {
+    return renderChoiceButtons(el, task.choices, (v) => (v === 'equal'
+      ? h('span', { class: 'num' }, '=')
+      : h('span', { class: 'compare-pick', title: SIDE_LABEL[v] })), onPick);
+  }
   return renderChoiceButtons(el, task.choices, (v) => [h('span', { class: 'num school' }, String(v)), dots(v)], onPick);
 }
 
-export function speakPrompt(task) { return task?.stimulus?.add ? 'Wie viele waren es zusammen?' : 'Wie viele waren es?'; }
+export function speakPrompt(task) {
+  if (task?.stimulus?.compare) return 'Wo waren mehr?';
+  return task?.stimulus?.add ? 'Wie viele waren es zusammen?' : 'Wie viele waren es?';
+}
+
 export function speakSolution(task) {
+  const st = task.stimulus;
+  if (st?.compare) {
+    if (task.answer === 'equal') return ['Es waren gleich viele.'];
+    const big = Math.max(st.left, st.right);
+    const small = Math.min(st.left, st.right);
+    return [`${task.answer === 'left' ? 'Links' : 'Rechts'} waren mehr: ${big} gegen ${small}.`];
+  }
   const n = task.answer;
-  if (task.stimulus?.add) return [`${task.stimulus.a} und ${task.stimulus.b} sind ${n}.`];
+  if (st?.add) return [`${st.a} und ${st.b} sind ${n}.`];
   return n === 1 ? ['Es war einer.', 'Das war einer.', 'Nur einer.'] : [`Es waren ${n}.`, `Das waren ${n}.`, `${n} waren es.`];
 }
