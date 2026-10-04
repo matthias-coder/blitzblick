@@ -24,14 +24,56 @@ test('known letters can be changed and are saved', async ({ page }) => {
   expect(known.sort()).toEqual(['B', 'M', 'O']);
 });
 
-test('lowering the quantity maximum clamps the level', async ({ page }) => {
-  await seed(page, (p) => { p.levels.quantity.complexity = 11; });
+test('the level can be set per exercise and opens its sticker page', async ({ page }) => {
+  await seed(page);
   await page.goto('/');
   await openParents(page);
-  await page.getByTestId('qty-max-5').click();
+  await expect(page.getByTestId('level-digits')).toHaveAttribute('data-value', '0');
+  await page.getByTestId('level-digits-2').click();
+  await expect(page.getByTestId('level-digits-label')).toHaveText('Level 3: Zahlen 0–9');
   const p = (await readState(page)).profiles[0];
-  expect(p.settings.quantity.max).toBe(5);
-  expect(p.levels.quantity.complexity).toBe(6); // 6 regular stages up to 5 + "Plus bis 5"
+  expect(p.levels.digits.level).toBe(2);
+  expect(p.rewards.reached.digits).toBe(2);
+  await page.getByTestId('close-parents').click();
+  await page.getByTestId('open-album').click();
+  await page.getByTestId('album-tab-space').click();
+  await expect(page.getByTestId('locked-page')).toHaveCount(0);
+});
+
+test('switching the grade asks first, then restarts at level 1 with the grade timing', async ({ page }) => {
+  await seed(page, (p) => { p.levels.letters.level = 3; p.rewards.stickers = ['animals/lion']; });
+  await page.goto('/');
+  await openParents(page);
+  page.once('dialog', (d) => d.dismiss());
+  await page.getByTestId('grade-g1').click();
+  await expect(page.getByTestId('grade')).toHaveAttribute('data-value', 'pre');
+  expect((await readState(page)).profiles[0].settings.grade).toBe('pre');
+  page.once('dialog', (d) => d.accept());
+  await page.getByTestId('grade-g1').click();
+  await expect(page.getByTestId('grade')).toHaveAttribute('data-value', 'g1');
+  const p = (await readState(page)).profiles[0];
+  expect(p.settings.grade).toBe('g1');
+  expect(p.levels.letters.level).toBe(0);
+  expect(p.settings.timing.startMs).toBe(1500);
+  expect(p.rewards.stickers).toEqual(['animals/lion']);
+  await expect(page.getByTestId('level-quantity-label')).toHaveText('Level 1: bis 10 mit Muster');
+});
+
+test('"Level festhalten" is saved per exercise', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await openParents(page);
+  await page.getByTestId('hold-letters').check();
+  const s = (await readState(page)).profiles[0].settings;
+  expect(s.hold).toEqual({ quantity: false, digits: false, letters: true, syllables: false });
+});
+
+test('an unplayable level is explained', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await openParents(page);
+  await page.getByTestId('level-syllables-2').click(); // open words: A, M, O only give Mama and Oma
+  await expect(page.getByTestId('level-row-syllables')).toContainText('gespielt wird Level 2');
 });
 
 test('timing sliders are saved and shown in seconds', async ({ page }) => {
@@ -63,7 +105,7 @@ test('export downloads a valid backup', async ({ page }) => {
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export').click()]);
   expect(download.suggestedFilename()).toMatch(/^blitzblick-backup-\d{4}-\d{2}-\d{2}\.json$/);
   const data = JSON.parse(readFileSync(await download.path(), 'utf8'));
-  expect(data.schemaVersion).toBe(1);
+  expect(data.schemaVersion).toBe(2);
   expect(data.profiles[0].name).toBe('Mia');
 });
 
@@ -163,15 +205,13 @@ test('the syllable color switch is saved and survives a reload', async ({ page }
   expect((await readState(page)).profiles[0].settings.syllables.colors).toBe(false);
 });
 
-test('addition can be switched off per exercise', async ({ page }) => {
+test('the lineature switch is saved', async ({ page }) => {
   await seed(page);
   await page.goto('/');
   await openParents(page); // the settings tab is the default tab
-  await page.getByTestId('qty-addition').uncheck();
-  await page.getByTestId('digits-addition').uncheck();
-  const s = (await readState(page)).profiles[0].settings;
-  expect(s.quantity.addition).toBe(false);
-  expect(s.digits.addition).toBe(false);
+  await expect(page.getByTestId('letters-lineature')).toBeChecked();
+  await page.getByTestId('letters-lineature').uncheck();
+  expect((await readState(page)).profiles[0].settings.letters.lineature).toBe(false);
 });
 
 test('parent controls are custom toggles and segments that fit a phone', async ({ page }) => {
@@ -181,14 +221,15 @@ test('parent controls are custom toggles and segments that fit a phone', async (
   await openParents(page);
   // the voice select may or may not render in headless Chromium, so it is excluded
   await expect(page.locator('.panel-body select:not([data-testid="voice"])')).toHaveCount(0);
-  await expect(page.getByTestId('qty-max')).toHaveAttribute('role', 'radiogroup');
+  await expect(page.getByTestId('grade')).toHaveAttribute('role', 'radiogroup');
+  await expect(page.getByTestId('level-quantity')).toHaveAttribute('role', 'radiogroup');
   await expect(page.getByTestId('ex-quantity')).toHaveAttribute('role', 'switch');
   await page.getByTestId('sounds').check();
   expect((await readState(page)).profiles[0].settings.sounds).toBe(true);
   expect(await page.evaluate(() => { const a = document.getElementById('app'); return a.scrollWidth <= a.clientWidth; })).toBe(true);
   for (const box of await page.locator('.seg').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().right))) expect(box).toBeLessThanOrEqual(375);
   await page.getByTestId('tab-progress').click();
-  await expect(page.getByTestId('stat-quantity')).toContainText(/Anzeigedauer [\d,]+ s/);
+  await expect(page.getByTestId('stat-quantity')).toContainText(/Vorschule · Level 1 von 4: bis 3 mit Muster · Anzeigedauer [\d,]+ s/);
 });
 
 test('keyboard focus survives a settings change', async ({ page }) => {
@@ -197,7 +238,7 @@ test('keyboard focus survives a settings change', async ({ page }) => {
   await openParents(page);
   await page.getByTestId('timing-start').focus();
   await page.keyboard.press('ArrowRight');
-  await expect.poll(async () => (await readState(page)).profiles[0].settings.timing.startMs).toBe(1550);
+  await expect.poll(async () => (await readState(page)).profiles[0].settings.timing.startMs).toBe(2050);
   await expect(page.getByTestId('timing-start')).toBeFocused();
   await page.getByTestId('speech-little').click();
   await page.keyboard.press('ArrowRight');

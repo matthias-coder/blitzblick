@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { seed, readState } from './helpers.js';
 
+const N = 5; // tasks per round
+
 const fixed = (ms, extra = () => {}) => (p) => {
   p.settings.timing = { startMs: ms, minMs: 300, maxMs: 3000, adaptive: false };
   extra(p);
@@ -14,7 +16,7 @@ async function waitForChoices(page) {
 
 async function playPerfectRound(page, tile = 'tile-quantity') {
   await page.getByTestId(tile).click();
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < N; i++) {
     const { choices, answer } = await waitForChoices(page);
     await choices.locator(`button[data-value="${answer}"]`).click();
   }
@@ -25,34 +27,35 @@ test('a full quantity round awards stars and a sticker', async ({ page }) => {
   await seed(page, fixed(500));
   await page.goto('/');
   await page.getByTestId('tile-quantity').click();
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < N; i++) {
     const { choices, answer } = await waitForChoices(page);
     await choices.locator(`button[data-value="${answer}"]`).click();
   }
   await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
   await expect(page.getByTestId('new-sticker')).toBeVisible();
   const p = (await readState(page)).profiles[0];
-  expect(p.rewards.stars).toBe(10);
+  expect(p.rewards.stars).toBe(5);
   expect(p.rewards.stickers).toHaveLength(1);
+  expect(p.rewards.stickers[0]).toMatch(/^fruit\//);
   expect(p.history).toHaveLength(1);
   await page.getByTestId('round-done').click();
-  await expect(page.getByTestId('star-badge')).toHaveText('10');
+  await expect(page.getByTestId('star-badge')).toHaveText('5');
 });
 
-test('with fewer than 8 correct answers there are stars but no sticker', async ({ page }) => {
+test('with fewer than 4 correct answers there are stars but no sticker', async ({ page }) => {
   await seed(page, fixed(500));
   await page.goto('/');
   await page.getByTestId('tile-quantity').click();
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < N; i++) {
     const { choices, answer } = await waitForChoices(page);
-    const value = i < 3 ? await choices.locator(`button.choice:not([data-value="${answer}"])`).first().getAttribute('data-value') : answer;
+    const value = i < 2 ? await choices.locator(`button.choice:not([data-value="${answer}"])`).first().getAttribute('data-value') : answer;
     await choices.locator(`button[data-value="${value}"]`).click();
   }
   await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 8000 });
-  await expect(page.getByTestId('sticker-hint')).toContainText('7 von 10');
+  await expect(page.getByTestId('sticker-hint')).toContainText('3 von 5 – ab 4');
   await expect(page.getByTestId('new-sticker')).toHaveCount(0);
   const p = (await readState(page)).profiles[0];
-  expect(p.rewards.stars).toBe(7);
+  expect(p.rewards.stars).toBe(3);
   expect(p.rewards.stickers).toHaveLength(0);
 });
 
@@ -129,7 +132,7 @@ test('only known letters are asked', async ({ page }) => {
 test('small phone viewport: ten answer buttons fit without scrolling', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'viewport test runs once');
   await page.setViewportSize({ width: 360, height: 640 });
-  await seed(page, fixed(500, (p) => { p.settings.quantity = { max: 10, layout: 'mixed' }; }));
+  await seed(page, fixed(500, (p) => { p.levels.quantity.level = 3; })); // Vorschule level 4: bis 10
   await page.goto('/');
   await page.getByTestId('tile-quantity').click();
   const { choices } = await waitForChoices(page);
@@ -148,26 +151,27 @@ test('a syllables round with the default letters runs to the end with colored sy
   await seed(page, fixed(500));
   await page.goto('/');
   await page.getByTestId('tile-syllables').click();
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < N; i++) {
     const { choices, answer } = await waitForChoices(page);
-    await expect(choices.locator('button.choice')).toHaveCount(4);
+    await expect(choices.locator('button.choice')).toHaveCount(3); // Vorschule level 1: three answers
     await expect(choices.locator('.syl-a').first()).toBeVisible();
     await choices.locator(`button[data-value="${answer}"]`).click();
   }
   await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
   const p = (await readState(page)).profiles[0];
-  expect(p.history.at(-1)).toMatchObject({ exercise: 'syllables', correct: 10, total: 10 });
+  expect(p.history.at(-1)).toMatchObject({ exercise: 'syllables', correct: 5, total: 5 });
 });
 
 const onTopAddition = (p) => {
   p.settings.speech = 'off';
   p.settings.sounds = false;
   p.settings.timing = { startMs: 400, minMs: 300, maxMs: 3000, adaptive: true };
-  p.levels.quantity = { ...p.levels.quantity, complexity: 99, durationMs: 400 };
-  p.levels.digits = { ...p.levels.digits, complexity: 99, durationMs: 400 };
+  p.settings.grade = 'g1';
+  p.levels.quantity = { ...p.levels.quantity, level: 2, step: 1, durationMs: 400 };
+  p.levels.digits = { ...p.levels.digits, level: 2, step: 1, durationMs: 400 };
 };
 
-test('top quantity stage shows two groups with a plus and accepts the sum', async ({ page }) => {
+test('Klasse 1 Plus level in quantity shows two groups with a plus and accepts the sum', async ({ page }) => {
   await seed(page, onTopAddition);
   await page.goto('/');
   await page.getByTestId('tile-quantity').click();
@@ -177,7 +181,7 @@ test('top quantity stage shows two groups with a plus and accepts the sum', asyn
   await expect(page.getByTestId('cheer')).toBeVisible(); // robot cheers on a correct answer
 });
 
-test('top digits stage shows "a + b" on one line, also on a 360 px phone', async ({ page }) => {
+test('Klasse 1 Plus level in digits shows "a + b" on one line, also on a 360 px phone', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 640 });
   await seed(page, onTopAddition);
   await page.goto('/');
@@ -285,12 +289,67 @@ test.describe('round end in phone landscape', () => {
     await seed(page, fixed(500));
     await page.goto('/');
     await page.getByTestId('tile-quantity').click();
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < N; i++) {
       const { choices, answer } = await waitForChoices(page);
-      const value = i < 3 ? await choices.locator(`button.choice:not([data-value="${answer}"])`).first().getAttribute('data-value') : answer;
+      const value = i < 2 ? await choices.locator(`button.choice:not([data-value="${answer}"])`).first().getAttribute('data-value') : answer;
       await choices.locator(`button[data-value="${value}"]`).click();
     }
     await expect(page.getByTestId('sticker-hint')).toBeVisible({ timeout: 8000 });
     await expectActionsInside(page);
   });
+});
+
+test('letters are shown on Lineatur 1 with the little house, in the Grundschrift', async ({ page }) => {
+  await seed(page, fixed(3000));
+  await page.goto('/');
+  await page.getByTestId('tile-letters').click();
+  const lin = page.getByTestId('stimulus').getByTestId('lineatur');
+  await expect(lin).toBeVisible({ timeout: 6000 });
+  await expect(lin.locator('.lin-house')).toHaveCount(1);
+  await expect(lin.locator('line')).toHaveCount(4);
+  const font = await lin.locator('text').evaluate((t) => getComputedStyle(t).fontFamily);
+  expect(font).toContain('Playwrite DE Grund');
+  expect(await page.evaluate(() => document.fonts.check('40px "Playwrite DE Grund"'))).toBe(true);
+});
+
+test('without the lineature switch the letter is plain text', async ({ page }) => {
+  await seed(page, fixed(3000, (p) => { p.settings.letters.lineature = false; }));
+  await page.goto('/');
+  await page.getByTestId('tile-letters').click();
+  await expect(page.getByTestId('stimulus').locator('.flash-text.school')).toBeVisible({ timeout: 6000 });
+  await expect(page.getByTestId('lineatur')).toHaveCount(0);
+});
+
+test('a mastered level moves up at the round end and opens the next sticker page', async ({ page }) => {
+  await seed(page, (p) => {
+    p.settings.timing = { startMs: 400, minMs: 400, maxMs: 3000, adaptive: true };
+    p.levels.digits = { ...p.levels.digits, step: 0, durationMs: 400 };
+  });
+  await page.goto('/');
+  await playPerfectRound(page, 'tile-digits');
+  await expect(page.getByTestId('level-up')).toHaveText('Level 2!');
+  await expect(page.getByTestId('page-unlocked')).toBeVisible();
+  const p = (await readState(page)).profiles[0];
+  expect(p.levels.digits.level).toBe(1);
+  expect(p.rewards.reached.digits).toBe(1);
+});
+
+test('Zwanzigerfeld: twenty objects fit on the board', async ({ page }) => {
+  await seed(page, fixed(3000, (p) => {
+    p.settings.grade = 'g1';
+    p.levels.quantity = { ...p.levels.quantity, level: 3 };
+  }));
+  await page.goto('/');
+  await page.getByTestId('tile-quantity').click();
+  const field = page.getByTestId('stimulus').locator('.field.twenty');
+  await expect(field).toBeVisible({ timeout: 6000 });
+  const board = await page.getByTestId('board').boundingBox();
+  for (const b of await field.locator('.obj').evaluateAll((os) => os.map((o) => o.getBoundingClientRect().toJSON()))) {
+    expect(b.left).toBeGreaterThanOrEqual(board.x - 1);
+    expect(b.right).toBeLessThanOrEqual(board.x + board.width + 1);
+    expect(b.top).toBeGreaterThanOrEqual(board.y - 1);
+    expect(b.bottom).toBeLessThanOrEqual(board.y + board.height + 1);
+  }
+  const { choices } = await waitForChoices(page);
+  await expect(choices.locator('button.choice')).toHaveCount(4);
 });
