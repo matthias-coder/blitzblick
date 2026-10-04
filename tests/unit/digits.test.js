@@ -65,3 +65,35 @@ test('prompt and solution texts', () => {
   assert.equal(digits.speakSolution(t, S())[0], `Das war die ${t.answer}.`);
   for (const v of digits.speakSolution(t, S())) assert.ok(v.includes(String(t.answer)));
 });
+
+const SA = (range = 9) => ({ digits: { range, addition: true } });
+
+test('addition stages come after the digit stages, independent of range', () => {
+  assert.deepEqual(digits.stages(SA(9)), [5, 9, { add: true, sum: 5 }, { add: true, sum: 10 }]);
+  assert.equal(digits.stages(SA(20)).length, 6);
+  assert.equal(digits.fixedComplexity(SA(9)), 1);
+  assert.equal(digits.maxComplexity(SA(9)), 3);
+  assert.equal(digits.describeLevel(2, SA(9)), 'Plus bis 5');
+});
+
+test('addition tasks show "a + b" and offer the sum among 4 unique choices', () => {
+  const rng = mulberry32(5);
+  for (let i = 0; i < 300; i++) {
+    const t = digits.createTask({ complexity: 3 }, SA(9), rng);
+    const { a, b } = t.stimulus;
+    assert.equal(t.stimulus.text, `${a} + ${b}`);
+    assert.equal(t.answer, a + b);
+    assert.ok(a >= 1 && b >= 1 && t.answer <= 10);
+    assert.equal(t.choices.length, 4);
+    assert.equal(new Set(t.choices).size, 4);
+    assert.ok(t.choices.includes(t.answer));
+    assert.ok(t.choices.every((c) => c >= 0 && c <= 10));
+    assert.equal(t.durationFactor, 2.5);
+  }
+});
+
+test('addition speech', () => {
+  const t = { answer: 5, stimulus: { add: true, a: 3, b: 2, text: '3 + 2' } };
+  assert.equal(digits.speakPrompt(t), 'Wie viel ist das zusammen?');
+  assert.deepEqual(digits.speakSolution(t), ['3 plus 2 ist 5.']);
+});
