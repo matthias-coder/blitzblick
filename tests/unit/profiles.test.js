@@ -78,7 +78,7 @@ test('updateSettings clamps levels when the parent lowers limits', () => {
   let p = mk('p1');
   p = { ...p, levels: { ...p.levels, quantity: { ...p.levels.quantity, complexity: 11, durationMs: 300 } } };
   p = updateSettings(p, { quantity: { max: 5 }, timing: { minMs: 500 } });
-  assert.equal(p.levels.quantity.complexity, 5);
+  assert.equal(p.levels.quantity.complexity, 6); // 6 regular stages up to 5 + "Plus bis 5"
   assert.equal(p.levels.quantity.durationMs, 500);
 });
 
@@ -190,4 +190,23 @@ test('settings that would leave no playable exercise are refused or reset', () =
   raw.settings.letters.known = ['A', 'M'];
   const p = normalizeProfile(raw);
   assert.equal(p.settings.exercises.quantity, true);
+});
+
+test('addition is on by default and old settings without the key get it', () => {
+  const p = createProfile({ name: 'A', avatar: 'cat' }, { id: 'x' });
+  assert.equal(p.settings.quantity.addition, true);
+  assert.equal(p.settings.digits.addition, true);
+  const old = structuredClone(p);
+  delete old.settings.quantity.addition;
+  delete old.settings.digits.addition;
+  const q = parseImport(JSON.stringify({ schemaVersion: 1, activeProfileId: 'x', profiles: [old] })).profiles[0].settings;
+  assert.equal(q.quantity.addition, true);
+  assert.equal(q.digits.addition, true);
+});
+
+test('switching addition off clamps a level that sat on an addition stage', () => {
+  let p = createProfile({ name: 'A', avatar: 'cat' }, { id: 'x' });
+  p = { ...p, levels: { ...p.levels, digits: { ...p.levels.digits, complexity: 3 } } }; // range 9: [5, 9, +5, +10]
+  p = updateSettings(p, { digits: { addition: false } });
+  assert.equal(p.levels.digits.complexity, 1);
 });

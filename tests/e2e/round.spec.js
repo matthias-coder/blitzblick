@@ -149,3 +149,62 @@ test('a syllables round with the default letters runs to the end with colored sy
   const p = (await readState(page)).profiles[0];
   expect(p.history.at(-1)).toMatchObject({ exercise: 'syllables', correct: 10, total: 10 });
 });
+
+const onTopAddition = (p) => {
+  p.settings.speech = 'off';
+  p.settings.sounds = false;
+  p.settings.timing = { startMs: 400, minMs: 300, maxMs: 3000, adaptive: true };
+  p.levels.quantity = { ...p.levels.quantity, complexity: 99, durationMs: 400 };
+  p.levels.digits = { ...p.levels.digits, complexity: 99, durationMs: 400 };
+};
+
+test('top quantity stage shows two groups with a plus and accepts the sum', async ({ page }) => {
+  await seed(page, onTopAddition);
+  await page.goto('/');
+  await page.getByTestId('tile-quantity').click();
+  await expect(page.getByTestId('add-stimulus')).toBeVisible({ timeout: 6000 });
+  const { choices, answer } = await waitForChoices(page);
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await expect(page.getByTestId('cheer')).toBeVisible(); // robot cheers on a correct answer
+});
+
+test('top digits stage shows "a + b" on one line, also on a 360 px phone', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await seed(page, onTopAddition);
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  const sum = page.locator('.flash-text.sum');
+  await expect(sum).toBeVisible({ timeout: 6000 });
+  await expect(sum).toHaveText(/^\d+ \+ \d+$/);
+  const box = await sum.boundingBox();
+  const stage = await page.getByTestId('stage').boundingBox();
+  expect(box.width).toBeLessThanOrEqual(stage.width + 1);
+  expect(box.height).toBeLessThan(stage.height);
+});
+
+test('addition stimuli stay inside the board in landscape', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 700 });
+  await seed(page, (p) => {
+    onTopAddition(p);
+    p.settings.timing = { startMs: 3000, minMs: 3000, maxMs: 3000, adaptive: true };
+    p.levels.quantity.durationMs = 3000;
+    p.levels.digits.durationMs = 3000;
+  });
+  const inside = async (locator) => {
+    const b = await page.getByTestId('board').boundingBox();
+    const s = await locator.boundingBox();
+    expect(s.x).toBeGreaterThanOrEqual(b.x - 1);
+    expect(s.x + s.width).toBeLessThanOrEqual(b.x + b.width + 1);
+  };
+  await page.goto('/');
+  await page.getByTestId('tile-quantity').click();
+  const fields = page.getByTestId('add-stimulus').locator('.field');
+  await expect(fields.first()).toBeVisible({ timeout: 6000 });
+  await inside(fields.first());
+  await inside(fields.last());
+  await page.getByTestId('back').click();
+  await page.getByTestId('tile-digits').click();
+  const sum = page.locator('.flash-text.sum');
+  await expect(sum).toBeVisible({ timeout: 6000 });
+  await inside(sum);
+});

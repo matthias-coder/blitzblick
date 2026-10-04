@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.5.0] – 2026-10-04
+
+- Rechnen: auf den höchsten Stufen von „Mengen“ (z. B. 3 Äpfel + 2 Äpfel) und „Zahlen“ („3 + 2“) – Summe bis 5, dann bis 10; Plus-Aufgaben werden 2,5× so lange gezeigt; im Elternbereich je Übung abschaltbar (nur bei automatischer Anzeigedauer)
+- Neue Sticker-Seite 16 „Klötzchenwelt“ mit sieben Stickern
+
 ## [1.4.0] – 2026-10-04
 
 - Alle Sticker im neuen Stil: die fünf alten Seiten neu gezeichnet (gesammelte Sticker bleiben erhalten)

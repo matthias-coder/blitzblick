@@ -160,9 +160,11 @@ function settingsTab(body, ctx, rerender) {
     fieldset('Mengen', [
       select('Höchstens', s.quantity.max, [3, 4, 5, 6, 8, 10].map((n) => [n, String(n)]), (v) => apply({ quantity: { max: Number(v) } }), 'qty-max'),
       select('Anordnung', s.quantity.layout, [['structured', 'Strukturiert (Würfel, Zehnerfeld)'], ['random', 'Zufällig verstreut'], ['mixed', 'Gemischt']], (v) => apply({ quantity: { layout: v } }), 'qty-layout'),
+      check('Rechnen (Plus-Aufgaben auf den höchsten Stufen)', s.quantity.addition, (v) => apply({ quantity: { addition: v } }), 'qty-addition'),
     ]),
     fieldset('Zahlen', [
       select('Zahlenraum', s.digits.range, [[9, '0–9'], [10, '0–10'], [20, '0–20']], (v) => apply({ digits: { range: Number(v) } }), 'digits-range'),
+      check('Rechnen (Plus-Aufgaben auf den höchsten Stufen)', s.digits.addition, (v) => apply({ digits: { addition: v } }), 'digits-addition'),
     ]),
     fieldset('Buchstaben', [
       h('p', { class: 'hint' }, 'Angehakte Buchstaben kennt das Kind schon – nur diese werden abgefragt (mindestens 2).'),

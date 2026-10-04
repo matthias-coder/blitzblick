@@ -73,3 +73,44 @@ test('texts', () => {
   assert.equal(quantity.speakSolution({ answer: 6 })[0], 'Es waren 6.');
   for (const v of quantity.speakSolution({ answer: 6 })) assert.ok(v.includes('6'));
 });
+
+const SA = (max = 10, layout = 'mixed') => ({ quantity: { max, layout, addition: true } });
+
+test('addition stages follow the regular stages, limited by max', () => {
+  const s = quantity.stages(SA(10));
+  assert.deepEqual(s.slice(-2), [{ add: true, sum: 5 }, { add: true, sum: 10 }]);
+  assert.deepEqual(quantity.stages(SA(8)).slice(-1), [{ add: true, sum: 5 }]);
+  assert.ok(quantity.stages(SA(4)).every((st) => !st.add));
+  assert.equal(quantity.stages({ quantity: { max: 10, layout: 'mixed', addition: false } }).length, s.length - 2);
+});
+
+test('fixed complexity is the top regular stage', () => {
+  const s = quantity.stages(SA(10));
+  assert.equal(quantity.fixedComplexity(SA(10)), s.length - 3);
+  assert.equal(quantity.maxComplexity(SA(10)), s.length - 1);
+});
+
+test('addition tasks show two structured groups and ask for the sum', () => {
+  const settings = SA(10);
+  const top = quantity.maxComplexity(settings);
+  const rng = mulberry32(11);
+  for (let i = 0; i < 200; i++) {
+    const t = quantity.createTask({ complexity: top }, settings, rng, { object: 'duck' });
+    const { a, b } = t.stimulus;
+    assert.equal(t.stimulus.add, true);
+    assert.ok(a >= 1 && b >= 1 && a + b <= 10);
+    assert.equal(t.answer, a + b);
+    assert.equal(t.stimulus.positionsA.length, a);
+    assert.equal(t.stimulus.positionsB.length, b);
+    assert.deepEqual(t.choices, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    assert.equal(t.durationFactor, 2.5);
+  }
+  assert.equal(quantity.describeLevel(top, settings), 'Plus bis 10');
+});
+
+test('addition speech says "zusammen" and names both addends', () => {
+  const t = { answer: 5, stimulus: { add: true, a: 3, b: 2 } };
+  assert.equal(quantity.speakPrompt(t), 'Wie viele waren es zusammen?');
+  assert.deepEqual(quantity.speakSolution(t), ['3 und 2 sind 5.']);
+  assert.equal(quantity.speakPrompt({ answer: 4, stimulus: {} }), 'Wie viele waren es?');
+});

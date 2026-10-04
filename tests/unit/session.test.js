@@ -101,3 +101,25 @@ test('quantity rounds keep one object for the whole round', () => {
   }
   assert.equal(objects.size, 1);
 });
+
+test('nextTask scales the flash duration by the task duration factor', () => {
+  const p = profile();
+  const top = { ...p, levels: { ...p.levels, digits: { ...p.levels.digits, complexity: 99, durationMs: 600 } } };
+  const r = nextTask(createRound(top, 'digits', mulberry32(2)), top, mulberry32(2));
+  assert.equal(r.task.durationFactor, 2.5);
+  assert.equal(r.durationMs, 1500);
+});
+
+test('nextTask keeps the base duration for regular tasks', () => {
+  const p = profile();
+  const low = { ...p, levels: { ...p.levels, digits: { ...p.levels.digits, complexity: 0, durationMs: 600 } } };
+  const r = nextTask(createRound(low, 'digits', mulberry32(2)), low, mulberry32(2));
+  assert.equal(r.durationMs, 600);
+});
+
+test('with adaptive timing off a round stays on the top regular stage', () => {
+  const p = updateSettings(profile(), { timing: { adaptive: false } });
+  const rng = mulberry32(4);
+  let r = createRound(p, 'digits', rng);
+  for (let i = 0; i < 20; i++) { r = nextTask(r, p, rng); assert.ok(!r.task.stimulus.add); r = answerTask(r, p, r.task.answer).round; }
+});

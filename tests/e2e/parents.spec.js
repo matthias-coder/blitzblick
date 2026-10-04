@@ -31,7 +31,7 @@ test('lowering the quantity maximum clamps the level', async ({ page }) => {
   await page.getByTestId('qty-max').selectOption('5');
   const p = (await readState(page)).profiles[0];
   expect(p.settings.quantity.max).toBe(5);
-  expect(p.levels.quantity.complexity).toBe(5);
+  expect(p.levels.quantity.complexity).toBe(6); // 6 regular stages up to 5 + "Plus bis 5"
 });
 
 test('timing inputs are saved', async ({ page }) => {
@@ -157,4 +157,15 @@ test('the syllable color switch is saved and survives a reload', async ({ page }
   expect((await readState(page)).profiles[0].settings.syllables.colors).toBe(false);
   await page.reload();
   expect((await readState(page)).profiles[0].settings.syllables.colors).toBe(false);
+});
+
+test('addition can be switched off per exercise', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await openParents(page); // the settings tab is the default tab
+  await page.getByTestId('qty-addition').uncheck();
+  await page.getByTestId('digits-addition').uncheck();
+  const s = (await readState(page)).profiles[0].settings;
+  expect(s.quantity.addition).toBe(false);
+  expect(s.digits.addition).toBe(false);
 });
