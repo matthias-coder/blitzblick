@@ -155,8 +155,10 @@ if (mode === 'sheets' || mode === 'all') {
     food: ['eca553f1-cfae-4a55-8410-98eb2a69a874.jpg', [4, 4]],
     veggies: ['1674c614-531b-4bd2-8735-03383eeeb955.jpg', [4, 4]],
     fruit: ['828c248c-dfe2-4639-a5f0-fc043ac2df1d.jpg', [4, 4]],
+    // v1.5: TNT (row 0, col 2) is left out, so this page is cut explicitly below
+    blockworld: ['kloetzchenwelt.jpg', [4, 4]],
   };
-  const PAGE_SHEETS = Object.keys(SHEETS).filter((k) => k.length > 1);
+  const PAGE_SHEETS = Object.keys(SHEETS).filter((k) => k.length > 1 && k !== 'blockworld');
   // [sheet, row, col, output path]
   const CUTS = [
     ['e', 1, 0, 'objects/apple'], ['e', 2, 0, 'objects/duck'], ['a', 0, 2, 'objects/ladybug'],
@@ -176,6 +178,10 @@ if (mode === 'sheets' || mode === 'all') {
     ['a', 1, 1, 'stickers/room/pencils'], ['a', 2, 2, 'stickers/room/backpack'], ['e', 2, 2, 'stickers/room/book'],
     ['d', 1, 3, 'stickers/room/headphones'], ['d', 3, 2, 'stickers/room/sneakers'], ['d', 3, 0, 'stickers/room/flowers'],
     ['c', 1, 0, 'stickers/room/cat'], ['f', 1, 1, 'stickers/room/drawingbook'],
+    ['blockworld', 0, 0, 'stickers/blockworld/pickaxe'], ['blockworld', 0, 1, 'stickers/blockworld/sword'],
+    ['blockworld', 0, 3, 'stickers/blockworld/grassblock'], ['blockworld', 1, 0, 'stickers/blockworld/crystal'],
+    ['blockworld', 1, 1, 'stickers/blockworld/chest'], ['blockworld', 1, 2, 'stickers/blockworld/slime'],
+    ['blockworld', 1, 3, 'stickers/blockworld/sixtyseven'],
     ...PAGE_SHEETS.flatMap((id) => PAGES.find((p) => p.id === id).stickers.map((s, i) => [id, Math.floor(i / 4), i % 4, `stickers/${id}/${s}`])),
   ];
   for (const [key, [file, rowCols, lightMin = 200]] of Object.entries(SHEETS)) {

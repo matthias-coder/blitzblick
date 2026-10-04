@@ -17,6 +17,7 @@ export const PAGES = [
   { id: 'food', title: 'Essen', stickers: ['pizza', 'burger', 'taco', 'roastchicken', 'popsicle', 'birthdaycake', 'spaghetti', 'hotdog'] },
   { id: 'veggies', title: 'Gemüse & Pilze', stickers: ['carrot', 'tomato', 'broccoli', 'corn', 'pepper', 'pumpkin', 'mushroom', 'toadstool'] },
   { id: 'fruit', title: 'Obst', stickers: ['pear', 'orange', 'lemon', 'pineapple', 'cherry', 'peach', 'kiwi', 'plum'] },
+  { id: 'blockworld', title: 'Klötzchenwelt', stickers: ['pickaxe', 'sword', 'grassblock', 'crystal', 'chest', 'slime', 'sixtyseven'] },
 ];
 export const STARS_PER_PAGE = 50;
 export const BONUS_STARS = 3;
