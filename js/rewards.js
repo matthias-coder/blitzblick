@@ -23,6 +23,16 @@ export const PAGES = [
 // easter egg: hidden page, filled only by rounds with no correct answer (one sticker per day); not part of the level grid
 export const SECRET_PAGE = { id: 'mischief', title: 'Unfug-Bande', stickers: ['toast', 'toaster', 'finger', 'bubbletea', 'broccoli', 'shroomrider', 'yarncat', 'melon'] };
 
+// v1.8: one bonus page per exercise, opened when the exercise's four level pages are complete (see isPageOpen)
+export const BONUS_PAGES = [
+  { id: 'garden', title: 'Garten', exercise: 'quantity', bonus: true, stickers: ['sunflower', 'wateringcan', 'tulips', 'snail', 'butterfly', 'gnome', 'bee', 'flowerpot'] },
+  { id: 'construction', title: 'Baustelle', exercise: 'digits', bonus: true, stickers: ['excavator', 'crane', 'dumptruck', 'hardhat', 'cone', 'mixer', 'wheelbarrow', 'hammer'] },
+  { id: 'bugs', title: 'Krabbeltiere', exercise: 'letters', bonus: true, stickers: ['ladybug', 'dragonfly', 'caterpillar', 'beetle', 'grasshopper', 'spider', 'firefly', 'worm'] },
+  { id: 'everyday', title: 'Alltagsfiguren', exercise: 'syllables', bonus: true, stickers: ['icecowboy', 'surfrock', 'saxavocado', 'cloudbot', 'balletpencil', 'mouse', 'wrenchscientist', 'pizzaking'] },
+];
+export const ALL_PAGES = [...PAGES, ...BONUS_PAGES];
+export const pageById = (id) => (id === SECRET_PAGE.id ? SECRET_PAGE : ALL_PAGES.find((p) => p.id === id) ?? null);
+
 export const BONUS_STARS = 3;
 export const STICKER_MIN_CORRECT = 4;
 

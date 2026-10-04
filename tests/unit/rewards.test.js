@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PAGES, SECRET_PAGE, STICKER_MIN_CORRECT, applyRoundRewards, isPageOpen, isPageVisible, stickerUrl, stickerId } from '../../js/rewards.js';
+import { PAGES, BONUS_PAGES, ALL_PAGES, pageById, SECRET_PAGE, STICKER_MIN_CORRECT, applyRoundRewards, isPageOpen, isPageVisible, stickerUrl, stickerId } from '../../js/rewards.js';
 import { EXERCISE_ORDER } from '../../js/exercises/index.js';
 import { LEVEL_COUNT } from '../../js/levels.js';
 import { mulberry32 } from '../../js/rng.js';
@@ -123,4 +123,15 @@ test('no secret sticker with any correct answer, without a date or on a full pag
   assert.equal(full.secret, false);
   assert.equal(full.sticker, null);
   assert.equal(full.rewards.secretDay, undefined);
+});
+
+test('one bonus page per exercise in menu order, eight unique stickers, no clash with other pages', () => {
+  assert.deepEqual(BONUS_PAGES.map((p) => p.exercise), EXERCISE_ORDER);
+  assert.deepEqual(BONUS_PAGES.map((p) => p.id), ['garden', 'construction', 'bugs', 'everyday']);
+  for (const p of BONUS_PAGES) { assert.equal(p.bonus, true); assert.equal(new Set(p.stickers).size, 8); }
+  const all = [...ALL_PAGES, SECRET_PAGE].flatMap((p) => p.stickers.map((s) => stickerId(p.id, s)));
+  assert.equal(new Set(all).size, all.length);
+  assert.equal(pageById('bugs').title, 'Krabbeltiere');
+  assert.equal(pageById('mischief'), SECRET_PAGE);
+  assert.equal(pageById('nope'), null);
 });

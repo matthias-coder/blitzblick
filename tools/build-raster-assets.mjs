@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import { openBrowser, decodePng } from './sprite-lib.mjs';
 import { BASE_OBJECTS } from '../js/exercises/quantity.js';
-import { PAGES, SECRET_PAGE } from '../js/rewards.js';
+import { PAGES, BONUS_PAGES, SECRET_PAGE } from '../js/rewards.js';
 
 const AVATARS = ['astronaut', 'monster', 'superhero', 'knight', 'dino', 'dragon', 'pony', 'taco', 'singer', 'cat', 'fairy', 'chef'];
 const DECOR = ['star-big', 'badge-winner', 'bubble-yay', 'bubble-wow', 'confetti-1', 'confetti-2', 'confetti-3', 'confetti-4', 'confetti-5', 'confetti-6', 'medal'];
@@ -18,7 +18,7 @@ const jobs = [
   ...MASCOT.map((m) => ({ name: `mascot/${m}`, max: 400 })),
   ...MENU.map((m) => ({ name: `menu/${m}`, square: 320 })),
   ...BASE_OBJECTS.map((o) => ({ name: `objects/${o}`, square: 256 })),
-  ...[...PAGES, SECRET_PAGE].flatMap((p) => p.stickers.map((s) => ({ name: `stickers/${p.id}/${s}`, square: 256 }))),
+  ...[...PAGES, ...BONUS_PAGES, SECRET_PAGE].flatMap((p) => p.stickers.map((s) => ({ name: `stickers/${p.id}/${s}`, square: 256 }))),
 ];
 
 const { browser, page } = await openBrowser();
