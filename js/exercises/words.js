@@ -25,6 +25,9 @@ export const WORDS = [
   'Pi|rat', 'Mu|sik',
 ];
 
+// explicit whitelist: capitals plus lowercase forms (ı, ſ etc. must not slip in via toUpperCase)
+const ALLOWED = new Set([...LETTERS, ...LETTERS.map((l) => l.toLowerCase())]);
+
 export const letterKey = (c) => (c === 'ß' ? 'ß' : c.toUpperCase());
 const isUpper = (c) => typeof c === 'string' && c !== 'ß' && c === c.toUpperCase() && c !== c.toLowerCase();
 const isVowel = (c) => VOWELS.includes(letterKey(c));
@@ -67,7 +70,7 @@ export function wordLevel(parts) {
 export function parseCustomWord(input) {
   const raw = String(input ?? '').trim();
   const chars = [...raw.replaceAll('|', '')];
-  if (chars.some((c) => !LETTERS.includes(letterKey(c)))) return { error: 'Nur Buchstaben (A–Z, Ä, Ö, Ü, ß) und | sind erlaubt.' };
+  if (chars.some((c) => !ALLOWED.has(c))) return { error: 'Nur Buchstaben (A–Z, Ä, Ö, Ü, ß) und | sind erlaubt.' };
   if (chars.length < 2 || chars.length > 12) return { error: 'Ein Wort braucht 2 bis 12 Buchstaben.' };
   const pieces = raw.split('|');
   if (pieces.some((p) => p === '')) return { error: 'Vor und nach jedem | muss ein Buchstabe stehen.' };

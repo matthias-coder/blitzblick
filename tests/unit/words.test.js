@@ -99,3 +99,9 @@ test('doubled vowels aa/ee/oo stay together', () => {
   assert.deepEqual(syllabify('Boot'), ['Boot']);
   assert.deepEqual(syllabify('Tee'), ['Tee']);
 });
+
+test('custom words only accept the explicit letter whitelist', () => {
+  assert.ok(parseCustomWord('Pıa').error);
+  assert.ok(parseCustomWord('ſofa').error);
+  for (const w of ['Ella', 'ella', 'Straße', 'Öl']) assert.equal(parseCustomWord(w).error, undefined, w);
+});
