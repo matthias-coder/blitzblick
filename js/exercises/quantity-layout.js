@@ -78,22 +78,30 @@ function jitteredGrid(count, rng) {
   return shuffle(rng, cells).slice(0, count).map(([x, y]) => [x + (rng() - 0.5) * 0.018, y + (rng() - 0.5) * 0.018]);
 }
 
-function randomPositions(count, rng) {
+// 3×3 cells 0.3 apart for spaced-out (enlarged) objects, else the jittered 4×4 grid
+function fallbackGrid(count, rng, minDist) {
+  if (minDist <= 0.2) return jitteredGrid(count, rng);
+  const cells = [];
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) cells.push([0.2 + c * 0.3, 0.2 + r * 0.3]);
+  return shuffle(rng, cells).slice(0, count);
+}
+
+function randomPositions(count, rng, minDist = MIN_DIST) {
   for (let attempt = 0; attempt < 50; attempt++) {
     const pts = [];
     for (let tries = 0; pts.length < count && tries < 500; tries++) {
       const p = [0.1 + rng() * 0.8, 0.1 + rng() * 0.8];
-      if (pts.every((q) => Math.hypot(p[0] - q[0], p[1] - q[1]) >= MIN_DIST)) pts.push(p);
+      if (pts.every((q) => Math.hypot(p[0] - q[0], p[1] - q[1]) >= minDist)) pts.push(p);
     }
     if (pts.length === count) return pts;
   }
-  return jitteredGrid(count, rng);
+  return fallbackGrid(count, rng, minDist);
 }
 
 // ctx.lastPattern is remembered per round so the same picture does not come twice in a row
 export function layoutPositions(count, mode, rng, ctx = {}) {
   if (mode === 'twenty') return twentyFrame(count);
-  if (mode === 'random') return randomPositions(count, rng).map(([x, y]) => ({ x, y }));
+  if (mode === 'random') return randomPositions(count, rng, ctx.minDist ?? MIN_DIST).map(([x, y]) => ({ x, y }));
   const { pattern, positions } = structuredPositions(count, rng, ctx.lastPattern);
   ctx.lastPattern = pattern;
   return positions;
