@@ -20,7 +20,10 @@ export function render(root, ctx, { exerciseId }) {
 
   const stars = h('div', { class: 'round-stars', 'data-testid': 'round-stars' },
     Array.from({ length: ROUND_LENGTH }, () => h('span', { class: 'slot' })));
-  const stage = h('div', { class: 'stage', 'data-testid': 'stage' });
+  // the board is one card of constant size for every exercise and phase; only its content changes
+  const board = h('div', { class: 'board', 'data-testid': 'board' });
+  const stage = h('div', { class: 'stage', 'data-testid': 'stage' }, board);
+  const waiting = () => h('div', { class: 'board-waiting', 'data-testid': 'board-waiting' }, '?');
   const choicesEl = h('div', { class: 'choices-area', 'data-testid': 'choices' });
 
   function abort() {
@@ -38,11 +41,13 @@ export function render(root, ctx, { exerciseId }) {
   async function playTask() {
     round = nextTask(round, profile, rng);
     const { task, durationMs } = round;
-    choicesEl.replaceChildren();
+    // choices are laid out (hidden) from the start so the board keeps its size in every phase
     delete choicesEl.dataset.answer;
+    choicesEl.classList.add('pending');
+    ex.renderChoices(task, choicesEl, onPick);
     const stim = h('div', { class: 'stimulus preload', 'data-testid': 'stimulus' });
     ex.renderStimulus(task, stim);
-    stage.replaceChildren(h('div', { class: 'fixation' }), stim);
+    board.replaceChildren(h('div', { class: 'fixation' }), stim);
     if (round.results.length === 0) ctx.speech.speak('Pass gut auf!', { extra: true });
     ctx.sounds.ticks();
     await Promise.all([
@@ -52,16 +57,16 @@ export function render(root, ctx, { exerciseId }) {
     ]);
     if (!alive) return;
     stim.classList.remove('preload');
-    stage.replaceChildren(stim);
+    board.replaceChildren(stim);
     ctx.sounds.ping();
     await wait(durationMs);
     if (!alive) return;
-    stage.replaceChildren(h('div', { class: 'mask' }));
+    board.replaceChildren(h('div', { class: 'mask' }));
     await wait(MASK_MS);
     if (!alive) return;
-    stage.replaceChildren();
+    board.replaceChildren(waiting());
     choicesEl.dataset.answer = String(task.answer);
-    ex.renderChoices(task, choicesEl, onPick);
+    choicesEl.classList.remove('pending');
     ctx.speech.speak(ex.speakPrompt(task, profile.settings), { extra: round.results.length > 0 });
   }
 
@@ -72,8 +77,9 @@ export function render(root, ctx, { exerciseId }) {
     const slot = stars.children[round.results.length - 1];
     if (res.correct) {
       button.classList.add('right');
-      slot.classList.add('earned');
+      board.replaceChildren(h('img', { class: 'cheer', 'data-testid': 'cheer', src: 'assets/mascot/robot-cheer.webp', alt: '' }));
       ctx.sounds.success();
+      flyStar(button, slot);
       await wait(FEEDBACK_MS);
     } else {
       button.classList.add('wrong');
@@ -81,13 +87,30 @@ export function render(root, ctx, { exerciseId }) {
       slot.classList.add('missed');
       const solution = h('div', { class: 'stimulus solution' });
       ex.renderStimulus(round.task, solution);
-      stage.replaceChildren(solution);
+      board.replaceChildren(solution);
       ctx.speech.speak(ctx.pick('solution', ex.speakSolution(round.task, profile.settings)));
       await wait(SOLUTION_MS);
     }
     if (!alive) return;
     if (res.finished) finish();
     else playTask();
+  }
+
+  // a small star flies from the tapped button into its progress slot, which then fills
+  function flyStar(from, slot) {
+    const earn = () => slot.classList.add('earned');
+    if (!from.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { earn(); return; }
+    const a = from.getBoundingClientRect(), b = slot.getBoundingClientRect();
+    const star = h('img', { class: 'flying-star', src: 'assets/ui/star.svg', alt: '' });
+    star.style.left = `${a.left + a.width / 2 - 24}px`;
+    star.style.top = `${a.top + a.height / 2 - 24}px`;
+    document.body.append(star);
+    const dx = b.left + b.width / 2 - (a.left + a.width / 2), dy = b.top + b.height / 2 - (a.top + a.height / 2);
+    star.animate([
+      { transform: 'translate(0, 0) scale(1.2)' },
+      { transform: `translate(${dx * 0.4}px, ${dy * 0.4 - 60}px) scale(1.4)`, offset: 0.4 },
+      { transform: `translate(${dx}px, ${dy}px) scale(.5)` },
+    ], { duration: 600, easing: 'ease-in-out' }).finished.then(() => { star.remove(); earn(); }, earn);
   }
 
   function finish() {

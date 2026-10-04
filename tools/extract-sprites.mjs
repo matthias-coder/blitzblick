@@ -2,6 +2,7 @@
 // Reads _lokal/source/*.jpg, writes _lokal/extracted/**. Needs @playwright/test chromium (decode/encode only).
 import fs from 'node:fs';
 import path from 'node:path';
+import { PAGES } from '../js/rewards.js';
 import { openBrowser, decode, encodePng, decodePng, floodBg, lightGrey, components, dilate, makeSprite, squarePad, trim } from './sprite-lib.mjs';
 
 const SRC = '_lokal/source/', OUT = '_lokal/extracted/';
@@ -143,7 +144,19 @@ if (mode === 'sheets' || mode === 'all') {
     d: ['be71305d-4bc8-4a26-9e1d-560d2771ca0d.jpg', [4, 4, 4, 4], 150],
     e: ['Gemini_Generated_Image_3aoa333aoa333aoa.jpg', [3, 3, 3]],
     f: ['Gemini_Generated_Image_sonn79sonn79sonn.jpg', [3, 3, 4]],
+    // v1.4: one 4×2 sheet per sticker page, items in row-major order
+    animals: ['72424488-9b1b-4dd0-b93d-ce02ccdb0e61.jpg', [4, 4]],
+    vehicles: ['ebdf37ed-39f2-487c-95ca-0d23baf29eb0.jpg', [4, 4]],
+    space: ['8ce00dd9-0bad-45a8-962e-adaa14f22afc.jpg', [4, 4]],
+    sea: ['7d1e5435-ed00-4053-b15e-f0b8ca445dcf.jpg', [4, 4]],
+    dinos: ['ddbae619-b2e1-4aba-beb5-978a2076d572.jpg', [4, 4]],
+    silly: ['64bc6059-c7be-48a4-949b-00fa6b14842c.jpg', [4, 4]],
+    cooking: ['735e6d5b-7755-4db6-b5c2-12d7fdc7be27.jpg', [4, 4]],
+    food: ['eca553f1-cfae-4a55-8410-98eb2a69a874.jpg', [4, 4]],
+    veggies: ['1674c614-531b-4bd2-8735-03383eeeb955.jpg', [4, 4]],
+    fruit: ['828c248c-dfe2-4639-a5f0-fc043ac2df1d.jpg', [4, 4]],
   };
+  const PAGE_SHEETS = Object.keys(SHEETS).filter((k) => k.length > 1);
   // [sheet, row, col, output path]
   const CUTS = [
     ['e', 1, 0, 'objects/apple'], ['e', 2, 0, 'objects/duck'], ['a', 0, 2, 'objects/ladybug'],
@@ -163,6 +176,7 @@ if (mode === 'sheets' || mode === 'all') {
     ['a', 1, 1, 'stickers/room/pencils'], ['a', 2, 2, 'stickers/room/backpack'], ['e', 2, 2, 'stickers/room/book'],
     ['d', 1, 3, 'stickers/room/headphones'], ['d', 3, 2, 'stickers/room/sneakers'], ['d', 3, 0, 'stickers/room/flowers'],
     ['c', 1, 0, 'stickers/room/cat'], ['f', 1, 1, 'stickers/room/drawingbook'],
+    ...PAGE_SHEETS.flatMap((id) => PAGES.find((p) => p.id === id).stickers.map((s, i) => [id, Math.floor(i / 4), i % 4, `stickers/${id}/${s}`])),
   ];
   for (const [key, [file, rowCols, lightMin = 200]] of Object.entries(SHEETS)) {
     const cuts = CUTS.filter((c) => c[0] === key);
@@ -176,7 +190,9 @@ if (mode === 'sheets' || mode === 'all') {
       return [row, Math.min(rowCols[row] - 1, Math.floor(c.cx / (img.w / rowCols[row])))];
     };
     for (const [, row, col, out] of cuts) {
-      const cs = comps.filter((c) => c.area >= minArea && cellOf(c).join() === `${row},${col}`);
+      // much wider than a cell = grid lines drawn by the generator, not a motif
+      const cs = comps.filter((c) => c.area >= minArea && c.x1 - c.x0 < 1.5 * img.w / rowCols[row] && cellOf(c).join() === `${row},${col}`);
+      if (!cs.length) throw new Error(`${out}: nothing found in cell ${row},${col}`);
       const ids = new Set(cs.map(c => c.id));
       const fg = new Uint8Array(img.w * img.h);
       for (let i = 0; i < fg.length; i++) if (ids.has(labels[i])) fg[i] = 1;

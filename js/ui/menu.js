@@ -31,7 +31,7 @@ export function render(root, ctx) {
     h('footer', { class: 'menu-foot' }, h('button', {
       class: 'album-btn', 'data-testid': 'open-album', 'aria-label': 'Sammelalbum', onClick: () => ctx.go('album'),
     }, uiIcon('album'), h('span', {}, String(p.rewards.stickers.length)))),
-    h('img', { class: 'mascot', src: 'assets/mascot/robot-wave.png', alt: '' }),
+    h('img', { class: 'mascot', src: 'assets/mascot/robot-wave.webp', alt: '' }),
   );
   ctx.speech.speak(`Hallo ${p.name}! Was möchtest du üben?`, { extra: true });
 }

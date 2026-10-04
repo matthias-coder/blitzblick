@@ -11,5 +11,5 @@ export function starBadge(stars) {
 }
 
 export function avatarImg(avatar) {
-  return h('img', { class: 'avatar', src: `assets/avatars/${avatar}.png`, alt: '' });
+  return h('img', { class: 'avatar', src: `assets/avatars/${avatar}.webp`, alt: '' });
 }

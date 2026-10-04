@@ -5,8 +5,8 @@ import { mulberry32 } from '../../js/rng.js';
 
 const fresh = () => ({ stars: 0, stickers: [], unlockedPages: 1 });
 
-test('ten pages with eight unique stickers each', () => {
-  assert.equal(PAGES.length, 10);
+test('fifteen pages with eight unique stickers each', () => {
+  assert.equal(PAGES.length, 15);
   for (const p of PAGES) assert.equal(new Set(p.stickers).size, 8);
 });
 
@@ -14,7 +14,7 @@ test('a page unlocks every 50 stars, capped at the page count', () => {
   assert.equal(unlockedPagesFor(0), 1);
   assert.equal(unlockedPagesFor(49), 1);
   assert.equal(unlockedPagesFor(50), 2);
-  assert.equal(unlockedPagesFor(10_000), 10);
+  assert.equal(unlockedPagesFor(10_000), 15);
 });
 
 test('a round adds one star per correct answer and one new sticker from 8 correct', () => {
@@ -72,6 +72,5 @@ test('input rewards are not mutated', () => {
 });
 
 test('stickerUrl', () => {
-  assert.equal(stickerUrl('sea/fish'), 'assets/stickers/sea/fish.svg');
-  assert.equal(stickerUrl('toys/teddy'), 'assets/stickers/toys/teddy.png');
+  assert.equal(stickerUrl('sea/fish'), 'assets/stickers/sea/fish.webp');
 });

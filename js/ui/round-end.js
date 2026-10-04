@@ -4,7 +4,7 @@ import { stickerUrl, STICKER_MIN_CORRECT } from '../rewards.js';
 import { ROUND_LENGTH } from '../session.js';
 import { PRAISE, STICKER, BONUS, ALMOST } from '../phrases.js';
 
-const decor = (name, cls) => h('img', { class: cls, src: `assets/decor/${name}.png`, alt: '' });
+const decor = (name, cls) => h('img', { class: cls, src: `assets/decor/${name}.webp`, alt: '' });
 
 function confetti() {
   return h('div', { class: 'confetti', 'aria-hidden': 'true' }, Array.from({ length: 18 }, (_, i) => {
@@ -43,7 +43,7 @@ export function renderRoundEnd(root, ctx, { exerciseId, correct, reward }) {
         btn('again', 'play-again', 'Nochmal', () => ctx.go('round', { exerciseId })),
         btn('album', 'to-album', 'Album', () => ctx.go('album', { highlight: reward.sticker })),
         btn('check', 'round-done', 'Fertig', () => ctx.go('menu'), 'go'))),
-    h('img', { class: 'mascot', src: 'assets/mascot/robot-wave.png', alt: '' }),
+    h('img', { class: 'mascot', src: 'assets/mascot/robot-wave.webp', alt: '' }),
   );
   ctx.sounds.fanfare();
   const praise = ctx.pick('praise', PRAISE[correct >= 8 ? 'great' : correct >= 5 ? 'good' : 'practiced']);
