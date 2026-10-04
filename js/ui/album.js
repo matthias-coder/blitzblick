@@ -18,6 +18,7 @@ export function render(root, ctx, { highlight = null } = {}) {
         onClick: () => { pageIndex = i; draw(); },
       }, h('img', { src: locked ? 'assets/ui/lock.svg' : stickerUrl(stickerId(pg.id, pg.stickers[0])), alt: '' }));
     }));
+    tabs.children[pageIndex].scrollIntoView?.({ inline: 'center', block: 'nearest' });
     const pg = PAGES[pageIndex];
     if (pageIndex >= r.unlockedPages) {
       const need = pageIndex * STARS_PER_PAGE;

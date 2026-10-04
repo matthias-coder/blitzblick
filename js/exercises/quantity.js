@@ -6,7 +6,7 @@ import { renderChoiceButtons } from '../ui/choice-buttons.js';
 export const id = 'quantity';
 export const title = 'Mengen';
 export const OBJECTS = ['apple', 'duck', 'ladybug', 'fish', 'car', 'balloon'];
-export const objectUrl = (object) => `assets/objects/${object}.png`;
+export const objectUrl = (object) => `assets/objects/${object}.webp`;
 export const MAXES = [3, 4, 5, 6, 8, 10];
 const LAYOUT_LABELS = { structured: 'strukturiert', random: 'zufällig', mixed: 'gemischt' };
 

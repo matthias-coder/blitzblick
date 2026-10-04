@@ -18,11 +18,11 @@
   const DECOR = ['star-big', 'badge-winner', 'bubble-yay', 'bubble-wow', 'confetti-1', 'confetti-2', 'confetti-3', 'confetti-4', 'confetti-5', 'confetti-6'];
   const groups = {
     Objekte: OBJECTS.map((o) => `../${objectUrl(o)}`),
-    Avatare: AVATARS.map((a) => `../assets/avatars/${a}.png`),
+    Avatare: AVATARS.map((a) => `../assets/avatars/${a}.webp`),
     UI: ['gear', 'back', 'album', 'again', 'check', 'lock', 'star'].map((u) => `../assets/ui/${u}.svg`),
     Icon: ['../assets/icons/icon.svg'],
-    Deko: DECOR.map((d) => `../assets/decor/${d}.png`),
-    Maskottchen: ['../assets/mascot/robot-wave.png'],
+    Deko: DECOR.map((d) => `../assets/decor/${d}.webp`),
+    Maskottchen: ['../assets/mascot/robot-wave.webp'],
     ...Object.fromEntries(PAGES.map((p) => [p.title, p.stickers.map((s) => `../${stickerUrl(stickerId(p.id, s))}`)])),
   };
   const out = document.getElementById('out');

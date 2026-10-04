@@ -18,21 +18,12 @@ function checkSvg(path) {
   assert.ok(s.length < 6000, `${path}: zu groß (${s.length})`);
 }
 
-test('quantity objects exist as PNG', () => { for (const o of OBJECTS) checkPng(objectUrl(o)); });
-test('avatars exist as PNG', () => {
-  for (const a of AVATARS) {
-    const f = file(`assets/avatars/${a}.png`);
-    assert.ok(existsSync(f), `${a}.png fehlt`);
-    assert.equal(readFileSync(f).subarray(1, 4).toString(), 'PNG');
-  }
-});
+test('quantity objects exist as WebP', () => { for (const o of OBJECTS) checkWebp(objectUrl(o)); });
+test('avatars exist as WebP', () => { for (const a of AVATARS) checkWebp(`assets/avatars/${a}.webp`); });
 test('ui icons exist', () => { for (const u of UI) checkSvg(`assets/ui/${u}.svg`); });
 test('app icon exists', () => checkSvg('assets/icons/icon.svg'));
-test('all stickers exist in their page format', () => {
-  for (const p of PAGES) for (const s of p.stickers) {
-    const url = stickerUrl(stickerId(p.id, s));
-    if (url.endsWith('.png')) checkPng(url); else checkSvg(url);
-  }
+test('all stickers exist as WebP', () => {
+  for (const p of PAGES) for (const s of p.stickers) checkWebp(stickerUrl(stickerId(p.id, s)));
 });
 test('Andika fonts and license are bundled', () => {
   for (const f of ['andika-latin-400-normal.woff2', 'andika-latin-700-normal.woff2', 'OFL.txt']) {
@@ -41,23 +32,25 @@ test('Andika fonts and license are bundled', () => {
   }
 });
 
+const MASCOT = ['robot-wave', 'robot-cheer'];
 const DECOR = ['star-big', 'badge-winner', 'bubble-yay', 'bubble-wow', 'confetti-1', 'confetti-2', 'confetti-3', 'confetti-4', 'confetti-5', 'confetti-6'];
 
-function checkPng(path) {
+function checkWebp(path) {
   assert.ok(existsSync(file(path)), `${path} fehlt`);
-  assert.equal(readFileSync(file(path)).subarray(1, 4).toString(), 'PNG', `${path}: kein PNG`);
+  const b = readFileSync(file(path));
+  assert.equal(b.subarray(0, 4).toString() + b.subarray(8, 12).toString(), 'RIFFWEBP', `${path}: kein WebP`);
 }
 
-test('decor sprites exist', () => { for (const d of DECOR) checkPng(`assets/decor/${d}.png`); });
-test('mascot exists', () => checkPng('assets/mascot/robot-wave.png'));
+test('decor sprites exist', () => { for (const d of DECOR) checkWebp(`assets/decor/${d}.webp`); });
+test('mascot sprites exist', () => { for (const m of MASCOT) checkWebp(`assets/mascot/${m}.webp`); });
 test('raster assets stay small enough for offline caching', () => {
   const paths = [
-    ...AVATARS.map((a) => `assets/avatars/${a}.png`),
-    ...DECOR.map((d) => `assets/decor/${d}.png`),
-    'assets/mascot/robot-wave.png',
+    ...AVATARS.map((a) => `assets/avatars/${a}.webp`),
+    ...DECOR.map((d) => `assets/decor/${d}.webp`),
+    ...MASCOT.map((m) => `assets/mascot/${m}.webp`),
     ...OBJECTS.map(objectUrl),
-    ...PAGES.flatMap((p) => p.stickers.map((s) => stickerUrl(stickerId(p.id, s)))).filter((u) => u.endsWith('.png')),
+    ...PAGES.flatMap((p) => p.stickers.map((s) => stickerUrl(stickerId(p.id, s)))),
   ];
   const total = paths.reduce((sum, p) => sum + statSync(file(p)).size, 0);
-  assert.ok(total < 5_000_000,`Rastergrafiken zusammen ${total} Bytes (> 1,5 MB)`);
+  assert.ok(total < 3_000_000, `Rastergrafiken zusammen ${total} Bytes (> 3 MB)`);
 });

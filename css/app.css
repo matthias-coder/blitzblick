@@ -135,8 +135,9 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .big-btn.go { background: var(--right); }
 
 /* album */
-.album-tabs { display: flex; gap: 8px; justify-content: center; padding: 0 12px 8px; flex-wrap: wrap; }
-.album-tab { width: 64px; height: 64px; border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); display: grid; place-items: center; border: 3px solid transparent; }
+.album-tabs { display: flex; gap: 8px; padding: 4px 12px 12px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
+.album-tabs::-webkit-scrollbar { display: none; }
+.album-tab { flex: none; scroll-snap-align: center; width: 64px; height: 64px; border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); display: grid; place-items: center; border: 3px solid transparent; }
 .album-tab img { width: 44px; height: 44px; }
 .album-tab.active { border-color: var(--primary); }
 .album-tab.locked img { opacity: .6; }
