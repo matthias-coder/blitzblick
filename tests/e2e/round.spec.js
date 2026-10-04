@@ -257,3 +257,40 @@ test('with reduced motion the sticker stays put and the count is final', async (
   await page.waitForTimeout(3000);
   await expect(page.locator('.sticker-reveal')).toBeVisible();
 });
+
+test.describe('round end in phone landscape', () => {
+  test.use({ viewport: { width: 740, height: 360 } });
+
+  async function expectActionsInside(page) {
+    const vp = page.viewportSize();
+    for (const id of ['play-again', 'to-album', 'round-done']) {
+      const box = await page.getByTestId(id).boundingBox();
+      expect(box, id).not.toBeNull();
+      expect(box.x, id).toBeGreaterThanOrEqual(0);
+      expect(box.y, id).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width, id).toBeLessThanOrEqual(vp.width);
+      expect(box.y + box.height, id).toBeLessThanOrEqual(vp.height);
+    }
+  }
+
+  test('buttons stay fully visible with a new sticker', async ({ page }) => {
+    await seed(page, fixed(500));
+    await page.goto('/');
+    await playPerfectRound(page);
+    await expect(page.getByTestId('new-sticker')).toBeVisible();
+    await expectActionsInside(page);
+  });
+
+  test('buttons stay fully visible without a sticker', async ({ page }) => {
+    await seed(page, fixed(500));
+    await page.goto('/');
+    await page.getByTestId('tile-quantity').click();
+    for (let i = 0; i < 10; i++) {
+      const { choices, answer } = await waitForChoices(page);
+      const value = i < 3 ? await choices.locator(`button.choice:not([data-value="${answer}"])`).first().getAttribute('data-value') : answer;
+      await choices.locator(`button[data-value="${value}"]`).click();
+    }
+    await expect(page.getByTestId('sticker-hint')).toBeVisible({ timeout: 8000 });
+    await expectActionsInside(page);
+  });
+});
