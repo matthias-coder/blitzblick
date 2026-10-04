@@ -1,6 +1,6 @@
 # Blitzblick
 
-Web-App für Erstklässler: Mengen, Zahlen oder Buchstaben blitzen kurz auf, danach wählt das Kind, was es gesehen hat. Trainiert das schnelle Erfassen auf einen Blick.
+Web-App für Erstklässler: Mengen, Zahlen, Buchstaben oder Silben und kurze Wörter blitzen kurz auf, danach wählt das Kind, was es gesehen hat. Trainiert das schnelle Erfassen auf einen Blick.
 
 **App öffnen:** <https://matthias-coder.github.io/blitzblick/> – auf dem Tablet im Browser „Zum Home-Bildschirm“ wählen.
 
