@@ -18,11 +18,20 @@ export function createRound(profile, exerciseId, rng) {
   };
 }
 
+// what a round would actually use right now (fixed timing pins the complexity)
+function effectiveFor(profile, exerciseId, level) {
+  const ex = EXERCISES[exerciseId];
+  const s = profile.settings;
+  const maxC = ex.maxComplexity(s);
+  return effectiveLevel(level, s.timing, maxC, ex.fixedComplexity ? ex.fixedComplexity(s) : maxC);
+}
+
+export const currentComplexity = (profile, exerciseId) => effectiveFor(profile, exerciseId, profile.levels[exerciseId]).complexity;
+
 export function nextTask(round, profile, rng) {
   const ex = EXERCISES[round.exerciseId];
   const s = profile.settings;
-  const maxC = ex.maxComplexity(s);
-  const eff = effectiveLevel(round.level, s.timing, maxC, ex.fixedComplexity ? ex.fixedComplexity(s) : maxC);
+  const eff = effectiveFor(profile, round.exerciseId, round.level);
   const task = ex.createTask({ ...round.level, complexity: eff.complexity }, s, rng, round.ctx);
   return { ...round, task, durationMs: Math.round(eff.durationMs * (task.durationFactor ?? 1)), awaiting: true };
 }

@@ -10,6 +10,7 @@ import {
 } from '../profiles.js';
 import { serializeExport, exportFilename, ImportError } from '../storage.js';
 import { summarize } from '../stats.js';
+import { currentComplexity } from '../session.js';
 import { formatSeconds } from '../util.js';
 import { toggle, segmented, durationSlider } from './controls.js';
 
@@ -199,7 +200,7 @@ function progressTab(body, ctx) {
     const ex = EXERCISES[id];
     const lvl = p.levels[id];
     const maxC = ex.maxComplexity(p.settings);
-    const c = Math.min(lvl.complexity, maxC);
+    const c = currentComplexity(p, id);
     const sum = summarize(p.history, id);
     const duration = p.settings.timing.adaptive ? formatSeconds(lvl.durationMs) : `${formatSeconds(p.settings.timing.startMs)} (fest)`;
     body.append(h('div', { class: 'card stat', 'data-testid': `stat-${id}` },

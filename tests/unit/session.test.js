@@ -123,3 +123,14 @@ test('with adaptive timing off a round stays on the top regular stage', () => {
   let r = createRound(p, 'digits', rng);
   for (let i = 0; i < 20; i++) { r = nextTask(r, p, rng); assert.ok(!r.task.stimulus.add); r = answerTask(r, p, r.task.answer).round; }
 });
+
+test('currentComplexity follows fixed timing like the session does', async () => {
+  const { currentComplexity } = await import('../../js/session.js');
+  const { EXERCISES } = await import('../../js/exercises/index.js');
+  const p = updateSettings(profile(), { timing: { adaptive: false } });
+  const fixed = EXERCISES.digits.fixedComplexity(p.settings);
+  assert.equal(p.levels.digits.complexity < fixed, true);
+  assert.equal(currentComplexity(p, 'digits'), fixed);
+  const a = profile();
+  assert.equal(currentComplexity(a, 'digits'), Math.min(a.levels.digits.complexity, EXERCISES.digits.maxComplexity(a.settings)));
+});
