@@ -1,7 +1,7 @@
 import { h } from './dom.js';
 import { iconBtn, starBadge, uiIcon } from './widgets.js';
 import {
-  ALL_PAGES, SECRET_PAGE, stickerId, stickerUrl, isPageVisible, isPageComplete, packPrice, countOf, openPack,
+  ALL_PAGES, SECRET_PAGE, stickerId, stickerUrl, isPageVisible, isPageComplete, canTrade, packPrice, countOf, openPack,
 } from '../rewards.js';
 import { updateProfile } from '../profiles.js';
 import { EXERCISE_ORDER } from '../exercises/index.js';
@@ -27,6 +27,8 @@ export function render(root, ctx, { highlight = null, page = null } = {}) {
 
   function tradeBar(pg) {
     if (isPageComplete(rw(), pg)) return h('div', { class: 'page-complete', 'data-testid': 'page-complete' }, uiIcon('check'), 'komplett');
+    // visible because of old stickers, but its level is not reached: nothing to trade yet
+    if (!canTrade(rw(), pg)) return null;
     const price = packPrice(pg);
     return h('button', {
       class: 'candy pack-btn', 'data-testid': 'open-pack', disabled: rw().stars < price,

@@ -80,3 +80,12 @@ test('a full exercise opens its bonus page for trading at 30 stars', async ({ pa
   await page.getByTestId('open-pack').click();
   await expect(page.locator('.sticker.collected')).toHaveCount(1);
 });
+
+test('a visible page whose level is not reached offers no pack button', async ({ page }) => {
+  await seed(page, (p) => { p.rewards.stars = 120; p.rewards.reached.quantity = 1; p.rewards.stickers = ['food/pizza']; });
+  await page.goto('/');
+  await page.getByTestId('open-album').click();
+  await page.getByTestId('album-tab-food').click();
+  await expect(page.getByTestId('sticker-food/pizza')).toHaveClass(/collected/);
+  await expect(page.getByTestId('open-pack')).toHaveCount(0);
+});
