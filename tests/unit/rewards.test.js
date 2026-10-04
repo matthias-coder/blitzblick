@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PAGES, BONUS_PAGES, ALL_PAGES, pageById, SECRET_PAGE, STICKER_MIN_CORRECT, applyRoundRewards, isPageOpen, isPageVisible, isPageComplete, PACK_PRICE, BONUS_PACK_PRICE, packPrice, countOf, canTrade, openPack, packTarget, stickerUrl, stickerId } from '../../js/rewards.js';
+import { PAGES, BONUS_PAGES, ALL_PAGES, pageById, SECRET_PAGE, applyRoundRewards, isPageOpen, isPageVisible, isPageComplete, PACK_PRICE, BONUS_PACK_PRICE, packPrice, countOf, canTrade, openPack, packTarget, stickerUrl, stickerId } from '../../js/rewards.js';
 import { EXERCISE_ORDER } from '../../js/exercises/index.js';
 import { LEVEL_COUNT } from '../../js/levels.js';
 import { mulberry32 } from '../../js/rng.js';
@@ -32,53 +32,17 @@ test('pages open with the level reached; pages with collected stickers stay visi
   assert.equal(isPageVisible(fresh(), food), false);
 });
 
-test('a round adds one star per correct answer and a sticker from 4 correct, from the page just played', () => {
-  assert.equal(STICKER_MIN_CORRECT, 4);
-  const reached = { ...none(), letters: 2 };
-  const r = play({ ...fresh(), reached }, 4, 1, 'letters', 1);
-  assert.equal(r.rewards.stars, 4);
-  assert.equal(r.rewards.stickers.length, 1);
-  assert.ok(r.sticker.startsWith('sea/'));
-  assert.equal(r.bonusStars, 0);
-  assert.equal(r.earned, true);
-});
-
-test('below 4 correct there are only stars, no sticker and no bonus', () => {
-  const r = play(fresh(), 3, 2);
-  assert.equal(r.rewards.stars, 3);
+test('a round adds one star per correct answer and no sticker', () => {
+  const r = play(fresh(), 5, 1);
+  assert.equal(r.rewards.stars, 5);
+  assert.equal(r.sticker, null);
   assert.deepEqual(r.rewards.stickers, []);
-  assert.equal(r.sticker, null);
-  assert.equal(r.bonusStars, 0);
-  assert.equal(r.earned, false);
-});
-
-test('full page: another open page of the same exercise, then any open page, then bonus stars', () => {
-  const reached = { ...none(), quantity: 1 };
-  let rewards = { ...fresh(), reached, stickers: ids('fruit') };
-  let r = play(rewards, 5, 3, 'quantity', 0);
-  assert.ok(r.sticker.startsWith('veggies/'));
-  rewards = { ...rewards, stickers: [...ids('fruit'), ...ids('veggies')] };
-  r = play(rewards, 5, 3, 'quantity', 0);
-  assert.equal(r.sticker.split('/')[0] !== 'fruit' && r.sticker.split('/')[0] !== 'veggies', true);
-  assert.ok(isPageOpen({ ...rewards, reached }, PAGES.find((p) => r.sticker.startsWith(`${p.id}/`))));
-  const allOpen = PAGES.filter((p) => isPageOpen({ ...rewards, reached }, p)).flatMap((p) => ids(p.id));
-  r = play({ ...rewards, stickers: allOpen }, 5, 3, 'quantity', 0);
-  assert.equal(r.sticker, null);
-  assert.equal(r.bonusStars, 3);
-  assert.equal(r.rewards.stars, 8);
-});
-
-test('no duplicates until the page is complete', () => {
-  let rewards = fresh();
-  for (let i = 0; i < 8; i++) rewards = play(rewards, 5, 10 + i).rewards;
-  assert.deepEqual([...rewards.stickers].sort(), [...ids('fruit')].sort());
 });
 
 test('a level-up opens the next page and reports it', () => {
   const r = play(fresh(), 5, 4, 'digits', 0, { ...none(), digits: 1 });
   assert.deepEqual(r.newlyUnlockedPages, ['vehicles']);
   assert.equal(r.rewards.reached.digits, 1);
-  assert.ok(r.sticker.startsWith('toys/'));
 });
 
 test('input rewards are not mutated', () => {
@@ -107,7 +71,6 @@ test('a round with no correct answer gives one secret sticker per day', () => {
   assert.deepEqual(r.rewards.stickers, [r.sticker]);
   assert.equal(r.rewards.secretDay, '2026-10-05');
   assert.equal(r.rewards.stars, 0);
-  assert.equal(r.earned, false);
   const again = playOn(r.rewards, 0, '2026-10-05', 2);
   assert.equal(again.secret, false);
   assert.equal(again.sticker, null);

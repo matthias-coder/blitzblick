@@ -33,9 +33,6 @@ export const BONUS_PAGES = [
 export const ALL_PAGES = [...PAGES, ...BONUS_PAGES];
 export const pageById = (id) => (id === SECRET_PAGE.id ? SECRET_PAGE : ALL_PAGES.find((p) => p.id === id) ?? null);
 
-export const BONUS_STARS = 3;
-export const STICKER_MIN_CORRECT = 4;
-
 export const stickerId = (page, name) => `${page}/${name}`;
 export const stickerUrl = (id) => `assets/stickers/${id}.webp`;
 const idsOf = (page) => page.stickers.map((s) => stickerId(page.id, s));
@@ -94,38 +91,25 @@ export function packTarget(rewards, exercise, level) {
 
 const missingOn = (rewards, pages) => pages.flatMap(idsOf).filter((id) => !rewards.stickers.includes(id));
 
-// sticker from the page just played, else another open page of that exercise, else any open page; all full → bonus stars.
+// stars for every correct answer; stickers are traded in the album (openPack).
 // No correct answer at all: a missing secret sticker, at most one per day (today = local date string)
-export function applyRoundRewards(rewards, correct, rng, { exercise, level, reached = rewards.reached, today = null }) {
-  const open = PAGES.filter((p) => isPageOpen({ ...rewards, reached }, p));
-  const earned = correct >= STICKER_MIN_CORRECT;
+export function applyRoundRewards(rewards, correct, rng, { reached = rewards.reached, today = null } = {}) {
   let sticker = null;
-  let bonusStars = 0;
-  if (earned) {
-    const tiers = [open.filter((p) => p.exercise === exercise && p.level === level), open.filter((p) => p.exercise === exercise), open];
-    for (const pages of tiers) {
-      const missing = missingOn(rewards, pages);
-      if (missing.length) { sticker = pick(rng, missing); break; }
-    }
-    if (!sticker) bonusStars = BONUS_STARS;
-  }
-  let secret = false;
   if (correct === 0 && today && rewards.secretDay !== today) {
     const missing = missingOn(rewards, [SECRET_PAGE]);
-    if (missing.length) { sticker = pick(rng, missing); secret = true; }
+    if (missing.length) sticker = pick(rng, missing);
   }
+  const next = {
+    ...rewards,
+    ...(sticker ? { secretDay: today } : {}),
+    stars: rewards.stars + correct,
+    stickers: sticker ? [...rewards.stickers, sticker] : [...rewards.stickers],
+    reached: { ...reached },
+  };
   return {
-    rewards: {
-      ...rewards,
-      ...(secret ? { secretDay: today } : {}),
-      stars: rewards.stars + correct + bonusStars,
-      stickers: sticker ? [...rewards.stickers, sticker] : [...rewards.stickers],
-      reached: { ...reached },
-    },
+    rewards: next,
     sticker,
-    bonusStars,
-    earned,
-    secret,
-    newlyUnlockedPages: PAGES.filter((p) => isPageOpen({ ...rewards, reached }, p) && !isPageOpen(rewards, p)).map((p) => p.id),
+    secret: sticker !== null,
+    newlyUnlockedPages: PAGES.filter((p) => isPageOpen(next, p) && !isPageOpen(rewards, p)).map((p) => p.id),
   };
 }

@@ -64,8 +64,8 @@ test('finishRound stores level, rewards and a history entry with local date and 
   const r = playAll(p, 'digits', rng, (t, i) => (i < 1 ? (t.choices.find((c) => c !== t.answer)) : t.answer));
   const { profile: next, reward } = finishRound(p, r, rng, new Date(2026, 9, 3, 23, 50));
   assert.equal(next.rewards.stars, 4);
-  assert.equal(next.rewards.stickers.length, 1);
-  assert.ok(reward.sticker.startsWith('toys/'));
+  assert.equal(next.rewards.stickers.length, 0); // stickers are traded in the album now
+  assert.equal(reward.sticker, null);
   assert.equal(reward.levelUp, null);
   assert.deepEqual(next.levels.digits, r.level);
   const h = next.history.at(-1);
@@ -157,7 +157,6 @@ test('a mastered level moves up at the end of the round, opens the next page and
   assert.deepEqual(next.levels.digits, { level: 1, step: 0, durationMs: 2000, streak: 0, recent: [], mastered: false });
   assert.equal(next.rewards.reached.digits, 1);
   assert.deepEqual(reward.newlyUnlockedPages, ['vehicles']);
-  assert.ok(reward.sticker.startsWith('toys/')); // the sticker comes from the level just played
 });
 
 test('"Level festhalten" keeps a mastered level', () => {
@@ -210,4 +209,23 @@ test('answerTask flags addition results', () => {
   assert.equal(answerTask(withAdd, p, 'zzz').round.results[0].add, true);
   const plain = { ...r, task: { ...r.task, stimulus: { text: '3' } } };
   assert.equal(answerTask(plain, p, 'zzz').round.results[0].add, false);
+});
+
+test('the first time a level is reached in a round the child gets its pack price as stars', () => {
+  const rng = mulberry32(12);
+  const p = master(profile(), 'digits');
+  const r = playAll(p, 'digits', rng);
+  const { profile: after, reward } = finishRound(p, r, rng);
+  assert.equal(reward.levelUp.to, 1);
+  assert.equal(reward.gift, 15);
+  assert.equal(after.rewards.stars, p.rewards.stars + r.results.filter((x) => x.correct).length + 15);
+});
+
+test('no gift for an already reached level', () => {
+  const rng = mulberry32(12);
+  const m = master(profile(), 'digits');
+  const p = { ...m, rewards: { ...m.rewards, reached: { ...m.rewards.reached, digits: 1 } } };
+  const { reward } = finishRound(p, playAll(p, 'digits', rng), rng);
+  assert.equal(reward.levelUp.to, 1);
+  assert.equal(reward.gift, 0);
 });
