@@ -10,6 +10,7 @@
 - Eigene Wörter: nur noch echte Buchstaben (A–Z, Ä, Ö, Ü, ß) erlaubt
 - Eigene Wörter: Hinweis zur Großschreibung; eingebaute Wörter haben Vorrang vor gleich geschriebenen Kleinschreib-Einträgen
 - Elternbereich: ein Hinweis erklärt, warum eine eingeschaltete Übung gerade nicht im Menü erscheint
+
 ## [1.6.0] – 2026-10-04
 
 - Neues Menü: vier große Bildkacheln (Apfelkorb, Zahlenklötze, ABC-Klötze, klatschende Hände) in sanften Farben, der Roboter begrüßt mit Sprechblase
