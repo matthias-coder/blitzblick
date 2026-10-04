@@ -277,3 +277,13 @@ test('rewards counts and pity are sanitized; old profiles get empty ones', () =>
   assert.deepEqual(p.rewards.counts, { 'fruit/pear': 3 });
   assert.deepEqual(p.rewards.pity, { fruit: 2 });
 });
+
+test('quantity.compare defaults to on and is filled in for old profiles', () => {
+  assert.deepEqual(DEFAULT_SETTINGS.quantity, { compare: true });
+  const old = createProfile({ name: 'Alt', avatar: 'astronaut' }, { id: 'old' });
+  delete old.settings.quantity;
+  assert.equal(normalizeProfile(old).settings.quantity.compare, true);
+  const off = createProfile({ name: 'Aus', avatar: 'astronaut' }, { id: 'off' });
+  off.settings.quantity = { compare: false };
+  assert.equal(normalizeProfile(off).settings.quantity.compare, false);
+});

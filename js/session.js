@@ -9,11 +9,12 @@ export const ROUND_LENGTH = 5;
 export function createRound(profile, exerciseId, rng) {
   const ex = EXERCISES[exerciseId];
   const level = profile.levels[exerciseId];
+  const played = playableLevel(exerciseId, profile.settings, level.level);
   return {
     exerciseId,
     level,
-    played: playableLevel(exerciseId, profile.settings, level.level),
-    ctx: ex.prepareRound ? ex.prepareRound(rng) : {},
+    played,
+    ctx: ex.prepareRound ? ex.prepareRound(rng, ladderOf(exerciseId, profile.settings)[played]) : {},
     results: [],
     task: null,
     durationMs: null,
@@ -51,7 +52,8 @@ export function answerTask(round, profile, picked) {
   const correct = picked === round.task.answer;
   const steps = ladderOf(round.exerciseId, profile.settings)[round.played].steps;
   const level = recordResult(round.level, correct, profile.settings.timing, steps.length - 1);
-  const results = [...round.results, { answer: round.task.answer, picked, correct, add: Boolean(round.task.stimulus?.add) }];
+  const st = round.task.stimulus;
+  const results = [...round.results, { answer: round.task.answer, picked, correct, noConfusion: Boolean(st?.add || st?.compare) }];
   return { round: { ...round, level, results, awaiting: false }, correct, finished: results.length >= ROUND_LENGTH };
 }
 
@@ -69,7 +71,7 @@ export function finishRound(profile, round, rng, now = new Date()) {
   const correct = round.results.filter((r) => r.correct).length;
   const confusions = {};
   for (const r of round.results) {
-    if (r.correct || r.add) continue; // arithmetic mistakes are not letter/digit confusions
+    if (r.correct || r.noConfusion) continue; // arithmetic and compare mistakes are not letter/digit confusions
     const key = `${r.answer}>${r.picked}`;
     confusions[key] = (confusions[key] ?? 0) + 1;
   }

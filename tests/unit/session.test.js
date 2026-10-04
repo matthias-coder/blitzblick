@@ -126,9 +126,11 @@ test('with fixed display duration the level set by the parents is played, on its
   const counts = new Set();
   for (let i = 0; i < 40; i++) {
     r = nextTask(r, p, rng);
-    assert.ok(!r.task.stimulus.add);
-    assert.deepEqual(r.task.choices.length, 10); // last step of "bis 10 mit Muster"
-    counts.add(r.task.answer);
+    if (!r.task.stimulus.compare) {
+      assert.ok(!r.task.stimulus.add);
+      assert.deepEqual(r.task.choices.length, 10); // last step of "bis 10 mit Muster"
+      counts.add(r.task.answer);
+    }
     r = answerTask(r, p, r.task.answer).round;
   }
   assert.equal(r.level.level, 0);
@@ -193,9 +195,9 @@ test('addition mistakes are not counted as confusions', () => {
   const r = {
     exerciseId: 'digits', level: p.levels.digits,
     results: [
-      { answer: '3', picked: '5', correct: false, add: true },
-      { answer: '3', picked: '5', correct: false, add: false },
-      { answer: '4', picked: '4', correct: true, add: false },
+      { answer: '3', picked: '5', correct: false, noConfusion: true },
+      { answer: '3', picked: '5', correct: false, noConfusion: false },
+      { answer: '4', picked: '4', correct: true, noConfusion: false },
     ],
   };
   assert.deepEqual(finishRound(p, r, mulberry32(1)).profile.history.at(-1).confusions, { '3>5': 1 });
@@ -206,9 +208,9 @@ test('answerTask flags addition results', () => {
   const rng = mulberry32(2);
   const r = nextTask(createRound(p, 'digits', rng), p, rng);
   const withAdd = { ...r, task: { ...r.task, stimulus: { add: true } } };
-  assert.equal(answerTask(withAdd, p, 'zzz').round.results[0].add, true);
+  assert.equal(answerTask(withAdd, p, 'zzz').round.results[0].noConfusion, true);
   const plain = { ...r, task: { ...r.task, stimulus: { text: '3' } } };
-  assert.equal(answerTask(plain, p, 'zzz').round.results[0].add, false);
+  assert.equal(answerTask(plain, p, 'zzz').round.results[0].noConfusion, false);
 });
 
 test('the first time a level is reached in a round the child gets its pack price as stars', () => {
@@ -228,4 +230,26 @@ test('no gift for an already reached level', () => {
   const { reward } = finishRound(p, playAll(p, 'digits', rng), rng);
   assert.equal(reward.levelUp.to, 1);
   assert.equal(reward.gift, 0);
+});
+
+test('createRound hands the played level to prepareRound', () => {
+  const p = setLevel(setGrade(profile(), 'g1'), 'quantity', 0);
+  const r = createRound(p, 'quantity', mulberry32(3));
+  assert.deepEqual(r.ctx.compare, { max: 10, minDiff: 2 });
+});
+
+test('compare answers are marked noConfusion', () => {
+  const p = setLevel(setGrade(profile(), 'g1'), 'quantity', 0);
+  const rng = mulberry32(5);
+  let r = createRound(p, 'quantity', rng);
+  let seen = false;
+  for (let i = 0; i < 30 && !seen; i++) {
+    r = nextTask(r, p, rng);
+    const compare = Boolean(r.task.stimulus.compare);
+    r = answerTask(r, p, compare ? 'equal' : r.task.answer).round;
+    const last = r.results.at(-1);
+    assert.equal(last.noConfusion, compare);
+    seen = compare;
+  }
+  assert.ok(seen);
 });

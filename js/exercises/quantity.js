@@ -5,6 +5,7 @@ import { buildChoices } from './choices.js';
 import { h } from '../ui/dom.js';
 import { renderChoiceButtons } from '../ui/choice-buttons.js';
 import { addends, ARITH_DURATION_FACTOR } from './arithmetic.js';
+import { createCompareTask, COMPARE_SHARE, MAX_COMPARE_PER_ROUND } from './compare.js';
 
 export const id = 'quantity';
 export const title = 'Mengen';
@@ -31,27 +32,36 @@ const m = (max) => ({ max, layout: 'mixed' });
 const r = (max) => ({ max, layout: 'random' });
 const add = (sum) => ({ add: true, sum });
 const twenty = (min, max) => ({ min, max, layout: 'twenty' });
+// "Wo ist mehr?" mixed into a level: counts up to max, at least minDiff apart; equal adds "gleich viel", area enlarges the smaller group
+const cmp = (max, minDiff, extra = {}) => ({ max, minDiff, ...extra });
 
 export const LADDERS = {
   pre: [
     { label: 'bis 3 mit Muster', steps: [s(3)] },
-    { label: 'bis 5 mit Muster', steps: [s(4), s(5)] },
-    { label: 'bis 6, auch durcheinander', steps: [m(5), s(6), m(6)] },
-    { label: 'bis 10 mit Muster', steps: [s(8), s(10)] },
+    { label: 'bis 5 mit Muster', steps: [s(4), s(5)], compare: cmp(6, 3) },
+    { label: 'bis 6, auch durcheinander', steps: [m(5), s(6), m(6)], compare: cmp(10, 2) },
+    { label: 'bis 10 mit Muster', steps: [s(8), s(10)], compare: cmp(10, 1, { equal: true }) },
   ],
   g1: [
-    { label: 'bis 10 mit Muster', steps: [s(6), s(8), s(10)] },
-    { label: 'bis 10 durcheinander', steps: [m(8), m(10), r(10)] },
+    { label: 'bis 10 mit Muster', steps: [s(6), s(8), s(10)], compare: cmp(10, 2) },
+    { label: 'bis 10 durcheinander', steps: [m(8), m(10), r(10)], compare: cmp(10, 1, { equal: true }) },
     { label: 'Plus bis 10', steps: [add(5), add(10)] },
-    { label: 'bis 20 im Zwanzigerfeld', steps: [twenty(2, 12), twenty(6, 16), twenty(10, 20)] },
+    { label: 'bis 20 im Zwanzigerfeld', steps: [twenty(2, 12), twenty(6, 16), twenty(10, 20)], compare: cmp(10, 1, { equal: true, area: true }) },
   ],
 };
 
 export function isAvailable() { return true; }
 
-export function prepareRound(rng) { return { object: pick(rng, OBJECTS), lastPattern: null }; }
+export function prepareRound(rng, levelDef) {
+  return { object: pick(rng, OBJECTS), lastPattern: null, compare: levelDef?.compare ?? null, compareCount: 0 };
+}
 
 export function createTask(step, settings, rng, ctx = { object: OBJECTS[0] }) {
+  if (ctx.compare && settings.quantity?.compare !== false
+    && (ctx.compareCount ?? 0) < MAX_COMPARE_PER_ROUND && rng() < COMPARE_SHARE) {
+    ctx.compareCount = (ctx.compareCount ?? 0) + 1;
+    return createCompareTask(rng, ctx.compare, OBJECTS, ctx.object);
+  }
   if (step.add) {
     const { a, b } = addends(rng, step.sum);
     return {

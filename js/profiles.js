@@ -16,6 +16,7 @@ export const DEFAULT_SETTINGS = {
   grade: 'pre',
   exercises: { quantity: true, digits: true, letters: true, syllables: true },
   hold: { quantity: false, digits: false, letters: false, syllables: false },
+  quantity: { compare: true },
   timing: { ...GRADE_TIMING.pre, adaptive: true },
   letters: { known: ['A', 'M', 'O'], speak: 'sound', lineature: true },
   syllables: { colors: true, custom: [] },
@@ -103,6 +104,7 @@ function sanitizeFields(raw) {
     grade: oneOf(r.grade, GRADES, d.grade),
     exercises,
     hold: Object.fromEntries(Object.keys(d.hold).map((k) => [k, bool(sub('hold')[k], false)])),
+    quantity: { compare: bool(sub('quantity').compare, d.quantity.compare) },
     timing: {
       startMs: num(sub('timing').startMs, d.timing.startMs),
       minMs: num(sub('timing').minMs, d.timing.minMs),

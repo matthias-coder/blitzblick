@@ -173,3 +173,46 @@ test('bonus pages garden, construction and bugs are counted, everyday is not', (
   assert.ok(!quantity.OBJECTS.includes('garden/tulips'));
   assert.ok(!quantity.OBJECTS.some((o) => o.startsWith('everyday/')));
 });
+
+const levelCompare = (grade) => quantity.LADDERS[grade].map((l) => l.compare ?? null);
+
+test('compare configs per level follow the spec table', () => {
+  assert.deepEqual(levelCompare('pre'), [
+    null, { max: 6, minDiff: 3 }, { max: 10, minDiff: 2 }, { max: 10, minDiff: 1, equal: true },
+  ]);
+  assert.deepEqual(levelCompare('g1'), [
+    { max: 10, minDiff: 2 }, { max: 10, minDiff: 1, equal: true }, null, { max: 10, minDiff: 1, equal: true, area: true },
+  ]);
+});
+
+test('prepareRound takes the level compare config and starts the counter at 0', () => {
+  const ctx = quantity.prepareRound(mulberry32(1), quantity.LADDERS.g1[0]);
+  assert.deepEqual(ctx.compare, { max: 10, minDiff: 2 });
+  assert.equal(ctx.compareCount, 0);
+  assert.equal(quantity.prepareRound(mulberry32(1)).compare, null);
+});
+
+const roundOf = (seed, levelDef, settings = { quantity: { compare: true } }, n = 5) => {
+  const rng = mulberry32(seed);
+  const ctx = quantity.prepareRound(rng, levelDef);
+  return Array.from({ length: n }, () => quantity.createTask(levelDef.steps[0], settings, rng, ctx));
+};
+
+test('compare tasks are mixed in: about 30 %, never more than 2 per round', () => {
+  let compares = 0;
+  for (let seed = 0; seed < 400; seed++) {
+    const n = roundOf(seed, quantity.LADDERS.g1[0]).filter((t) => t.stimulus.compare).length;
+    assert.ok(n <= 2);
+    compares += n;
+  }
+  const share = compares / (400 * 5);
+  assert.ok(share > 0.18 && share < 0.32, String(share));
+});
+
+test('no compare tasks with the toggle off or on levels without compare', () => {
+  for (let seed = 0; seed < 100; seed++) {
+    assert.ok(roundOf(seed, quantity.LADDERS.g1[0], { quantity: { compare: false } }).every((t) => !t.stimulus.compare));
+    assert.ok(roundOf(seed, quantity.LADDERS.pre[0]).every((t) => !t.stimulus.compare));
+    assert.ok(roundOf(seed, quantity.LADDERS.g1[2]).every((t) => !t.stimulus.compare));
+  }
+});
