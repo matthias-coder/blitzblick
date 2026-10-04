@@ -78,7 +78,7 @@ test('updateSettings clamps levels when the parent lowers limits', () => {
   let p = mk('p1');
   p = { ...p, levels: { ...p.levels, quantity: { ...p.levels.quantity, complexity: 11, durationMs: 300 } } };
   p = updateSettings(p, { quantity: { max: 5 }, timing: { minMs: 500 } });
-  assert.equal(p.levels.quantity.complexity, 5);
+  assert.equal(p.levels.quantity.complexity, 6); // 6 regular stages up to 5 + "Plus bis 5"
   assert.equal(p.levels.quantity.durationMs, 500);
 });
 
