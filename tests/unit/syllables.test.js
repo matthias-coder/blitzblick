@@ -102,3 +102,16 @@ test('made-up distractors are split like the answer, so colors never give it awa
     }
   }
 });
+
+test('distractors never put ß where the answer has a capital letter', () => {
+  const keys = ['S', 'ß', 'O', 'F', 'A'];
+  const pool = [{ text: 'Sofa', parts: ['So', 'fa'], level: 1 }];
+  for (let seed = 1; seed <= 300; seed++) {
+    const ds = syl.buildDistractors('Sofa', pool, keys, mulberry32(seed));
+    for (const d of ds) assert.notEqual(d[0], 'ß', `seed ${seed}: ${d}`);
+  }
+  // lowercase positions may still use ß
+  const seen = new Set();
+  for (let seed = 1; seed <= 300; seed++) for (const d of syl.buildDistractors('Masse', [], ['M', 'A', 'S', 'E', 'ß'], mulberry32(seed))) seen.add(d);
+  assert.equal([...seen].some((d) => d.includes('ß')), true);
+});
