@@ -378,10 +378,11 @@ test('Zwanzigerfeld: twenty objects fit on the board', async ({ page }) => {
 });
 
 test('quantity can count album stickers, and the sticker image loads', async ({ page }) => {
+  // stubbing Math.random to 0.99 ensures the task is always an object task (not fingers or compare)
+  // and the random draw picks the round's object: the last one in the pool is a sticker
+  await stubRandom(page, 0.99);
   await seed(page, fixed(3000));
   await page.goto('/');
-  // the next random draw picks the round's object: the last one in the pool is a sticker
-  await page.evaluate(() => { const real = Math.random; Math.random = () => { Math.random = real; return 0.999; }; });
   await page.getByTestId('tile-quantity').click();
   const obj = page.getByTestId('stimulus').locator('.obj').first();
   await expect(obj).toBeVisible({ timeout: 6000 });

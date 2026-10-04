@@ -3,6 +3,7 @@ import { seed } from './helpers.js';
 
 test('the app starts offline after the first visit', async ({ page, context }) => {
   await seed(page, (p) => { p.settings.timing = { startMs: 500, minMs: 300, maxMs: 3000, adaptive: false }; });
+  await page.addInitScript(() => { Math.random = () => 0.99; });
   await page.goto('/');
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await page.reload();
