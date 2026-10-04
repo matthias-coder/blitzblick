@@ -282,3 +282,14 @@ test('the gear also opens with a held Enter key, a short key press does not', as
   await page.keyboard.up('Enter');
   await expect(page.getByTestId('gate-question')).toBeVisible();
 });
+
+test('parents can switch compare tasks off', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await openParents(page);
+  const toggle = page.getByTestId('quantity-compare');
+  await expect(toggle).toBeChecked();
+  await toggle.uncheck();
+  const state = await readState(page);
+  expect(state.profiles[0].settings.quantity.compare).toBe(false);
+});

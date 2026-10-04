@@ -360,6 +360,7 @@ test('Zwanzigerfeld: twenty objects fit on the board', async ({ page }) => {
   await seed(page, fixed(3000, (p) => {
     p.settings.grade = 'g1';
     p.levels.quantity = { ...p.levels.quantity, level: 3 };
+    p.settings.quantity = { compare: false }; // compare tasks would hide the twenty field
   }));
   await page.goto('/');
   await page.getByTestId('tile-quantity').click();
@@ -445,3 +446,68 @@ test('screen readers hear the question and the result', async ({ page }) => {
   await choices.locator(`button[data-value="${answer}"]`).click();
   await expect(status).toHaveText('Richtig!');
 });
+
+// Math.random is stubbed to a constant: the first quantity task on a compare level is then a compare task
+const stubRandom = (page, v = 0.05) => page.addInitScript((x) => { Math.random = () => x; }, v);
+const compareLevel = (extra = () => {}) => (p) => {
+  p.settings.grade = 'g1';
+  p.settings.timing = { startMs: 800, minMs: 300, maxMs: 3000, adaptive: true };
+  p.levels.quantity = { ...p.levels.quantity, level: 0, step: 0, durationMs: 800 };
+  extra(p);
+};
+
+test('Wo ist mehr? tapping the side with more counts as correct', async ({ page }) => {
+  await stubRandom(page);
+  await seed(page, compareLevel());
+  await page.goto('/');
+  await page.getByTestId('tile-quantity').click();
+  await expect(page.getByTestId('compare-stimulus')).toBeVisible({ timeout: 6000 });
+  const { choices, answer } = await waitForChoices(page);
+  expect(['left', 'right']).toContain(answer);
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await expect(page.getByTestId('cheer')).toBeVisible();
+});
+
+test('Wo ist mehr? a wrong side shows both groups again as the solution', async ({ page }) => {
+  await stubRandom(page);
+  await seed(page, compareLevel());
+  await page.goto('/');
+  await page.getByTestId('tile-quantity').click();
+  const { choices, answer } = await waitForChoices(page);
+  await choices.locator(`button:not([data-value="${answer}"])`).first().click();
+  await expect(page.locator('.stimulus.solution [data-testid="compare-stimulus"] .field')).toHaveCount(2);
+});
+
+test('no compare tasks when the parents switched them off', async ({ page }) => {
+  await stubRandom(page);
+  await seed(page, compareLevel((p) => { p.settings.quantity = { compare: false }; }));
+  await page.goto('/');
+  await page.getByTestId('tile-quantity').click();
+  const { answer } = await waitForChoices(page);
+  expect(Number(answer)).toBeGreaterThan(0);
+  await expect(page.getByTestId('compare-stimulus')).toHaveCount(0);
+});
+
+for (const [w, hgt] of [[360, 640], [640, 360]]) {
+  test(`compare fields sit side by side inside the board at ${w}×${hgt}`, async ({ page }) => {
+    await page.setViewportSize({ width: w, height: hgt });
+    await stubRandom(page);
+    await seed(page, compareLevel((p) => {
+      p.settings.timing = { startMs: 3000, minMs: 3000, maxMs: 3000, adaptive: true };
+      p.levels.quantity.durationMs = 3000;
+    }));
+    await page.goto('/');
+    await page.getByTestId('tile-quantity').click();
+    const fields = page.getByTestId('compare-stimulus').locator('.field');
+    await expect(fields.first()).toBeVisible({ timeout: 6000 });
+    const a = await fields.first().boundingBox();
+    const b = await fields.last().boundingBox();
+    const board = await page.getByTestId('stage').boundingBox();
+    expect(a.x + a.width).toBeLessThanOrEqual(b.x + 1); // left field ends before the right one starts
+    expect(Math.abs(a.y - b.y)).toBeLessThan(2);         // same row
+    for (const f of [a, b]) {
+      expect(f.x).toBeGreaterThanOrEqual(board.x - 1);
+      expect(f.x + f.width).toBeLessThanOrEqual(board.x + board.width + 1);
+    }
+  });
+}

@@ -200,6 +200,10 @@ function settingsTab(body, ctx, rerender) {
       slider('Kürzeste', 'min'),
       slider('Längste', 'max'),
     ]),
+    fieldset('Mengen', [
+      toggle('Vergleiche einmischen („Wo ist mehr?“)', s.quantity.compare, (v) => apply({ quantity: { compare: v } }), 'quantity-compare'),
+      h('p', { class: 'hint' }, 'Ab Level 2 (Vorschule) bzw. Level 1 (Klasse 1) fragt etwa jede dritte Aufgabe, auf welcher Seite mehr waren.'),
+    ]),
     fieldset('Buchstaben', [
       h('p', { class: 'hint' }, 'Angehakte Buchstaben kennt das Kind schon – nur diese werden abgefragt (mindestens 2).'),
       h('div', { class: 'letter-grid' }, LETTERS.map((l) => h('label', { class: `letter${s.letters.known.includes(l) ? ' on' : ''}` },
