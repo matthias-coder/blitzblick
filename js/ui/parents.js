@@ -234,7 +234,7 @@ function settingsTab(body, ctx, rerender) {
 
 function progressTab(body, ctx) {
   const p = ctx.profile;
-  body.append(h('h2', {}, `Fortschritt von ${p.name}`), h('p', {}, `Sterne: ${p.rewards.stars} · Sticker: ${p.rewards.stickers.length}`));
+  body.append(h('h2', {}, `Fortschritt von ${p.name}`), h('p', {}, `Sterne: ${p.rewards.stars} (Guthaben) · Sticker: ${p.rewards.stickers.length}`));
   for (const id of EXERCISE_ORDER) {
     const ex = EXERCISES[id];
     const c = currentLevel(p, id);

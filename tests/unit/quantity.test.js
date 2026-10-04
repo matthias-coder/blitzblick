@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as quantity from '../../js/exercises/quantity.js';
 import { layoutPositions, MIN_DIST, PATTERNS, patternsFor, structuredPositions, twentyFrame } from '../../js/exercises/quantity-layout.js';
 import { mulberry32 } from '../../js/rng.js';
-import { PAGES, stickerId } from '../../js/rewards.js';
+import { PAGES, ALL_PAGES, stickerId } from '../../js/rewards.js';
 
 const S = { quantity: {} };
 const step = (grade, level, i = 0) => quantity.LADDERS[grade][level].steps[i];
@@ -113,7 +113,7 @@ test('prepareRound picks one of the objects', () => {
 test('the object pool is the base objects plus checked stickers from the album', () => {
   assert.deepEqual(quantity.OBJECTS, [...quantity.BASE_OBJECTS, ...quantity.STICKER_OBJECTS]);
   assert.equal(new Set(quantity.OBJECTS).size, quantity.OBJECTS.length);
-  const ids = new Set(PAGES.flatMap((p) => p.stickers.map((s) => stickerId(p.id, s))));
+  const ids = new Set(ALL_PAGES.flatMap((p) => p.stickers.map((s) => stickerId(p.id, s))));
   for (const o of quantity.STICKER_OBJECTS) assert.ok(ids.has(o), `${o} is not an album sticker`);
   assert.ok(quantity.STICKER_OBJECTS.length >= 90);
 });
@@ -164,4 +164,12 @@ test('Plus speech says "zusammen" and names both addends', () => {
   const t = { answer: 5, stimulus: { add: true, a: 3, b: 2 } };
   assert.equal(quantity.speakPrompt(t), 'Wie viele waren es zusammen?');
   assert.deepEqual(quantity.speakSolution(t), ['3 und 2 sind 5.']);
+});
+
+test('bonus pages garden, construction and bugs are counted, everyday is not', () => {
+  assert.ok(quantity.OBJECTS.includes('bugs/ladybug'));
+  assert.ok(quantity.OBJECTS.includes('construction/cone'));
+  assert.ok(quantity.OBJECTS.includes('garden/sunflower'));
+  assert.ok(!quantity.OBJECTS.includes('garden/tulips'));
+  assert.ok(!quantity.OBJECTS.some((o) => o.startsWith('everyday/')));
 });

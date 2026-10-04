@@ -23,51 +23,93 @@ export const PAGES = [
 // easter egg: hidden page, filled only by rounds with no correct answer (one sticker per day); not part of the level grid
 export const SECRET_PAGE = { id: 'mischief', title: 'Unfug-Bande', stickers: ['toast', 'toaster', 'finger', 'bubbletea', 'broccoli', 'shroomrider', 'yarncat', 'melon'] };
 
-export const BONUS_STARS = 3;
-export const STICKER_MIN_CORRECT = 4;
+// v1.8: one bonus page per exercise, opened when the exercise's four level pages are complete (see isPageOpen)
+export const BONUS_PAGES = [
+  { id: 'garden', title: 'Garten', exercise: 'quantity', bonus: true, stickers: ['sunflower', 'wateringcan', 'tulips', 'snail', 'butterfly', 'gnome', 'bee', 'flowerpot'] },
+  { id: 'construction', title: 'Baustelle', exercise: 'digits', bonus: true, stickers: ['excavator', 'crane', 'dumptruck', 'hardhat', 'cone', 'mixer', 'wheelbarrow', 'hammer'] },
+  { id: 'bugs', title: 'Krabbeltiere', exercise: 'letters', bonus: true, stickers: ['ladybug', 'dragonfly', 'caterpillar', 'beetle', 'grasshopper', 'spider', 'firefly', 'worm'] },
+  { id: 'everyday', title: 'Alltagsfiguren', exercise: 'syllables', bonus: true, stickers: ['icecowboy', 'surfrock', 'saxavocado', 'cloudbot', 'balletpencil', 'mouse', 'wrenchscientist', 'pizzaking'] },
+];
+export const ALL_PAGES = [...PAGES, ...BONUS_PAGES];
+export const pageById = (id) => (id === SECRET_PAGE.id ? SECRET_PAGE : ALL_PAGES.find((p) => p.id === id) ?? null);
 
 export const stickerId = (page, name) => `${page}/${name}`;
 export const stickerUrl = (id) => `assets/stickers/${id}.webp`;
 const idsOf = (page) => page.stickers.map((s) => stickerId(page.id, s));
 
-export const isPageOpen = (reached, page) => (reached?.[page.exercise] ?? 0) >= page.level;
+export const PACK_PRICE = [10, 15, 20, 25];
+export const BONUS_PACK_PRICE = 30;
+export const MAX_PITY = 3; // at most this many duplicates in a row per page
+export const packPrice = (page) => (page.bonus ? BONUS_PACK_PRICE : PACK_PRICE[page.level]);
+
+export const isPageComplete = (rewards, page) => idsOf(page).every((id) => rewards.stickers.includes(id));
+// level page: opens with the level reached; bonus page: opens when the exercise's four level pages are complete
+export function isPageOpen(rewards, page) {
+  if (page.bonus) return PAGES.filter((p) => p.exercise === page.exercise).every((p) => isPageComplete(rewards, p));
+  return (rewards.reached?.[page.exercise] ?? 0) >= page.level;
+}
 // a page with collected stickers stays visible even if its level was not reached (e.g. stickers from before 1.7)
-export const isPageVisible = (rewards, page) => isPageOpen(rewards.reached, page) || idsOf(page).some((id) => rewards.stickers.includes(id));
+export const isPageVisible = (rewards, page) => isPageOpen(rewards, page) || idsOf(page).some((id) => rewards.stickers.includes(id));
+export const countOf = (rewards, id) => (rewards.stickers.includes(id) ? rewards.counts?.[id] ?? 1 : 0);
+export const canTrade = (rewards, page) => page !== SECRET_PAGE && isPageOpen(rewards, page) && !isPageComplete(rewards, page);
+
+// one random sticker of the page, duplicates included; every duplicate in a row raises the chance for a new one by 1/MAX_PITY
+export function openPack(rewards, pageId, rng) {
+  const page = pageById(pageId);
+  if (!page || !canTrade(rewards, page) || rewards.stars < packPrice(page)) return null;
+  const all = idsOf(page);
+  const missing = all.filter((id) => !rewards.stickers.includes(id));
+  const have = all.filter((id) => rewards.stickers.includes(id));
+  const pity = rewards.pity?.[pageId] ?? 0;
+  const isNew = rng() < Math.min(1, missing.length / all.length + pity / MAX_PITY);
+  const sticker = pick(rng, isNew ? missing : have);
+  const count = isNew ? 1 : countOf(rewards, sticker) + 1;
+  let next = {
+    ...rewards,
+    stars: rewards.stars - packPrice(page),
+    stickers: isNew ? [...rewards.stickers, sticker] : [...rewards.stickers],
+    counts: { ...rewards.counts, [sticker]: count },
+    pity: { ...rewards.pity, [pageId]: isNew ? 0 : pity + 1 },
+  };
+  const bonus = BONUS_PAGES.find((b) => !isPageOpen(rewards, b) && isPageOpen(next, b)) ?? null;
+  if (bonus) next = { ...next, stars: next.stars + BONUS_PACK_PRICE };
+  return { rewards: next, sticker, duplicate: !isNew, count, unlockedBonus: bonus?.id ?? null };
+}
+
+// where the round end points the child: the page just played if affordable, else another page of that exercise,
+// else any affordable page, else the cheapest tradable page (for the progress bar); null when everything is complete
+export function packTarget(rewards, exercise, level) {
+  const pages = ALL_PAGES.filter((p) => canTrade(rewards, p));
+  if (!pages.length) return null;
+  const affordable = pages.filter((p) => packPrice(p) <= rewards.stars);
+  const page = affordable.find((p) => p.exercise === exercise && !p.bonus && p.level === level)
+    ?? affordable.find((p) => p.exercise === exercise)
+    ?? affordable[0]
+    ?? pages.reduce((a, b) => (packPrice(b) < packPrice(a) ? b : a));
+  return { page, price: packPrice(page), affordable: affordable.length > 0 };
+}
 
 const missingOn = (rewards, pages) => pages.flatMap(idsOf).filter((id) => !rewards.stickers.includes(id));
 
-// sticker from the page just played, else another open page of that exercise, else any open page; all full → bonus stars.
+// stars for every correct answer; stickers are traded in the album (openPack).
 // No correct answer at all: a missing secret sticker, at most one per day (today = local date string)
-export function applyRoundRewards(rewards, correct, rng, { exercise, level, reached = rewards.reached, today = null }) {
-  const open = PAGES.filter((p) => isPageOpen(reached, p));
-  const earned = correct >= STICKER_MIN_CORRECT;
+export function applyRoundRewards(rewards, correct, rng, { reached = rewards.reached, today = null } = {}) {
   let sticker = null;
-  let bonusStars = 0;
-  if (earned) {
-    const tiers = [open.filter((p) => p.exercise === exercise && p.level === level), open.filter((p) => p.exercise === exercise), open];
-    for (const pages of tiers) {
-      const missing = missingOn(rewards, pages);
-      if (missing.length) { sticker = pick(rng, missing); break; }
-    }
-    if (!sticker) bonusStars = BONUS_STARS;
-  }
-  let secret = false;
   if (correct === 0 && today && rewards.secretDay !== today) {
     const missing = missingOn(rewards, [SECRET_PAGE]);
-    if (missing.length) { sticker = pick(rng, missing); secret = true; }
+    if (missing.length) sticker = pick(rng, missing);
   }
+  const next = {
+    ...rewards,
+    ...(sticker ? { secretDay: today } : {}),
+    stars: rewards.stars + correct,
+    stickers: sticker ? [...rewards.stickers, sticker] : [...rewards.stickers],
+    reached: { ...reached },
+  };
   return {
-    rewards: {
-      ...rewards,
-      ...(secret ? { secretDay: today } : {}),
-      stars: rewards.stars + correct + bonusStars,
-      stickers: sticker ? [...rewards.stickers, sticker] : [...rewards.stickers],
-      reached: { ...reached },
-    },
+    rewards: next,
     sticker,
-    bonusStars,
-    earned,
-    secret,
-    newlyUnlockedPages: PAGES.filter((p) => isPageOpen(reached, p) && !isPageOpen(rewards.reached, p)).map((p) => p.id),
+    secret: sticker !== null,
+    newlyUnlockedPages: PAGES.filter((p) => isPageOpen(next, p) && !isPageOpen(rewards, p)).map((p) => p.id),
   };
 }

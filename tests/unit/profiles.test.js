@@ -45,7 +45,7 @@ test('createProfile uses defaults, trims the name and creates a level per exerci
   for (const key of Object.keys(EXERCISES)) {
     assert.deepEqual(p.levels[key], { level: 0, step: 0, durationMs: 2000, streak: 0, recent: [], mastered: false });
   }
-  assert.deepEqual(p.rewards, { stars: 0, stickers: [], reached: { quantity: 0, digits: 0, letters: 0, syllables: 0 } });
+  assert.deepEqual(p.rewards, { stars: 0, stickers: [], counts: {}, pity: {}, reached: { quantity: 0, digits: 0, letters: 0, syllables: 0 } });
   assert.deepEqual(p.history, []);
 });
 
@@ -264,4 +264,16 @@ test('secretDay is kept only as a date string', () => {
     raw.rewards.secretDay = bad;
     assert.equal('secretDay' in normalizeProfile(raw).rewards, false);
   }
+});
+
+test('rewards counts and pity are sanitized; old profiles get empty ones', () => {
+  const old = normalizeProfile({ ...mk('p1'), rewards: { stars: 300, stickers: ['fruit/pear'] } });
+  assert.deepEqual(old.rewards.counts, {});
+  assert.deepEqual(old.rewards.pity, {});
+  assert.equal(old.rewards.stars, 300);
+  const p = normalizeProfile({ ...mk('p1'), rewards: { stars: 0, stickers: ['fruit/pear', 'sea/fish'],
+    counts: { 'fruit/pear': 3, 'sea/fish': 1, 'dinos/egg': 5, 'sea/x': 'two' },
+    pity: { fruit: 2, sea: 9, nope: 1, dinos: -1 } } });
+  assert.deepEqual(p.rewards.counts, { 'fruit/pear': 3 });
+  assert.deepEqual(p.rewards.pity, { fruit: 2 });
 });

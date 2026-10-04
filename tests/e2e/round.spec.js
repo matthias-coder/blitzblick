@@ -14,6 +14,15 @@ async function waitForChoices(page) {
   return { choices, answer: await choices.getAttribute('data-answer') };
 }
 
+async function playZeroRound(page, tile = 'tile-digits') {
+  await page.getByTestId(tile).click();
+  for (let i = 0; i < N; i++) {
+    const { choices, answer } = await waitForChoices(page);
+    await choices.locator(`button:not([data-value="${answer}"])`).first().click();
+  }
+  await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
+}
+
 async function playPerfectRound(page, tile = 'tile-quantity') {
   await page.getByTestId(tile).click();
   for (let i = 0; i < N; i++) {
@@ -23,7 +32,7 @@ async function playPerfectRound(page, tile = 'tile-quantity') {
   await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
 }
 
-test('a full quantity round awards stars and a sticker', async ({ page }) => {
+test('a full quantity round awards stars and no sticker', async ({ page }) => {
   await seed(page, fixed(500));
   await page.goto('/');
   await page.getByTestId('tile-quantity').click();
@@ -32,17 +41,17 @@ test('a full quantity round awards stars and a sticker', async ({ page }) => {
     await choices.locator(`button[data-value="${answer}"]`).click();
   }
   await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
-  await expect(page.getByTestId('new-sticker')).toBeVisible();
+  await expect(page.getByTestId('pack-progress')).toContainText('Noch 5');
+  await expect(page.getByTestId('new-sticker')).toHaveCount(0);
   const p = (await readState(page)).profiles[0];
   expect(p.rewards.stars).toBe(5);
-  expect(p.rewards.stickers).toHaveLength(1);
-  expect(p.rewards.stickers[0]).toMatch(/^fruit\//);
+  expect(p.rewards.stickers).toHaveLength(0);
   expect(p.history).toHaveLength(1);
   await page.getByTestId('round-done').click();
   await expect(page.getByTestId('star-badge')).toHaveText('5');
 });
 
-test('with fewer than 4 correct answers there are stars but no sticker', async ({ page }) => {
+test('with fewer correct answers there are fewer stars and progress towards the next pack', async ({ page }) => {
   await seed(page, fixed(500));
   await page.goto('/');
   await page.getByTestId('tile-quantity').click();
@@ -52,7 +61,7 @@ test('with fewer than 4 correct answers there are stars but no sticker', async (
     await choices.locator(`button[data-value="${value}"]`).click();
   }
   await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 8000 });
-  await expect(page.getByTestId('sticker-hint')).toContainText('3 von 5 – ab 4');
+  await expect(page.getByTestId('pack-progress')).toContainText('Noch 7');
   await expect(page.getByTestId('new-sticker')).toHaveCount(0);
   const p = (await readState(page)).profiles[0];
   expect(p.rewards.stars).toBe(3);
@@ -222,10 +231,20 @@ test('addition stimuli stay inside the board in landscape', async ({ page }) => 
   await inside(sum);
 });
 
-test('the new sticker flies into the album button, which counts it', async ({ page }) => {
-  await seed(page, fixed(500));
+test('enough stars after a round: trade hint opens the album on the played page', async ({ page }) => {
+  await seed(page, fixed(500, (p) => { p.rewards.stars = 8; }));
   await page.goto('/');
   await playPerfectRound(page);
+  await expect(page.getByTestId('trade-hint')).toBeVisible();
+  await page.getByTestId('trade-hint').click();
+  await expect(page.getByTestId('open-pack')).toBeEnabled();
+  await expect(page.getByTestId('album-tab-fruit')).toHaveClass(/active/);
+});
+
+test('the secret sticker flies into the album button, which counts it', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await playZeroRound(page);
   await expect(page.getByTestId('new-sticker')).toBeVisible();
   await expect(page.getByTestId('album-count')).toHaveText('0');
   await expect(page.getByTestId('album-count')).toHaveText('1', { timeout: 5000 });
@@ -256,7 +275,7 @@ test('with reduced motion the sticker stays put and the count is final', async (
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await seed(page, fixed(500));
   await page.goto('/');
-  await playPerfectRound(page);
+  await playZeroRound(page);
   await expect(page.getByTestId('album-count')).toHaveText('1');
   await page.waitForTimeout(3000);
   await expect(page.locator('.sticker-reveal')).toBeVisible();
@@ -280,7 +299,7 @@ test.describe('round end in phone landscape', () => {
   test('buttons stay fully visible with a new sticker', async ({ page }) => {
     await seed(page, fixed(500));
     await page.goto('/');
-    await playPerfectRound(page);
+    await playZeroRound(page);
     await expect(page.getByTestId('new-sticker')).toBeVisible();
     await expectActionsInside(page);
   });
@@ -294,7 +313,7 @@ test.describe('round end in phone landscape', () => {
       const value = i < 2 ? await choices.locator(`button.choice:not([data-value="${answer}"])`).first().getAttribute('data-value') : answer;
       await choices.locator(`button[data-value="${value}"]`).click();
     }
-    await expect(page.getByTestId('sticker-hint')).toBeVisible({ timeout: 8000 });
+    await expect(page.getByTestId('pack-progress')).toBeVisible({ timeout: 8000 });
     await expectActionsInside(page);
   });
 });
@@ -329,6 +348,7 @@ test('a mastered level moves up at the round end and opens the next sticker page
   await playPerfectRound(page, 'tile-digits');
   await expect(page.getByTestId('level-up')).toHaveAttribute('aria-label', 'Level 2');
   await expect(page.getByTestId('level-up-num')).toHaveText('2');
+  await expect(page.getByTestId('level-gift')).toContainText('15');
   await expect(page.getByTestId('end-mascot')).toHaveAttribute('src', /robot-trophy\.webp$/);
   await expect(page.getByTestId('page-unlocked')).toBeVisible();
   const p = (await readState(page)).profiles[0];
@@ -382,7 +402,7 @@ test('a round with no correct answer gives a secret sticker, and the album shows
   }
   await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
   await expect(page.getByTestId('new-sticker')).toHaveAttribute('data-sticker', /^mischief\//);
-  await expect(page.getByTestId('sticker-hint')).toHaveCount(0);
+  await expect(page.getByTestId('trade-hint')).toHaveCount(0);
   await page.getByTestId('round-done').click();
   await page.getByTestId('open-album').click();
   await page.getByTestId('album-tab-mischief').click();

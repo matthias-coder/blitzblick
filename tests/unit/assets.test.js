@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, statSync } from 'node:fs';
-import { PAGES, SECRET_PAGE, stickerId, stickerUrl } from '../../js/rewards.js';
+import { PAGES, BONUS_PAGES, SECRET_PAGE, stickerId, stickerUrl } from '../../js/rewards.js';
 import { OBJECTS, BASE_OBJECTS, objectUrl } from '../../js/exercises/quantity.js';
 import { AVATARS } from '../../js/profiles.js';
 
@@ -23,7 +23,7 @@ test('avatars exist as WebP', () => { for (const a of AVATARS) checkWebp(`assets
 test('ui icons exist', () => { for (const u of UI) checkSvg(`assets/ui/${u}.svg`); });
 test('app icon exists', () => checkSvg('assets/icons/icon.svg'));
 test('all stickers exist as WebP', () => {
-  for (const p of [...PAGES, SECRET_PAGE]) for (const s of p.stickers) checkWebp(stickerUrl(stickerId(p.id, s)));
+  for (const p of [...PAGES, ...BONUS_PAGES, SECRET_PAGE]) for (const s of p.stickers) checkWebp(stickerUrl(stickerId(p.id, s)));
 });
 test('Andika, Grundschrift and license are bundled', () => {
   for (const f of ['andika-latin-400-normal.woff2', 'andika-latin-700-normal.woff2', 'playwrite-de-grund-latin-400-normal.woff2', 'OFL.txt']) {

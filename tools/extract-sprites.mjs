@@ -2,8 +2,8 @@
 // Reads _lokal/source/*.jpg, writes _lokal/extracted/**. Needs @playwright/test chromium (decode/encode only).
 import fs from 'node:fs';
 import path from 'node:path';
-import { PAGES as LEVEL_PAGES, SECRET_PAGE } from '../js/rewards.js';
-const PAGES = [...LEVEL_PAGES, SECRET_PAGE];
+import { PAGES as LEVEL_PAGES, BONUS_PAGES, SECRET_PAGE } from '../js/rewards.js';
+const PAGES = [...LEVEL_PAGES, ...BONUS_PAGES, SECRET_PAGE];
 import { openBrowser, decode, encodePng, decodePng, floodBg, lightGrey, components, dilate, makeSprite, squarePad, trim } from './sprite-lib.mjs';
 
 const SRC = '_lokal/source/', OUT = '_lokal/extracted/';
@@ -165,8 +165,14 @@ if (mode === 'sheets' || mode === 'all') {
     medal: ['medal.jpg', [1]],
     // v1.7.1: secret page (easter egg), 4×2 on beige
     mischief: ['sticker-quatsch-2-evil.jpg', [4, 4]],
+    // v1.8: bonus pages; 3 rows on the sheet, row 3 repeats row 2
+    garden: ['sticker-garten.jpg', [4, 4, 4]],
+    construction: ['sticker-baustelle.jpg', [4, 4, 4]],
+    bugs: ['sticker-krabbeltiere.jpg', [4, 4, 4]],
+    // free layout on beige (1024×559), cut by boxes below
+    everyday: ['sticker-alltagsfiguren.jpg', [1]],
   };
-  const PAGE_SHEETS = Object.keys(SHEETS).filter((k) => k.length > 1 && !['blockworld', 'menu', 'trophy', 'medal'].includes(k));
+  const PAGE_SHEETS = Object.keys(SHEETS).filter((k) => k.length > 1 && !['blockworld', 'menu', 'trophy', 'medal', 'everyday'].includes(k));
   // [sheet, row, col, output path]
   const CUTS = [
     ['e', 1, 0, 'objects/apple'], ['e', 2, 0, 'objects/duck'], ['a', 0, 2, 'objects/ladybug'],
@@ -192,6 +198,15 @@ if (mode === 'sheets' || mode === 'all') {
     ['blockworld', 1, 3, 'stickers/blockworld/sixtyseven'],
     ['trophy', 0, 0, 'mascot/robot-trophy'], ['medal', 0, 0, 'decor/medal'],
     ['menu', 0, 0, 'menu/quantity'], ['menu', 0, 1, 'menu/digits'], ['menu', 1, 0, 'menu/letters'], ['menu', 1, 1, 'menu/syllables'],
+    // everyday: 8 of 11 motifs, picked by centroid box (D9 in the spec)
+    ['everyday', 'box', [40, 30, 240, 220], 'stickers/everyday/icecowboy'],
+    ['everyday', 'box', [540, 40, 720, 235], 'stickers/everyday/surfrock'],
+    ['everyday', 'box', [800, 30, 980, 250], 'stickers/everyday/saxavocado'],
+    ['everyday', 'box', [160, 225, 340, 350], 'stickers/everyday/cloudbot'],
+    ['everyday', 'box', [315, 300, 445, 530], 'stickers/everyday/balletpencil'],
+    ['everyday', 'box', [470, 300, 580, 530], 'stickers/everyday/mouse'],
+    ['everyday', 'box', [600, 305, 710, 530], 'stickers/everyday/wrenchscientist'],
+    ['everyday', 'box', [800, 310, 980, 520], 'stickers/everyday/pizzaking'],
     ...PAGE_SHEETS.flatMap((id) => PAGES.find((p) => p.id === id).stickers.map((s, i) => [id, Math.floor(i / 4), i % 4, `stickers/${id}/${s}`])),
   ];
   for (const [key, [file, rowCols, lightMin = 200]] of Object.entries(SHEETS)) {
@@ -207,9 +222,12 @@ if (mode === 'sheets' || mode === 'all') {
       return [row, Math.min(rowCols[row] - 1, Math.floor(c.cx / (img.w / rowCols[row])))];
     };
     for (const [, row, col, out] of cuts) {
-      // much wider than a cell = grid lines drawn by the generator, not a motif
-      const cs = comps.filter((c) => c.area >= minArea && c.x1 - c.x0 < 1.5 * img.w / rowCols[row] && cellOf(c).join() === `${row},${col}`);
-      if (!cs.length) throw new Error(`${out}: nothing found in cell ${row},${col}`);
+      const inBox = row === 'box' && ((c) => c.cx >= col[0] && c.cx <= col[2] && c.cy >= col[1] && c.cy <= col[3]);
+      const cs = comps.filter((c) => c.area >= minArea && (inBox
+        ? inBox(c)
+        // much wider than a cell = grid lines drawn by the generator, not a motif
+        : c.x1 - c.x0 < 1.5 * img.w / rowCols[row] && cellOf(c).join() === `${row},${col}`));
+      if (!cs.length) throw new Error(`${out}: nothing found in ${inBox ? 'box' : `cell ${row},${col}`}`);
       const ids = new Set(cs.map(c => c.id));
       const fg = new Uint8Array(img.w * img.h);
       for (let i = 0; i < fg.length; i++) if (ids.has(labels[i])) fg[i] = 1;

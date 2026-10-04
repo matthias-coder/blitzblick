@@ -1,5 +1,6 @@
 import { EXERCISES } from './exercises/index.js';
 import { initialLevel, clampLevel } from './adaptive.js';
+import { ALL_PAGES, MAX_PITY } from './rewards.js';
 import { LETTERS } from './exercises/letters.js';
 import { GRADES, GRADE_TIMING, LEVEL_COUNT, ladderOf } from './levels.js';
 import { sanitizeCustom } from './exercises/words.js';
@@ -76,7 +77,7 @@ export function createProfile({ name, avatar }, { now = new Date(), id = newId()
     createdAt: now.toISOString(),
     settings,
     levels: buildLevels(null, settings),
-    rewards: { stars: 0, stickers: [], reached: noneReached() },
+    rewards: { stars: 0, stickers: [], counts: {}, pity: {}, reached: noneReached() },
     history: [],
   };
 }
@@ -147,11 +148,23 @@ function sanitizeHistory(history) {
     && Number.isFinite(e.correct) && Number.isFinite(e.total) && typeof e.correct === 'number' && typeof e.total === 'number');
 }
 
+// copies per owned sticker; 1 is the default and not stored
+function sanitizeCounts(raw, stickers) {
+  const r = isObj(raw) ? raw : {};
+  return Object.fromEntries(stickers.filter((id) => Number.isInteger(r[id]) && r[id] > 1).map((id) => [id, r[id]]));
+}
+// duplicates in a row per page (bad-luck brake)
+function sanitizePity(raw) {
+  const r = isObj(raw) ? raw : {};
+  return Object.fromEntries(ALL_PAGES.filter((p) => Number.isInteger(r[p.id]) && r[p.id] > 0 && r[p.id] <= MAX_PITY).map((p) => [p.id, r[p.id]]));
+}
+
 export function normalizeProfile(raw) {
   const settings = normalizeSettings(sanitizeSettings(raw.settings));
   const rw = isObj(raw.rewards) ? raw.rewards : {};
   const lv = isObj(raw.levels) ? raw.levels : {};
   const levels = buildLevels(Object.fromEntries(Object.keys(EXERCISES).filter((k) => isObj(lv[k])).map((k) => [k, sanitizeLevel(lv[k])])), settings);
+  const stickers = Array.isArray(rw.stickers) ? rw.stickers.filter((x) => typeof x === 'string') : [];
   const { unlockedPages, secretDay, ...rest } = rw; // unlockedPages: pre-1.7, pages now open by level
   return {
     ...raw,
@@ -161,7 +174,9 @@ export function normalizeProfile(raw) {
     rewards: {
       ...rest,
       stars: num(rw.stars, 0),
-      stickers: Array.isArray(rw.stickers) ? rw.stickers.filter((x) => typeof x === 'string') : [],
+      stickers,
+      counts: sanitizeCounts(rw.counts, stickers),
+      pity: sanitizePity(rw.pity),
       reached: sanitizeReached(rw.reached, levels),
       ...(typeof secretDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(secretDay) ? { secretDay } : {}),
     },

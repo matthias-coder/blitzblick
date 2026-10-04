@@ -1,6 +1,6 @@
 import { EXERCISES } from './exercises/index.js';
 import { recordResult, effectiveLevel, advanceLevel } from './adaptive.js';
-import { applyRoundRewards } from './rewards.js';
+import { applyRoundRewards, PACK_PRICE } from './rewards.js';
 import { playableLevel, levelAvailable, ladderOf, LEVEL_COUNT } from './levels.js';
 import { localDate } from './util.js';
 
@@ -77,15 +77,18 @@ export function finishRound(profile, round, rng, now = new Date()) {
   const level = up ? advanceLevel(round.level, profile.settings.timing) : round.level;
   const id = round.exerciseId;
   const reached = { ...profile.rewards.reached, [id]: Math.max(profile.rewards.reached[id] ?? 0, level.level) };
-  const reward = applyRoundRewards(profile.rewards, correct, rng, { exercise: id, level: round.played, reached, today: localDate(now) });
+  // level gift: the first time an exercise reaches a level in a round, one pack of that level's page is free
+  const gift = up && up.to > (profile.rewards.reached[id] ?? 0) ? PACK_PRICE[up.to] : 0;
+  const reward = applyRoundRewards(profile.rewards, correct, rng, { reached, today: localDate(now) });
+  const rewards = gift ? { ...reward.rewards, stars: reward.rewards.stars + gift } : reward.rewards;
   return {
     profile: {
       ...profile,
       levels: { ...profile.levels, [id]: level },
-      rewards: reward.rewards,
+      rewards,
       history: [...profile.history, { date: localDate(now), exercise: id, correct, total: round.results.length, confusions }],
     },
-    reward: { ...reward, levelUp: up },
+    reward: { ...reward, rewards, levelUp: up, gift },
   };
 }
 
