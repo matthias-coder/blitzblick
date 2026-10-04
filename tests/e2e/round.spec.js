@@ -141,7 +141,7 @@ test('only known letters are asked', async ({ page }) => {
 test('small phone viewport: ten answer buttons fit without scrolling', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'viewport test runs once');
   await page.setViewportSize({ width: 360, height: 640 });
-  await seed(page, fixed(500, (p) => { p.levels.quantity.level = 3; })); // Vorschule level 4: bis 10
+  await seed(page, fixed(500, (p) => { p.levels.quantity.level = 3; p.settings.quantity = { compare: false }; })); // Vorschule level 4: bis 10
   await page.goto('/');
   await page.getByTestId('tile-quantity').click();
   const { choices } = await waitForChoices(page);
@@ -502,7 +502,7 @@ for (const [w, hgt] of [[360, 640], [640, 360]]) {
     await expect(fields.first()).toBeVisible({ timeout: 6000 });
     const a = await fields.first().boundingBox();
     const b = await fields.last().boundingBox();
-    const board = await page.getByTestId('stage').boundingBox();
+    const board = await page.getByTestId('board').boundingBox();
     expect(a.x + a.width).toBeLessThanOrEqual(b.x + 1); // left field ends before the right one starts
     expect(Math.abs(a.y - b.y)).toBeLessThan(2);         // same row
     for (const f of [a, b]) {

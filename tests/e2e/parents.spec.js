@@ -290,6 +290,9 @@ test('parents can switch compare tasks off', async ({ page }) => {
   const toggle = page.getByTestId('quantity-compare');
   await expect(toggle).toBeChecked();
   await toggle.uncheck();
+  await page.reload();
+  await openParents(page);
+  await expect(page.getByTestId('quantity-compare')).not.toBeChecked();
   const state = await readState(page);
   expect(state.profiles[0].settings.quantity.compare).toBe(false);
 });
