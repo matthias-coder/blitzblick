@@ -1,6 +1,7 @@
 import { h } from './dom.js';
 import { uiIcon } from './widgets.js';
 import { stickerUrl, packTarget } from '../rewards.js';
+import { stickerName } from '../sticker-names.js';
 import { ROUND_LENGTH } from '../session.js';
 import { PRAISE, SECRET, TRADE, SAVE, levelUpText } from '../phrases.js';
 
@@ -50,17 +51,24 @@ export function renderRoundEnd(root, ctx, { exerciseId, level, correct, reward }
   const animations = [], timers = [];
   const track = (x) => (typeof x === 'number' ? timers.push(x) : animations.push(x));
   const rays = h('div', { class: 'rays', 'aria-hidden': 'true' });
-  const card = reward.sticker ? h('div', { class: 'sticker-reveal' }, h('img', { src: stickerUrl(reward.sticker), alt: '' })) : null;
+  const card = reward.sticker
+    ? h('div', { class: 'sticker-reveal' }, h('img', { src: stickerUrl(reward.sticker), alt: stickerName(reward.sticker) }))
+    : null;
   const target = packTarget(reward.rewards, exerciseId, level);
+  const owned = reward.rewards.stars;
+  // #16: one central star with this round's stars, ringed by the progress toward the next pack
+  const ratio = target ? Math.min(1, owned / target.price) : 1;
+  const ringText = !target ? null : target.affordable ? 'Genug Sterne für eine Sticker-Tüte' : `Noch ${target.price - owned} Sterne bis zur nächsten Tüte`;
+  const ring = h('div', { class: `end-ring${target ? '' : ' no-ring'}`, 'data-testid': 'end-ring', style: `--p:${ratio.toFixed(3)}` },
+    decor('star-big', 'big-star'),
+    h('span', { class: 'end-count' }, String(correct)),
+    ringText ? h('span', { class: 'sr-only' }, ringText) : null);
   const prize = card
     ? h('div', { class: 'reveal', 'data-testid': 'new-sticker', 'data-sticker': reward.sticker }, rays, card)
-    : !target ? null
-      : target.affordable
-        ? h('button', { class: 'candy trade-hint', 'data-testid': 'trade-hint', onClick: () => ctx.go('album', { page: target.page.id }) },
-          uiIcon('album'), h('span', {}, 'Sticker-Tüte öffnen!'))
-        : h('div', { class: 'pack-progress', 'data-testid': 'pack-progress' },
-          h('span', {}, `Noch ${target.price - reward.rewards.stars}`), uiIcon('star'), h('span', {}, 'bis zur nächsten Tüte'),
-          h('div', { class: 'pack-bar' }, h('div', { class: 'pack-fill', style: `width:${Math.round(100 * reward.rewards.stars / target.price)}%` })));
+    : target?.affordable
+      ? h('button', { class: 'candy trade-hint', 'data-testid': 'trade-hint', onClick: () => ctx.go('album', { page: target.page.id }) },
+        uiIcon('album'), h('span', {}, 'Sticker-Tüte öffnen!'))
+      : null;
   const unlocked = reward.newlyUnlockedPages.length
     ? h('div', { class: 'unlock', 'data-testid': 'page-unlocked' }, uiIcon('album'), '+', String(reward.newlyUnlockedPages.length))
     : null;
@@ -89,13 +97,13 @@ export function renderRoundEnd(root, ctx, { exerciseId, level, correct, reward }
       h('div', { class: 'end-main' },
         h('div', { class: 'end-head' },
           bubble,
-          h('div', { class: 'big-stars' }, decor('star-big', 'big-star'), h('span', {}, String(correct)))),
+          ring),
         prize,
         prizeRow),
       h('div', { class: 'end-actions' },
         btn('again', 'play-again', 'Nochmal', () => ctx.go('round', { exerciseId })),
         albumBtn,
-        btn('check', 'round-done', 'Fertig', () => ctx.go('menu'), 'is-go'))),
+        btn('home', 'round-done', 'Fertig', () => ctx.go('menu'), 'is-go'))),
     h('img', { class: reward.levelUp ? 'mascot mascot-trophy' : 'mascot', src: `assets/mascot/${mascot}.webp`, 'data-testid': 'end-mascot', alt: '' }),
   );
   if (card && motion) playReveal({ card, rays, target: albumBtn, count, total }, track);

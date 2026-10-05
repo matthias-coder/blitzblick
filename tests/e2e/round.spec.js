@@ -41,7 +41,7 @@ test('a full quantity round awards stars and no sticker', async ({ page }) => {
     await choices.locator(`button[data-value="${answer}"]`).click();
   }
   await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
-  await expect(page.getByTestId('pack-progress')).toContainText('Noch 5');
+  await expect(page.getByTestId('end-ring')).toContainText('Noch 5');
   await expect(page.getByTestId('new-sticker')).toHaveCount(0);
   const p = (await readState(page)).profiles[0];
   expect(p.rewards.stars).toBe(5);
@@ -61,7 +61,7 @@ test('with fewer correct answers there are fewer stars and progress towards the 
     await choices.locator(`button[data-value="${value}"]`).click();
   }
   await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 8000 });
-  await expect(page.getByTestId('pack-progress')).toContainText('Noch 7');
+  await expect(page.getByTestId('end-ring')).toContainText('Noch 7');
   await expect(page.getByTestId('new-sticker')).toHaveCount(0);
   const p = (await readState(page)).profiles[0];
   expect(p.rewards.stars).toBe(3);
@@ -315,7 +315,7 @@ test.describe('round end in phone landscape', () => {
       const value = i < 2 ? await choices.locator(`button.choice:not([data-value="${answer}"])`).first().getAttribute('data-value') : answer;
       await choices.locator(`button[data-value="${value}"]`).click();
     }
-    await expect(page.getByTestId('pack-progress')).toBeVisible({ timeout: 8000 });
+    await expect(page.getByTestId('end-ring')).toBeVisible({ timeout: 8000 });
     await expectActionsInside(page);
   });
 });
@@ -859,4 +859,27 @@ test('the answer row keeps 16 px to the bottom edge and quantity objects use the
     expect(height - (last.y + last.height)).toBeGreaterThanOrEqual(16);
     await page.getByTestId('back').click();
   }
+});
+
+test('round end: one star with the round count inside a ring toward the next pack, house button', async ({ page }) => {
+  await seed(page, fixed(500, (p) => { p.rewards.stars = 2; }));
+  await page.goto('/');
+  await playPerfectRound(page);
+  const ring = page.getByTestId('end-ring');
+  await expect(ring).toBeVisible();
+  await expect(ring).toContainText('5');
+  await expect(ring).toContainText('Noch 3');
+  expect(Number(await ring.evaluate((e) => getComputedStyle(e).getPropertyValue('--p')))).toBeCloseTo(0.7, 2);
+  await expect(page.locator('.round-end img[src$="star.svg"]')).toHaveCount(0); // the second star display is gone
+  await expect(page.getByTestId('round-done').locator('img')).toHaveAttribute('src', 'assets/ui/home.svg');
+});
+
+test('round end: a full ring and the trade hint below it when a pack can be bought', async ({ page }) => {
+  await seed(page, fixed(500, (p) => { p.rewards.stars = 8; }));
+  await page.goto('/');
+  await playPerfectRound(page);
+  const ring = page.getByTestId('end-ring');
+  expect(Number(await ring.evaluate((e) => getComputedStyle(e).getPropertyValue('--p')))).toBe(1);
+  const [r, hint] = [await ring.boundingBox(), await page.getByTestId('trade-hint').boundingBox()];
+  expect(hint.y).toBeGreaterThan(r.y + r.height - 1);
 });
