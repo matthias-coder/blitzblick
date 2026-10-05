@@ -58,7 +58,8 @@ test('album tab rows fade at the edge while more tabs are hidden', async ({ page
   await page.goto('/');
   await page.getByTestId('open-album').click();
   const row = page.locator('.album-worlds');
-  if (await row.evaluate((n) => n.scrollWidth > n.clientWidth)) await expect(row).toHaveClass(/fade-end/);
+  expect(await row.evaluate((n) => n.scrollWidth > n.clientWidth)).toBe(true);
+  await expect(row).toHaveClass(/fade-end/);
   for (const tab of await page.locator('.album-tab').all()) {
     const t = await tab.boundingBox();
     const b = await tab.locator('.album-tab-level').boundingBox();
@@ -162,7 +163,7 @@ test('a highlighted secret sticker opens the secret world', async ({ page }) => 
   await expect(page.getByTestId('sticker-mischief/toast')).toHaveClass(/highlight/);
 });
 
-test('closing the pack dialog and leaving the album remove the key listener and resize listener', async ({ page }) => {
+test('closing the pack dialog and leaving the album remove the key listener', async ({ page }) => {
   await seed(page, (p) => { p.rewards.stars = 25; });
   await page.goto('/');
   await page.evaluate(() => {

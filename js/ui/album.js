@@ -66,6 +66,7 @@ export function render(root, ctx, { highlight = null, page = null } = {}) {
 
   // #25: the new sticker flips in on a modal overlay; Escape, a tap or a moment closes it and the focus goes back
   function showPack(res) {
+    closePack?.();
     const name = stickerName(res.sticker);
     const card = h('div', { class: 'sticker-reveal' }, h('img', { src: stickerUrl(res.sticker), alt: name }));
     const closeBtn = h('button', { type: 'button', class: 'icon-btn candy candy-round pack-close', 'data-testid': 'pack-close', 'aria-label': 'Schließen' }, uiIcon('check'));
