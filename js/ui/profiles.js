@@ -1,5 +1,6 @@
 import { h } from './dom.js';
 import { avatarImg } from './widgets.js';
+import { ageGradeFields } from './profile-fields.js';
 import { AVATARS, AVATAR_LABELS, createProfile, addProfile, setActive } from '../profiles.js';
 
 const WELCOME = 'Hallo! Schön, dass du da bist.';
@@ -29,19 +30,23 @@ function renderCreate(root, ctx) {
     },
   }, avatarImg(a))));
   const msg = h('p', { class: 'form-msg' });
+  const extra = ageGradeFields('profile-');
   const form = h('form', {
     class: 'card welcome',
     onSubmit: (e) => {
       e.preventDefault();
       if (!name.value.trim()) { msg.textContent = 'Bitte einen Namen eingeben.'; return; }
-      ctx.setState(addProfile(ctx.state, createProfile({ name: name.value, avatar })));
+      ctx.setState(addProfile(ctx.state, createProfile({ name: name.value, avatar, ...extra.values() })));
       ctx.go('menu');
     },
   },
   h('h1', {}, 'Willkommen bei Blitzblick'),
-  h('p', {}, 'Lege ein Profil für dein Kind an. Weitere Einstellungen findest du später im Elternbereich: Zahnrad oben rechts 1,5 Sekunden gedrückt halten.'),
   h('label', { for: 'profile-name' }, 'Name'), name,
   h('div', { class: 'label' }, 'Bild'), pick,
+  h('div', { class: 'parent-info', 'data-testid': 'parent-info' },
+    h('h2', {}, 'Für Eltern'),
+    h('p', {}, 'Alter und Klasse bestimmen, wie schnell es losgeht. Alles Weitere findest du später im Elternbereich: Zahnrad oben rechts 1,5 Sekunden gedrückt halten.'),
+    extra.el),
   msg,
   h('button', { class: 'primary-btn candy candy-pill is-primary', type: 'submit', 'data-testid': 'create-profile' }, 'Profil anlegen'));
   root.append(h('main', { class: 'center' }, form));

@@ -1,12 +1,13 @@
 import { h } from './dom.js';
 import { makeChallenge } from './gate.js';
 import { avatarImg } from './widgets.js';
+import { ageGradeFields } from './profile-fields.js';
 import { EXERCISES, EXERCISE_ORDER } from '../exercises/index.js';
 import { LETTERS } from '../exercises/letters.js';
 import { buildPool, parseCustomWord, letterKey, MAX_CUSTOM } from '../exercises/words.js';
 import {
   AVATARS, AVATAR_LABELS, createProfile, addProfile, removeProfile, setActive,
-  updateProfile, updateSettings, resetLevels, setGrade, setLevel, MIN_LETTERS,
+  updateProfile, setAge, updateSettings, resetLevels, setGrade, setLevel, MIN_LETTERS,
 } from '../profiles.js';
 import { GRADES, GRADE_LABELS, LEVEL_COUNT, ladderOf } from '../levels.js';
 import { serializeExport, exportFilename, ImportError } from '../storage.js';
@@ -275,6 +276,11 @@ function profilesTab(body, ctx, rerender) {
           rerender();
         },
       }),
+      h('input', {
+        type: 'text', inputmode: 'numeric', maxlength: '2', value: p.age ?? '', placeholder: 'Alter',
+        class: 'age-input', 'aria-label': 'Alter', 'data-testid': `age-${p.id}`,
+        onChange: (e) => { ctx.setState(updateProfile(ctx.state, p.id, (pr) => setAge(pr, e.target.value))); rerender(); },
+      }),
       p.id === activeProfileId
         ? h('span', { class: 'badge' }, 'aktiv')
         : h('button', { class: 'secondary-btn candy candy-pill', 'data-testid': `select-${p.id}`, onClick: () => { ctx.setState(setActive(ctx.state, p.id)); rerender(); } }, 'Auswählen'),
@@ -288,7 +294,8 @@ function profilesTab(body, ctx, rerender) {
       }, 'Löschen')));
   }
   let avatar = AVATARS[0];
-  const name = h('input', { type: 'text', maxlength: '20', placeholder: 'Name', 'data-testid': 'new-profile-name' });
+  const name = h('input', { type: 'text', maxlength: '20', placeholder: 'Name', 'aria-label': 'Name', 'data-testid': 'new-profile-name' });
+  const extra = ageGradeFields('new-profile-');
   const pick = h('div', { class: 'avatar-pick small' }, AVATARS.map((a) => h('button', {
     type: 'button',
     class: `avatar-opt candy candy-round${a === avatar ? ' selected' : ''}`,
@@ -300,10 +307,10 @@ function profilesTab(body, ctx, rerender) {
     onSubmit: (e) => {
       e.preventDefault();
       if (!name.value.trim()) return;
-      ctx.setState(addProfile(ctx.state, createProfile({ name: name.value, avatar })));
+      ctx.setState(addProfile(ctx.state, createProfile({ name: name.value, avatar, ...extra.values() })));
       rerender();
     },
-  }, h('h3', {}, 'Neues Profil'), name, h('div', { class: 'label' }, 'Bild'), pick,
+  }, h('h3', {}, 'Neues Profil'), name, h('div', { class: 'label' }, 'Bild'), pick, extra.el,
   h('div', { class: 'row' }, h('button', { class: 'primary-btn candy candy-pill is-primary', type: 'submit', 'data-testid': 'add-profile' }, 'Anlegen'))));
 }
 

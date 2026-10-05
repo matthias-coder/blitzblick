@@ -297,3 +297,22 @@ test('parents can switch compare tasks off', async ({ page }) => {
   const state = await readState(page);
   expect(state.profiles[0].settings.quantity.compare).toBe(false);
 });
+
+test('a new profile in the parent area gets age and grade; the age can be changed', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await openParents(page);
+  await page.getByTestId('tab-profiles').click();
+  await page.getByTestId('new-profile-name').fill('Ben');
+  await page.getByTestId('new-profile-age').fill('6');
+  await expect(page.getByTestId('new-profile-grade')).toHaveAttribute('data-value', 'g1');
+  await page.getByTestId('add-profile').click();
+  let s = await readState(page);
+  const ben = s.profiles.find((p) => p.name === 'Ben');
+  expect(ben.age).toBe(6);
+  expect(ben.settings.grade).toBe('g1');
+  await page.getByTestId(`age-${ben.id}`).fill('5');
+  await page.getByTestId(`age-${ben.id}`).press('Tab');
+  s = await readState(page);
+  expect(s.profiles.find((p) => p.id === ben.id).age).toBe(5);
+});

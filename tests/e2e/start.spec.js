@@ -10,6 +10,9 @@ test('first start asks for a profile and then shows the menu', async ({ page }) 
   await expect(page.locator('.form-msg')).toHaveText(/Namen/);
   await page.locator('#profile-name').fill('Mia');
   await page.getByTestId('avatar-dragon').click();
+  await expect(page.getByTestId('profile-grade')).toHaveAttribute('data-value', 'pre');
+  await page.getByTestId('profile-age').fill('7');
+  await expect(page.getByTestId('profile-grade')).toHaveAttribute('data-value', 'g1');
   await page.getByTestId('create-profile').click();
   await expect(page.getByTestId('tile-quantity')).toBeVisible();
   await expect(page.getByTestId('tile-digits')).toBeVisible();
@@ -17,6 +20,8 @@ test('first start asks for a profile and then shows the menu', async ({ page }) 
   const state = await readState(page);
   expect(state.profiles[0].name).toBe('Mia');
   expect(state.profiles[0].avatar).toBe('dragon');
+  expect(state.profiles[0].age).toBe(7);
+  expect(state.profiles[0].settings.grade).toBe('g1');
   await page.reload();
   await expect(page.getByTestId('tile-quantity')).toBeVisible();
 });
@@ -240,4 +245,36 @@ test('the empty album button shows a dimmed placeholder sticker that loads', asy
   const mini = page.getByTestId('open-album').locator('.mini-sticker');
   await expect(mini).toHaveClass(/empty/);
   await expect.poll(() => mini.evaluate((i) => i.naturalWidth)).toBeGreaterThan(0);
+});
+
+test('create profile: name and picture first, parent block below; a picked grade beats the age', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('welcome-start').click();
+  const [pick, info] = [await page.locator('.avatar-pick').boundingBox(), await page.getByTestId('parent-info').boundingBox()];
+  expect(info.y).toBeGreaterThan(pick.y + pick.height - 1);
+  await expect(page.getByTestId('profile-age')).toHaveAttribute('inputmode', 'numeric');
+  await page.getByTestId('profile-grade-g1').check();
+  await page.getByTestId('profile-age').fill('4');
+  await expect(page.getByTestId('profile-grade')).toHaveAttribute('data-value', 'g1');
+  await page.locator('#profile-name').fill('Ben');
+  await page.getByTestId('create-profile').click();
+  const p = (await readState(page)).profiles[0];
+  expect(p.age).toBe(4);
+  expect(p.settings.grade).toBe('g1');
+});
+
+test('create profile: junk age is ignored and Enter in the age field submits', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('welcome-start').click();
+  await page.locator('#profile-name').fill('Zoe');
+  for (const junk of ['abc', '0', '99', '5.5', '']) {
+    await page.getByTestId('profile-age').fill(junk);
+    await expect(page.getByTestId('profile-grade')).toHaveAttribute('data-value', 'pre');
+  }
+  await page.getByTestId('profile-age').fill('x1');
+  await page.getByTestId('profile-age').press('Enter');
+  await expect(page.getByTestId('tile-quantity')).toBeVisible();
+  const p = (await readState(page)).profiles[0];
+  expect(p.age).toBeNull();
+  expect(p.settings.grade).toBe('pre');
 });
