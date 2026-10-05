@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { seed, readState } from './helpers.js';
+import { seed, readState, contrast } from './helpers.js';
 
 const N = 5; // tasks per round
 
@@ -41,7 +41,7 @@ test('a full quantity round awards stars and no sticker', async ({ page }) => {
     await choices.locator(`button[data-value="${answer}"]`).click();
   }
   await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
-  await expect(page.getByTestId('pack-progress')).toContainText('Noch 5');
+  await expect(page.getByTestId('end-ring')).toContainText('Noch 5');
   await expect(page.getByTestId('new-sticker')).toHaveCount(0);
   const p = (await readState(page)).profiles[0];
   expect(p.rewards.stars).toBe(5);
@@ -61,7 +61,7 @@ test('with fewer correct answers there are fewer stars and progress towards the 
     await choices.locator(`button[data-value="${value}"]`).click();
   }
   await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 8000 });
-  await expect(page.getByTestId('pack-progress')).toContainText('Noch 7');
+  await expect(page.getByTestId('end-ring')).toContainText('Noch 7');
   await expect(page.getByTestId('new-sticker')).toHaveCount(0);
   const p = (await readState(page)).profiles[0];
   expect(p.rewards.stars).toBe(3);
@@ -122,6 +122,8 @@ test('back aborts the round without rewards but keeps difficulty changes', async
     await choices.locator(`button[data-value="${answer}"]`).click();
   }
   await page.getByTestId('back').click();
+  await expect(page.getByTestId('leave-dialog')).toBeVisible();
+  await page.getByTestId('leave-quit').click();
   await expect(page.getByTestId('tile-digits')).toBeVisible();
   const p = (await readState(page)).profiles[0];
   expect(p.rewards.stars).toBe(0);
@@ -141,7 +143,7 @@ test('only known letters are asked', async ({ page }) => {
 test('small phone viewport: ten answer buttons fit without scrolling', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'viewport test runs once');
   await page.setViewportSize({ width: 360, height: 640 });
-  await seed(page, fixed(500, (p) => { p.levels.quantity.level = 3; })); // Vorschule level 4: bis 10
+  await seed(page, fixed(500, (p) => { p.levels.quantity.level = 3; p.settings.quantity = { compare: false }; })); // Vorschule level 4: bis 10
   await page.goto('/');
   await page.getByTestId('tile-quantity').click();
   const { choices } = await waitForChoices(page);
@@ -313,7 +315,7 @@ test.describe('round end in phone landscape', () => {
       const value = i < 2 ? await choices.locator(`button.choice:not([data-value="${answer}"])`).first().getAttribute('data-value') : answer;
       await choices.locator(`button[data-value="${value}"]`).click();
     }
-    await expect(page.getByTestId('pack-progress')).toBeVisible({ timeout: 8000 });
+    await expect(page.getByTestId('end-ring')).toBeVisible({ timeout: 8000 });
     await expectActionsInside(page);
   });
 });
@@ -360,6 +362,7 @@ test('Zwanzigerfeld: twenty objects fit on the board', async ({ page }) => {
   await seed(page, fixed(3000, (p) => {
     p.settings.grade = 'g1';
     p.levels.quantity = { ...p.levels.quantity, level: 3 };
+    p.settings.quantity = { compare: false }; // compare tasks would hide the twenty field
   }));
   await page.goto('/');
   await page.getByTestId('tile-quantity').click();
@@ -377,10 +380,11 @@ test('Zwanzigerfeld: twenty objects fit on the board', async ({ page }) => {
 });
 
 test('quantity can count album stickers, and the sticker image loads', async ({ page }) => {
+  // stubbing Math.random to 0.99 ensures the task is always an object task (not fingers or compare)
+  // and the random draw picks the round's object: the last one in the pool is a sticker
+  await stubRandom(page, 0.99);
   await seed(page, fixed(3000));
   await page.goto('/');
-  // the next random draw picks the round's object: the last one in the pool is a sticker
-  await page.evaluate(() => { const real = Math.random; Math.random = () => { Math.random = real; return 0.999; }; });
   await page.getByTestId('tile-quantity').click();
   const obj = page.getByTestId('stimulus').locator('.obj').first();
   await expect(obj).toBeVisible({ timeout: 6000 });
@@ -392,8 +396,8 @@ test('a round with no correct answer gives a secret sticker, and the album shows
   await seed(page, fixed(500));
   await page.goto('/');
   await page.getByTestId('open-album').click();
-  await expect(page.getByTestId('album-group-quantity')).toBeVisible();
-  await expect(page.getByTestId('album-group-secret')).toHaveCount(0);
+  await expect(page.getByTestId('album-world-quantity')).toBeVisible();
+  await expect(page.getByTestId('album-tab-mischief')).toHaveCount(0);
   await page.getByTestId('back').click();
   await page.getByTestId('tile-digits').click();
   for (let i = 0; i < N; i++) {
@@ -444,4 +448,479 @@ test('screen readers hear the question and the result', async ({ page }) => {
   await expect(status).toHaveText('Wie viele waren es?');
   await choices.locator(`button[data-value="${answer}"]`).click();
   await expect(status).toHaveText('Richtig!');
+});
+
+// Math.random is stubbed to a constant: the first quantity task on a compare level is then a compare task
+const stubRandom = (page, v = 0.05) => page.addInitScript((x) => { Math.random = () => x; }, v);
+const compareLevel = (extra = () => {}) => (p) => {
+  p.settings.grade = 'g1';
+  p.settings.timing = { startMs: 800, minMs: 300, maxMs: 3000, adaptive: true };
+  p.levels.quantity = { ...p.levels.quantity, level: 0, step: 0, durationMs: 800 };
+  extra(p);
+};
+
+test('Wo ist mehr? tapping the side with more counts as correct', async ({ page }) => {
+  await stubRandom(page);
+  await seed(page, compareLevel());
+  await page.goto('/');
+  await page.getByTestId('tile-quantity').click();
+  await expect(page.getByTestId('compare-stimulus')).toBeVisible({ timeout: 6000 });
+  const { choices, answer } = await waitForChoices(page);
+  expect(['left', 'right']).toContain(answer);
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await expect(page.getByTestId('cheer')).toBeVisible();
+});
+
+test('Wo ist mehr? a wrong side shows both groups again as the solution', async ({ page }) => {
+  await stubRandom(page);
+  await seed(page, compareLevel());
+  await page.goto('/');
+  await page.getByTestId('tile-quantity').click();
+  const { choices, answer } = await waitForChoices(page);
+  await choices.locator(`button:not([data-value="${answer}"])`).first().click();
+  await expect(page.locator('.stimulus.solution [data-testid="compare-stimulus"] .field')).toHaveCount(2);
+  // the screen-reader status speaks German, not the internal answer key
+  const status = page.getByTestId('round-status');
+  await expect(status).toContainText(answer === 'left' ? 'links' : 'rechts');
+  await expect(status).not.toContainText(/left|right|equal/);
+});
+
+test('no compare tasks when the parents switched them off', async ({ page }) => {
+  await stubRandom(page);
+  await seed(page, compareLevel((p) => { p.settings.quantity = { compare: false }; }));
+  await page.goto('/');
+  await page.getByTestId('tile-quantity').click();
+  const { answer } = await waitForChoices(page);
+  expect(Number(answer)).toBeGreaterThan(0);
+  await expect(page.getByTestId('compare-stimulus')).toHaveCount(0);
+});
+
+for (const [w, hgt] of [[360, 640], [640, 360]]) {
+  test(`compare fields sit side by side inside the board at ${w}×${hgt}`, async ({ page }) => {
+    await page.setViewportSize({ width: w, height: hgt });
+    await stubRandom(page);
+    await seed(page, compareLevel((p) => {
+      p.settings.timing = { startMs: 3000, minMs: 3000, maxMs: 3000, adaptive: true };
+      p.levels.quantity.durationMs = 3000;
+    }));
+    await page.goto('/');
+    await page.getByTestId('tile-quantity').click();
+    const fields = page.getByTestId('compare-stimulus').locator('.field');
+    await expect(fields.first()).toBeVisible({ timeout: 6000 });
+    const a = await fields.first().boundingBox();
+    const b = await fields.last().boundingBox();
+    const board = await page.getByTestId('board').boundingBox();
+    expect(a.x + a.width).toBeLessThanOrEqual(b.x + 1); // left field ends before the right one starts
+    expect(Math.abs(a.y - b.y)).toBeLessThan(2);         // same row
+    for (const f of [a, b]) {
+      expect(f.x).toBeGreaterThanOrEqual(board.x - 1);
+      expect(f.x + f.width).toBeLessThanOrEqual(board.x + board.width + 1);
+    }
+  });
+}
+
+test('👁 shows the flash once more per task, 🔊 is hidden with speech off', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  await expect(page.locator('h1')).toHaveText('Zahlenblitz');
+  const eye = page.getByTestId('show-again');
+  await expect(eye).toBeDisabled(); // flash still running
+  await waitForChoices(page);
+  await expect(page.getByTestId('say-again')).toBeHidden();
+  await expect(eye).toBeEnabled();
+  await eye.click();
+  await expect(page.getByTestId('choices')).toHaveClass(/pending/);
+  await expect(page.getByTestId('board-waiting')).toBeVisible({ timeout: 4000 });
+  await expect(page.getByTestId('choices')).not.toHaveClass(/pending/);
+  await expect(eye).toBeDisabled(); // once per task
+  const { choices, answer } = await waitForChoices(page);
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await expect(page.locator('.round-stars .slot.earned')).toHaveCount(1); // the star still counts
+  await waitForChoices(page);
+  await expect(eye).toBeEnabled(); // next task: one replay again
+});
+
+for (const [w, hgt] of [[320, 568], [360, 640]]) {
+  test(`top bar with speech on keeps readable stars and no overflow at ${w}×${hgt}`, async ({ page }) => {
+    await page.setViewportSize({ width: w, height: hgt });
+    await seed(page, fixed(500, (p) => { p.settings.speech = 'little'; }));
+    await page.goto('/');
+    await page.getByTestId('tile-quantity').click();
+    await expect(page.getByTestId('say-again')).toBeVisible();
+    const bar = page.locator('.topbar');
+    expect(await bar.evaluate((e) => e.scrollWidth - e.clientWidth)).toBeLessThanOrEqual(0);
+    const slot = await page.locator('.round-stars .slot').first().boundingBox();
+    expect(slot.width).toBeGreaterThanOrEqual(w === 320 ? 16 : 24);
+    for (const id of ['back', 'say-again']) {
+      const box = await page.getByTestId(id).boundingBox();
+      expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44);
+    }
+  });
+}
+
+test('🔊 is shown with speech on and only active while the answers wait', async ({ page }) => {
+  await seed(page, fixed(500, (p) => { p.settings.speech = 'little'; }));
+  await page.goto('/');
+  await page.getByTestId('tile-quantity').click();
+  const say = page.getByTestId('say-again');
+  await expect(say).toBeVisible();
+  await expect(say).toBeDisabled();
+  const { choices, answer } = await waitForChoices(page);
+  await expect(say).toBeEnabled();
+  await say.click();
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await expect(say).toBeDisabled();
+});
+
+test('back before the first answer leaves at once', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  await waitForChoices(page);
+  await page.getByTestId('back').click();
+  await expect(page.getByTestId('leave-dialog')).toHaveCount(0);
+  await expect(page.getByTestId('tile-digits')).toBeVisible();
+});
+
+test('back after an answer asks first; Weiter and Escape keep playing', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  let { choices, answer } = await waitForChoices(page);
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await page.getByTestId('back').click();
+  const dialog = page.getByTestId('leave-dialog');
+  await expect(dialog).toContainText('Weiter üben?');
+  await expect(page.getByTestId('leave-stay')).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByTestId('leave-quit')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await page.getByTestId('back').click();
+  await page.getByTestId('leave-stay').click();
+  await expect(dialog).toHaveCount(0);
+  for (let i = 1; i < N; i++) {
+    ({ choices, answer } = await waitForChoices(page));
+    await choices.locator(`button[data-value="${answer}"]`).click();
+  }
+  await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
+  expect((await readState(page)).profiles[0].history).toHaveLength(1);
+});
+
+test('Beenden leaves the round and Escape afterwards does nothing', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  const { choices, answer } = await waitForChoices(page);
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await page.getByTestId('back').click();
+  await page.getByTestId('leave-quit').click();
+  await expect(page.getByTestId('tile-digits')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('tile-digits')).toBeVisible();
+  await expect(page.getByTestId('leave-dialog')).toHaveCount(0);
+});
+
+test('the round ending under an open leave dialog closes it and keeps the result', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  for (let i = 0; i < N - 1; i++) {
+    const { choices, answer } = await waitForChoices(page);
+    await choices.locator(`button[data-value="${answer}"]`).click();
+  }
+  const { choices, answer } = await waitForChoices(page);
+  await page.getByTestId('back').click();
+  await expect(page.getByTestId('leave-dialog')).toBeVisible();
+  // the round runs on underneath: answer through the overlay (as a keyboard or switch user would)
+  await choices.locator(`button[data-value="${answer}"]`).dispatchEvent('click');
+  await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
+  await expect(page.getByTestId('leave-dialog')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('round-end')).toBeVisible();
+  const p = (await readState(page)).profiles[0];
+  expect(p.history).toHaveLength(1);
+});
+
+test('leaving via the dialog during a 👁 replay leaves nothing behind', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  const { choices, answer } = await waitForChoices(page);
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await waitForChoices(page);
+  await page.getByTestId('show-again').click();
+  await expect(page.getByTestId('choices')).toHaveClass(/pending/);
+  await page.getByTestId('back').click();
+  await page.getByTestId('leave-quit').click();
+  await expect(page.getByTestId('tile-digits')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('leave-dialog')).toHaveCount(0);
+  await expect(page.getByTestId('tile-digits')).toBeVisible();
+  await expect(page.getByTestId('choices')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('the first start of an exercise runs one slow demo task that counts for nothing', async ({ page }) => {
+  await seed(page, fixed(500, (p) => { p.intro = {}; }));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  await expect(page.getByTestId('demo-intro')).toContainText('Schau genau hin');
+  const stim = page.getByTestId('stimulus');
+  await expect(stim).toBeVisible({ timeout: 6000 });
+  await page.waitForTimeout(2000);
+  await expect(stim).toBeVisible(); // 3 s instead of 0.5 s
+  const choices = page.getByTestId('choices');
+  await expect(choices.locator('button.choice:enabled').first()).toBeVisible({ timeout: 6000 });
+  await expect(choices).toHaveAttribute('data-demo', '1');
+  expect((await readState(page)).profiles[0].intro.digits).toBe(true);
+  const demoAnswer = await choices.getAttribute('data-answer');
+  await choices.locator(`button[data-value="${demoAnswer}"]`).click();
+  await expect(page.locator('.round-stars .slot.earned')).toHaveCount(0);
+  for (let i = 0; i < N; i++) {
+    const { choices: c, answer } = await waitForChoices(page);
+    await expect(c).not.toHaveAttribute('data-demo', '1');
+    await c.locator(`button[data-value="${answer}"]`).click();
+  }
+  await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
+  const p = (await readState(page)).profiles[0];
+  expect(p.rewards.stars).toBe(N);
+  expect(p.history[0].total).toBe(N);
+  expect(p.intro.digits).toBe(true); // intro stays seen after the round
+  await page.getByTestId('play-again').click();
+  await waitForChoices(page);
+  await expect(page.getByTestId('demo-intro')).toHaveCount(0);
+  await expect(page.getByTestId('choices')).not.toHaveAttribute('data-demo', '1');
+});
+
+async function startDemo(page) {
+  await page.getByTestId('tile-digits').click();
+  const choices = page.getByTestId('choices');
+  await expect(choices.locator('button.choice:enabled').first()).toBeVisible({ timeout: 10000 });
+  const answer = await choices.getAttribute('data-answer');
+  await expect(choices).toHaveAttribute('data-demo', '1');
+  return { choices, answer };
+}
+
+test('double-tapping the demo answer starts exactly one real task', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await seed(page, fixed(500, (p) => { p.intro = {}; }));
+  await page.goto('/');
+  const { choices, answer } = await startDemo(page);
+  const right = choices.locator(`button[data-value="${answer}"]`);
+  await right.click();
+  await page.waitForTimeout(600); // still inside the 1 s feedback
+  await right.click({ force: true });
+  await choices.locator('button:not([data-value="' + answer + '"])').first().click({ force: true });
+  // the first real task shows its answers ~1.5 s after the tap; a second playTask would hide them again
+  await waitForChoices(page);
+  await page.waitForTimeout(400);
+  await expect(choices).not.toHaveClass(/pending/);
+  for (let i = 0; i < N; i++) {
+    const { choices: c, answer: a } = await waitForChoices(page);
+    await expect(c).not.toHaveAttribute('data-demo', '1');
+    await c.locator(`button[data-value="${a}"]`).click();
+  }
+  await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
+  const p = (await readState(page)).profiles[0];
+  expect(p.history[0].total).toBe(N);
+  expect(p.rewards.stars).toBe(N);
+  expect(errors).toEqual([]);
+});
+
+test('a wrong demo answer shows the solution, then the first real task follows', async ({ page }) => {
+  await seed(page, fixed(500, (p) => { p.intro = {}; }));
+  await page.goto('/');
+  const { choices, answer } = await startDemo(page);
+  await choices.locator(`button:not([data-value="${answer}"])`).first().click();
+  await expect(page.locator('[data-testid="board"] .solution')).toBeVisible();
+  await expect(page.locator('.round-stars .slot.missed')).toHaveCount(0);
+  const next = await waitForChoices(page);
+  await expect(next.choices).not.toHaveAttribute('data-demo', '1');
+  await expect(page.locator('[data-testid="board"] .solution')).toHaveCount(0);
+  await next.choices.locator(`button[data-value="${next.answer}"]`).click();
+  await expect(page.locator('.round-stars .slot.earned')).toHaveCount(1);
+});
+
+for (const [name, delay] of [['the intro text', 300], ['the demo flash', 3000]]) {
+  test(`leaving during ${name} of the demo leaves nothing behind`, async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await seed(page, fixed(500, (p) => { p.intro = {}; }));
+    await page.goto('/');
+    await page.getByTestId('tile-digits').click();
+    await expect(page.getByTestId('demo-intro')).toBeVisible();
+    await page.waitForTimeout(delay);
+    await page.getByTestId('back').click();
+    await expect(page.getByTestId('tile-digits')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('leave-dialog')).toHaveCount(0);
+    await expect(page.getByTestId('tile-digits')).toBeVisible();
+    await expect(page.getByTestId('choices')).toHaveCount(0);
+    await page.waitForTimeout(3500); // the aborted demo must not wake up later
+    expect(errors).toEqual([]);
+    expect((await readState(page)).profiles[0].history).toHaveLength(0);
+  });
+}
+
+test('a wrong sum shows the whole equation inside the board', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await seed(page, onTopAddition);
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  const { choices, answer } = await waitForChoices(page);
+  await choices.locator(`button:not([data-value="${answer}"])`).first().click();
+  const eq = page.getByTestId('equation');
+  await expect(eq).toHaveText(new RegExp(`^\\d+ [+–] \\d+ = ${answer}$`));
+  const box = await eq.boundingBox();
+  const board = await page.getByTestId('board').boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(board.x - 1);
+  expect(box.x + box.width).toBeLessThanOrEqual(board.x + board.width + 1);
+});
+
+test('digits are bold; disabled digits, the waiting "?" and empty header stars keep their contrast', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  const { choices, answer } = await waitForChoices(page);
+  const css = (loc, prop) => loc.evaluate((e, p) => getComputedStyle(e)[p], prop);
+  expect(contrast(await css(page.getByTestId('board-waiting'), 'color'), await css(page.getByTestId('board'), 'backgroundColor'))).toBeGreaterThanOrEqual(3);
+  await expect(page.getByTestId('board-waiting')).toHaveCSS('animation-iteration-count', '3');
+  expect(contrast(await css(page.locator('.round-stars .slot').first(), 'backgroundColor'), await css(page.getByTestId('round-stars'), 'backgroundColor'))).toBeGreaterThanOrEqual(3);
+  expect(Number(await css(choices.locator('.glyph').first(), 'fontWeight'))).toBeGreaterThanOrEqual(700);
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  const other = choices.locator(`button:not([data-value="${answer}"])`).first();
+  await expect(other).toBeDisabled();
+  expect(Number(await css(other, 'opacity'))).toBe(1);
+  expect(contrast(await css(other, 'color'), await css(other, 'backgroundColor'))).toBeGreaterThanOrEqual(4.5);
+});
+
+// every animation on the element finished (the answer buttons pop in with a 1.08 overshoot)
+const settled = (loc) => loc.evaluate((e) => Promise.all(e.getAnimations().map((a) => a.finished)));
+
+// content that is wider than its button gets --fit < 1 from fitText and then really fits
+async function expectFitted(choices, selector) {
+  const items = await choices.locator(selector).all();
+  expect(items.length).toBeGreaterThan(0);
+  let shrunk = 0;
+  for (const it of items) {
+    const fit = await it.evaluate((e) => ({ f: e.style.getPropertyValue('--fit'), sw: e.scrollWidth, cw: e.clientWidth, pw: e.parentElement.clientWidth }));
+    if (fit.f && Number(fit.f) < 1) shrunk++;
+    expect(fit.cw).toBeLessThanOrEqual(fit.pw - 16 + 1);
+  }
+  return shrunk;
+}
+
+test('answer buttons shrink long words and numbers to fit (narrow phone)', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'viewport test runs once');
+  await page.setViewportSize({ width: 240, height: 568 });
+  await page.addInitScript(() => { Math.random = () => 0.99; });
+  await seed(page, (p) => {
+    fixed(500)(p);
+    p.settings.grade = 'g1';
+    p.settings.quantity = { compare: false };
+    p.settings.letters.known = ['A', 'M', 'O', 'L', 'S'];
+    p.levels.digits = { ...p.levels.digits, level: 1, step: 0 };
+    p.levels.syllables = { ...p.levels.syllables, level: 2, step: 0 };
+  });
+  await page.goto('/');
+  let shrunk = 0;
+  for (const [tile, sel] of [['tile-digits', '.choice .glyph'], ['tile-syllables', '.choice .word'], ['tile-quantity', '.choice .num, .choice .glyph, .choice .word']]) {
+    await page.getByTestId(tile).click();
+    const { choices } = await waitForChoices(page);
+    await settled(choices.locator('button.choice').last());
+    if (await choices.locator(sel).count()) shrunk += await expectFitted(choices, sel);
+    await page.getByTestId('back').click();
+  }
+  expect(shrunk).toBeGreaterThan(0); // without fitText these overflow, so the shrink must have happened
+});
+
+// the widest real equation ('10 – 10 = 0') takes ~50 % of the board; the style below makes it 3x too big so only the fit keeps it inside
+test('an oversized equation solution is fitted into the board', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'viewport test runs once');
+  await page.addInitScript(() => { Math.random = () => 0.99; }); // largest addends: widest equations
+  await seed(page, (p) => { onTopAddition(p); p.levels.digits = { ...p.levels.digits, level: 3, step: 0 }; });
+  for (const [width, height] of [[320, 568], [568, 320], [360, 640]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await page.addStyleTag({ content: '.flash-text.sum.equation { font-size: calc(40 * min(1cqw, 1cqh) * var(--fit, 1)) !important; }' });
+    await page.getByTestId('tile-digits').click();
+    const { choices, answer } = await waitForChoices(page);
+    await choices.locator(`button:not([data-value="${answer}"])`).first().click();
+    const eq = page.getByTestId('equation');
+    await expect(eq).toBeVisible();
+    await settled(eq.locator('xpath=..'));
+    const board = await page.getByTestId('board').boundingBox();
+    const box = await eq.boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(board.x - 1);
+    expect(box.x + box.width).toBeLessThanOrEqual(board.x + board.width + 1);
+    expect(await eq.evaluate((e) => e.scrollWidth <= e.clientWidth + 1)).toBe(true);
+    expect(await eq.evaluate((e) => Number(e.style.getPropertyValue('--fit') || 1))).toBeLessThan(1);
+  }
+});
+
+test('the answer row keeps 16 px to the bottom edge and quantity objects use the board', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'viewport test runs once');
+  await page.addInitScript(() => { Math.random = () => 0.99; }); // no finger pictures (25 %), only objects
+  await seed(page, (p) => { fixed(3000)(p); p.settings.quantity = { compare: false }; });
+  for (const [width, height] of [[360, 640], [640, 360], [1024, 700]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await page.getByTestId('tile-quantity').click();
+    const obj = page.locator('.board .obj').first();
+    await expect(obj).toBeVisible({ timeout: 6000 });
+    const ob = await obj.boundingBox();
+    const bb = await page.getByTestId('board').boundingBox();
+    expect(ob.width / bb.width).toBeGreaterThanOrEqual(0.155);
+    const { choices } = await waitForChoices(page);
+    await settled(choices.locator('button.choice').last()); // measure after the pop-in
+    const last = await choices.locator('button.choice').last().boundingBox();
+    expect(height - (last.y + last.height)).toBeGreaterThanOrEqual(16);
+    await page.getByTestId('back').click();
+  }
+});
+
+test('round end: one star with the round count inside a ring toward the next pack, house button', async ({ page }) => {
+  await seed(page, fixed(500, (p) => { p.rewards.stars = 2; }));
+  await page.goto('/');
+  await playPerfectRound(page);
+  const ring = page.getByTestId('end-ring');
+  await expect(ring).toBeVisible();
+  await expect(ring).toContainText('5');
+  await expect(ring).toContainText('Noch 3');
+  expect(Number(await ring.evaluate((e) => getComputedStyle(e).getPropertyValue('--p')))).toBeCloseTo(0.7, 2);
+  await expect(page.locator('.round-end img[src$="star.svg"]')).toHaveCount(0); // the second star display is gone
+  await expect(page.getByTestId('round-done').locator('img')).toHaveAttribute('src', 'assets/ui/home.svg');
+});
+
+test('round end: a full ring and the trade hint below it when a pack can be bought', async ({ page }) => {
+  await seed(page, fixed(500, (p) => { p.rewards.stars = 8; }));
+  await page.goto('/');
+  await playPerfectRound(page);
+  const ring = page.getByTestId('end-ring');
+  await settled(ring); // the ring pops in; measure only the final box
+  expect(Number(await ring.evaluate((e) => getComputedStyle(e).getPropertyValue('--p')))).toBe(1);
+  const [r, hint] = [await ring.boundingBox(), await page.getByTestId('trade-hint').boundingBox()];
+  expect(hint.y).toBeGreaterThan(r.y + r.height - 1);
+});
+
+test('round end in phone landscape: the trade hint icon stays small and clear of the three buttons', async ({ page }) => {
+  await page.setViewportSize({ width: 640, height: 360 });
+  await seed(page, fixed(500, (p) => { p.rewards.stars = 8; }));
+  await page.goto('/');
+  await playPerfectRound(page);
+  const hint = page.getByTestId('trade-hint');
+  await expect(hint).toBeVisible();
+  const icon = await hint.locator('img').boundingBox();
+  expect(icon.width).toBeLessThanOrEqual(40);
+  const h = await hint.boundingBox();
+  for (const id of ['play-again', 'to-album', 'round-done']) {
+    const b = await page.getByTestId(id).boundingBox();
+    const overlap = h.x < b.x + b.width && b.x < h.x + h.width && h.y < b.y + b.height && b.y < h.y + h.height;
+    expect(overlap, id).toBe(false);
+  }
 });

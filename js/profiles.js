@@ -16,6 +16,7 @@ export const DEFAULT_SETTINGS = {
   grade: 'pre',
   exercises: { quantity: true, digits: true, letters: true, syllables: true },
   hold: { quantity: false, digits: false, letters: false, syllables: false },
+  quantity: { compare: true },
   timing: { ...GRADE_TIMING.pre, adaptive: true },
   letters: { known: ['A', 'M', 'O'], speak: 'sound', lineature: true },
   syllables: { colors: true, custom: [] },
@@ -24,6 +25,16 @@ export const DEFAULT_SETTINGS = {
 };
 
 export const MIN_LETTERS = 2;
+export const MIN_AGE = 3;
+export const MAX_AGE = 10;
+
+// whole years only; typed text or a stored number
+export function parseAge(value) {
+  const n = typeof value === 'number' ? value : /^\s*\d{1,2}\s*$/.test(String(value ?? '')) ? Number(value) : NaN;
+  return Number.isInteger(n) && n >= MIN_AGE && n <= MAX_AGE ? n : null;
+}
+// German school entry is at six: younger children start in Vorschule
+export const gradeForAge = (age) => (age == null ? null : age >= 6 ? 'g1' : 'pre');
 
 // at least one exercise must be enabled and playable, otherwise the menu is empty
 const hasPlayable = (s) => Object.entries(EXERCISES).some(([k, ex]) => s.exercises[k] && ex.isAvailable(s));
@@ -68,17 +79,23 @@ export function newId() {
   return `p_${Date.now().toString(36)}${counter.toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
 }
 
-export function createProfile({ name, avatar }, { now = new Date(), id = newId() } = {}) {
+export function createProfile({ name, avatar, grade, age }, { now = new Date(), id = newId() } = {}) {
   const settings = structuredClone(DEFAULT_SETTINGS);
+  if (GRADES.includes(grade) && grade !== settings.grade) {
+    settings.grade = grade;
+    settings.timing = { ...GRADE_TIMING[grade], adaptive: settings.timing.adaptive };
+  }
   return {
     id,
     name: String(name).trim(),
     avatar: AVATARS.includes(avatar) ? avatar : AVATARS[0],
+    age: parseAge(age),
     createdAt: now.toISOString(),
     settings,
     levels: buildLevels(null, settings),
     rewards: { stars: 0, stickers: [], counts: {}, pity: {}, reached: noneReached() },
     history: [],
+    intro: {},
   };
 }
 
@@ -103,6 +120,7 @@ function sanitizeFields(raw) {
     grade: oneOf(r.grade, GRADES, d.grade),
     exercises,
     hold: Object.fromEntries(Object.keys(d.hold).map((k) => [k, bool(sub('hold')[k], false)])),
+    quantity: { compare: bool(sub('quantity').compare, d.quantity.compare) },
     timing: {
       startMs: num(sub('timing').startMs, d.timing.startMs),
       minMs: num(sub('timing').minMs, d.timing.minMs),
@@ -159,6 +177,12 @@ function sanitizePity(raw) {
   return Object.fromEntries(ALL_PAGES.filter((p) => Number.isInteger(r[p.id]) && r[p.id] > 0 && r[p.id] <= MAX_PITY).map((p) => [p.id, r[p.id]]));
 }
 
+// exercises whose demo run was shown; only `true` is kept
+function sanitizeIntro(raw) {
+  const r = isObj(raw) ? raw : {};
+  return Object.fromEntries(Object.keys(EXERCISES).filter((k) => r[k] === true).map((k) => [k, true]));
+}
+
 export function normalizeProfile(raw) {
   const settings = normalizeSettings(sanitizeSettings(raw.settings));
   const rw = isObj(raw.rewards) ? raw.rewards : {};
@@ -169,6 +193,7 @@ export function normalizeProfile(raw) {
   return {
     ...raw,
     avatar: AVATARS.includes(raw.avatar) ? raw.avatar : AVATARS[0],
+    age: typeof raw.age === 'number' ? parseAge(raw.age) : null,
     settings,
     levels,
     rewards: {
@@ -181,6 +206,7 @@ export function normalizeProfile(raw) {
       ...(typeof secretDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(secretDay) ? { secretDay } : {}),
     },
     history: sanitizeHistory(raw.history),
+    intro: sanitizeIntro(raw.intro),
   };
 }
 
@@ -235,3 +261,7 @@ export function setLevel(profile, exerciseId, level) {
     rewards: { ...profile.rewards, reached },
   };
 }
+
+export const needsIntro = (profile, exerciseId) => profile.intro?.[exerciseId] !== true;
+export const markIntroSeen = (profile, exerciseId) => ({ ...profile, intro: { ...profile.intro, [exerciseId]: true } });
+export const setAge = (profile, value) => ({ ...profile, age: parseAge(value) });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ROUND_LENGTH, createRound, nextTask, answerTask, finishRound, abortRound } from '../../js/session.js';
+import { ROUND_LENGTH, createRound, nextTask, answerTask, finishRound, abortRound, replayTask, demoTask, DEMO_MS } from '../../js/session.js';
 import { createProfile, updateSettings, setGrade, setLevel } from '../../js/profiles.js';
 import { mulberry32 } from '../../js/rng.js';
 
@@ -126,9 +126,11 @@ test('with fixed display duration the level set by the parents is played, on its
   const counts = new Set();
   for (let i = 0; i < 40; i++) {
     r = nextTask(r, p, rng);
-    assert.ok(!r.task.stimulus.add);
-    assert.deepEqual(r.task.choices.length, 10); // last step of "bis 10 mit Muster"
-    counts.add(r.task.answer);
+    if (!r.task.stimulus.compare) {
+      assert.ok(!r.task.stimulus.add);
+      assert.deepEqual(r.task.choices.length, 10); // last step of "bis 10 mit Muster"
+      counts.add(r.task.answer);
+    }
     r = answerTask(r, p, r.task.answer).round;
   }
   assert.equal(r.level.level, 0);
@@ -193,9 +195,9 @@ test('addition mistakes are not counted as confusions', () => {
   const r = {
     exerciseId: 'digits', level: p.levels.digits,
     results: [
-      { answer: '3', picked: '5', correct: false, add: true },
-      { answer: '3', picked: '5', correct: false, add: false },
-      { answer: '4', picked: '4', correct: true, add: false },
+      { answer: '3', picked: '5', correct: false, noConfusion: true },
+      { answer: '3', picked: '5', correct: false, noConfusion: false },
+      { answer: '4', picked: '4', correct: true, noConfusion: false },
     ],
   };
   assert.deepEqual(finishRound(p, r, mulberry32(1)).profile.history.at(-1).confusions, { '3>5': 1 });
@@ -206,9 +208,9 @@ test('answerTask flags addition results', () => {
   const rng = mulberry32(2);
   const r = nextTask(createRound(p, 'digits', rng), p, rng);
   const withAdd = { ...r, task: { ...r.task, stimulus: { add: true } } };
-  assert.equal(answerTask(withAdd, p, 'zzz').round.results[0].add, true);
+  assert.equal(answerTask(withAdd, p, 'zzz').round.results[0].noConfusion, true);
   const plain = { ...r, task: { ...r.task, stimulus: { text: '3' } } };
-  assert.equal(answerTask(plain, p, 'zzz').round.results[0].add, false);
+  assert.equal(answerTask(plain, p, 'zzz').round.results[0].noConfusion, false);
 });
 
 test('the first time a level is reached in a round the child gets its pack price as stars', () => {
@@ -228,4 +230,77 @@ test('no gift for an already reached level', () => {
   const { reward } = finishRound(p, playAll(p, 'digits', rng), rng);
   assert.equal(reward.levelUp.to, 1);
   assert.equal(reward.gift, 0);
+});
+
+test('createRound hands the played level to prepareRound', () => {
+  const p = setLevel(setGrade(profile(), 'g1'), 'quantity', 0);
+  const r = createRound(p, 'quantity', mulberry32(3));
+  assert.deepEqual(r.ctx.compare, { max: 10, minDiff: 2 });
+});
+
+test('compare answers are marked noConfusion', () => {
+  const p = setLevel(setGrade(profile(), 'g1'), 'quantity', 0);
+  const rng = mulberry32(5);
+  let r = createRound(p, 'quantity', rng);
+  let seen = false;
+  for (let i = 0; i < 30 && !seen; i++) {
+    r = nextTask(r, p, rng);
+    const compare = Boolean(r.task.stimulus.compare);
+    r = answerTask(r, p, compare ? 'equal' : r.task.answer).round;
+    const last = r.results.at(-1);
+    assert.equal(last.noConfusion, compare);
+    seen = compare;
+  }
+  assert.ok(seen);
+});
+
+test('a correct answer after a replay earns the star but is neutral for the adaptive engine', () => {
+  const rng = mulberry32(5);
+  const p = profile();
+  let r = nextTask(createRound(p, 'digits', rng), p, rng);
+  r = answerTask(r, p, r.task.answer).round; // streak 1
+  r = nextTask(r, p, rng);
+  assert.equal(r.replayed, false);
+  const before = r.level;
+  r = replayTask(r);
+  assert.equal(r.replayed, true);
+  const res = answerTask(r, p, r.task.answer);
+  assert.equal(res.correct, true);
+  assert.equal(res.round.results.at(-1).correct, true);
+  assert.equal(res.round.level.streak, before.streak);
+  assert.deepEqual(res.round.level.recent, before.recent);
+});
+
+test('a wrong answer after a replay counts as usual', () => {
+  const rng = mulberry32(6);
+  const p = profile();
+  let r = nextTask(createRound(p, 'digits', rng), p, rng);
+  const wrong = r.task.choices.find((c) => c !== r.task.answer);
+  const plain = answerTask(r, p, wrong).round.level;
+  const replayed = answerTask(replayTask(r), p, wrong).round.level;
+  assert.deepEqual(replayed, plain);
+});
+
+test('replay works once per task and only while an answer is awaited', () => {
+  const rng = mulberry32(7);
+  const p = profile();
+  const fresh = createRound(p, 'digits', rng);
+  assert.equal(replayTask(fresh), fresh); // no task yet
+  let r = replayTask(nextTask(fresh, p, rng));
+  assert.equal(replayTask(r), r); // second replay: unchanged
+  r = answerTask(r, p, r.task.answer).round;
+  assert.equal(replayTask(r).awaiting, false);
+  assert.equal(nextTask(r, p, rng).replayed, false);
+});
+
+test('demoTask gives a slow task and leaves the round untouched', () => {
+  const rng = mulberry32(8);
+  const p = profile();
+  const r = createRound(p, 'quantity', rng);
+  const snapshot = structuredClone(r);
+  const demo = demoTask(r, p, rng);
+  assert.equal(DEMO_MS, 3000);
+  assert.equal(demo.durationMs, DEMO_MS);
+  assert.ok(demo.task.choices.includes(demo.task.answer));
+  assert.deepEqual(r, snapshot);
 });

@@ -36,6 +36,7 @@ test('the level can be set per exercise and opens its sticker page', async ({ pa
   expect(p.rewards.reached.digits).toBe(2);
   await page.getByTestId('close-parents').click();
   await page.getByTestId('open-album').click();
+  await page.getByTestId('album-world-digits').click();
   await page.getByTestId('album-tab-space').click();
   await expect(page.getByTestId('locked-page')).toHaveCount(0);
 });
@@ -281,4 +282,74 @@ test('the gear also opens with a held Enter key, a short key press does not', as
   await page.waitForTimeout(1800);
   await page.keyboard.up('Enter');
   await expect(page.getByTestId('gate-question')).toBeVisible();
+});
+
+test('parents can switch compare tasks off', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await openParents(page);
+  const toggle = page.getByTestId('quantity-compare');
+  await expect(toggle).toBeChecked();
+  await toggle.uncheck();
+  await page.reload();
+  await openParents(page);
+  await expect(page.getByTestId('quantity-compare')).not.toBeChecked();
+  const state = await readState(page);
+  expect(state.profiles[0].settings.quantity.compare).toBe(false);
+});
+
+test('a new profile in the parent area gets age and grade; the age can be changed', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await openParents(page);
+  await page.getByTestId('tab-profiles').click();
+  await page.getByTestId('new-profile-name').fill('Ben');
+  await page.getByTestId('new-profile-age').fill('6');
+  await expect(page.getByTestId('new-profile-grade')).toHaveAttribute('data-value', 'g1');
+  await page.getByTestId('add-profile').click();
+  let s = await readState(page);
+  const ben = s.profiles.find((p) => p.name === 'Ben');
+  expect(ben.age).toBe(6);
+  expect(ben.settings.grade).toBe('g1');
+  await page.getByTestId(`age-${ben.id}`).fill('5');
+  await page.getByTestId(`age-${ben.id}`).press('Tab');
+  s = await readState(page);
+  expect(s.profiles.find((p) => p.id === ben.id).age).toBe(5);
+});
+
+test('the gate answer is a numeric text field', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await longPress(page, page.getByTestId('gear'));
+  const input = page.getByTestId('gate-answer');
+  await expect(input).toHaveAttribute('type', 'text');
+  await expect(input).toHaveAttribute('inputmode', 'numeric');
+  await expect(input).toHaveAttribute('pattern', '[0-9]*');
+  await input.fill(await page.getByTestId('gate-question').getAttribute('data-answer'));
+  await page.getByTestId('gate-submit').click();
+  await expect(page.locator('nav.tabs')).toHaveAttribute('aria-label', 'Bereiche');
+});
+
+test('junk in the gate field is no native validation error, it just returns to the menu', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await longPress(page, page.getByTestId('gear'));
+  await page.getByTestId('gate-answer').fill('abc');
+  expect(await page.locator('form.gate').evaluate((f) => f.noValidate)).toBe(true);
+  await page.getByTestId('gate-submit').click();
+  await expect(page.getByTestId('tile-quantity')).toBeVisible();
+});
+
+test('with reduced motion the gear ring shows as a static fill while held', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await seed(page);
+  await page.goto('/');
+  const gear = page.getByTestId('gear');
+  const box = await gear.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  const after = await gear.evaluate((e) => { const s = getComputedStyle(e, '::after'); return [s.animationName, s.clipPath]; });
+  await page.mouse.up();
+  expect(after[0]).toBe('none');
+  expect(after[1]).toMatch(/inset\(0(px)?\)/);
 });

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { seed, readState } from './helpers.js';
+import { seed, readState, contrast } from './helpers.js';
 
 test('first start asks for a profile and then shows the menu', async ({ page }) => {
   await page.goto('/');
@@ -10,6 +10,9 @@ test('first start asks for a profile and then shows the menu', async ({ page }) 
   await expect(page.locator('.form-msg')).toHaveText(/Namen/);
   await page.locator('#profile-name').fill('Mia');
   await page.getByTestId('avatar-dragon').click();
+  await expect(page.getByTestId('profile-grade')).toHaveAttribute('data-value', 'pre');
+  await page.getByTestId('profile-age').fill('7');
+  await expect(page.getByTestId('profile-grade')).toHaveAttribute('data-value', 'g1');
   await page.getByTestId('create-profile').click();
   await expect(page.getByTestId('tile-quantity')).toBeVisible();
   await expect(page.getByTestId('tile-digits')).toBeVisible();
@@ -17,6 +20,8 @@ test('first start asks for a profile and then shows the menu', async ({ page }) 
   const state = await readState(page);
   expect(state.profiles[0].name).toBe('Mia');
   expect(state.profiles[0].avatar).toBe('dragon');
+  expect(state.profiles[0].age).toBe(7);
+  expect(state.profiles[0].settings.grade).toBe('g1');
   await page.reload();
   await expect(page.getByTestId('tile-quantity')).toBeVisible();
 });
@@ -148,4 +153,140 @@ test('menu tiles carry their names and fit them on a phone', async ({ page }) =>
     expect(l.x).toBeGreaterThanOrEqual(t.x - 1);
     expect(l.x + l.width).toBeLessThanOrEqual(t.x + t.width + 1);
   }
+});
+
+test('menu: hidden heading, tile names 18–20 px at 390 px, AA contrast, distinct Zahlen/Buchstaben tiles', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seed(page);
+  await page.goto('/');
+  await expect(page.locator('h1')).toHaveText('Blitzblick – Übungen');
+  const css = (loc, prop) => loc.evaluate((e, p) => getComputedStyle(e)[p], prop);
+  const bg = {};
+  for (const id of ['quantity', 'digits', 'letters', 'syllables']) {
+    const tile = page.getByTestId(`tile-${id}`);
+    const label = tile.locator('.tile-name');
+    const size = parseFloat(await css(label, 'fontSize'));
+    expect(size).toBeGreaterThanOrEqual(id === 'letters' ? 16.5 : 18); // Buchstabenblitz may shrink to fit
+    expect(size).toBeLessThanOrEqual(20.5);
+    bg[id] = await css(tile, 'backgroundColor');
+    expect(contrast(await css(label, 'color'), bg[id])).toBeGreaterThanOrEqual(4.5);
+  }
+  const rgb = (s) => s.match(/\d+/g).slice(0, 3).map(Number);
+  const diff = rgb(bg.digits).reduce((sum, v, i) => sum + Math.abs(v - rgb(bg.letters)[i]), 0);
+  expect(diff).toBeGreaterThan(80);
+});
+
+test('the album button shows a mini sticker next to the count', async ({ page }) => {
+  await seed(page, (p) => { p.rewards.stickers = ['animals/lion', 'sea/fish']; });
+  await page.goto('/');
+  const mini = page.getByTestId('open-album').locator('.mini-sticker');
+  await expect(mini).toBeVisible();
+  await expect(mini).toHaveAttribute('src', 'assets/stickers/sea/fish.webp');
+  await expect(page.getByTestId('open-album')).toHaveText('2');
+});
+
+async function expectLabelsInside(page) {
+  for (const id of ['quantity', 'digits', 'letters', 'syllables']) {
+    const tile = page.getByTestId(`tile-${id}`);
+    const [t, l] = [await tile.boundingBox(), await tile.locator('.tile-name').boundingBox()];
+    expect(l.x).toBeGreaterThanOrEqual(t.x);
+    expect(l.x + l.width).toBeLessThanOrEqual(t.x + t.width);
+    expect(l.width).toBeLessThanOrEqual(t.width * 0.93); // fitText keeps a margin
+  }
+}
+
+test('tile names stay inside their tiles at 320 px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await seed(page);
+  await page.goto('/');
+  await expect(page.getByTestId('tile-letters')).toBeVisible();
+  await expectLabelsInside(page);
+});
+
+test('tile names are refitted when the viewport shrinks', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await seed(page);
+  await page.goto('/');
+  await expect(page.getByTestId('tile-letters')).toBeVisible();
+  await page.evaluate(async () => { await document.fonts.ready; await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); }); // initial fit has run
+  await page.setViewportSize({ width: 320, height: 568 });
+  await expect.poll(async () => {
+    const t = await page.getByTestId('tile-letters').boundingBox();
+    const l = await page.getByTestId('tile-letters').locator('.tile-name').boundingBox();
+    return l.x >= t.x && l.x + l.width <= t.x + t.width && l.width <= t.width * 0.93;
+  }).toBe(true);
+  await expectLabelsInside(page);
+});
+
+test('the menu removes its resize listener when left', async ({ page }) => {
+  await seed(page);
+  await page.addInitScript(() => {
+    window.__rs = 0;
+    const add = window.addEventListener.bind(window);
+    window.addEventListener = (t, f, o) => { if (t === 'resize') window.__rs++; return add(t, f, o); };
+    const rem = window.removeEventListener.bind(window);
+    window.removeEventListener = (t, f, o) => { if (t === 'resize') window.__rs--; return rem(t, f, o); };
+  });
+  await page.goto('/');
+  await expect(page.getByTestId('tile-quantity')).toBeVisible();
+  expect(await page.evaluate(() => window.__rs)).toBe(1);
+  await page.getByTestId('open-album').click();
+  await page.getByTestId('back').dispatchEvent('click');
+  await expect(page.getByTestId('tile-quantity')).toBeVisible();
+  expect(await page.evaluate(() => window.__rs)).toBe(1); // album adds+removes its own, menu re-added once
+  await page.getByTestId('open-album').click();
+  await expect(page.getByTestId('back')).toBeVisible();
+  expect(await page.evaluate(() => window.__rs)).toBeLessThanOrEqual(1); // menu's listener is gone
+});
+
+test('the empty album button shows a dimmed placeholder sticker that loads', async ({ page }) => {
+  await seed(page, (p) => { p.rewards.stickers = []; });
+  await page.goto('/');
+  const mini = page.getByTestId('open-album').locator('.mini-sticker');
+  await expect(mini).toHaveClass(/empty/);
+  await expect.poll(() => mini.evaluate((i) => i.naturalWidth)).toBeGreaterThan(0);
+});
+
+test('create profile: name and picture first, parent block below; a picked grade beats the age', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('welcome-start').click();
+  const [pick, info] = [await page.locator('.avatar-pick').boundingBox(), await page.getByTestId('parent-info').boundingBox()];
+  expect(info.y).toBeGreaterThan(pick.y + pick.height - 1);
+  await expect(page.getByTestId('profile-age')).toHaveAttribute('inputmode', 'numeric');
+  await page.getByTestId('profile-grade-g1').check();
+  await page.getByTestId('profile-age').fill('4');
+  await expect(page.getByTestId('profile-grade')).toHaveAttribute('data-value', 'g1');
+  await page.locator('#profile-name').fill('Ben');
+  await page.getByTestId('create-profile').click();
+  const p = (await readState(page)).profiles[0];
+  expect(p.age).toBe(4);
+  expect(p.settings.grade).toBe('g1');
+});
+
+test('create profile: junk age is ignored and Enter in the age field submits', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('welcome-start').click();
+  await page.locator('#profile-name').fill('Zoe');
+  for (const junk of ['abc', '0', '99', '5.5', '']) {
+    await page.getByTestId('profile-age').fill(junk);
+    await expect(page.getByTestId('profile-grade')).toHaveAttribute('data-value', 'pre');
+  }
+  await page.getByTestId('profile-age').fill('x1');
+  await page.getByTestId('profile-age').press('Enter');
+  await expect(page.getByTestId('tile-quantity')).toBeVisible();
+  const p = (await readState(page)).profiles[0];
+  expect(p.age).toBeNull();
+  expect(p.settings.grade).toBe('pre');
+});
+
+test('candy gloss stays inside round buttons; looping animations stop', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.welcome-robot')).toHaveCSS('animation-iteration-count', '3');
+  await page.getByTestId('welcome-start').click();
+  await expect(page.locator('.avatar-opt').first()).toHaveCSS('overflow', 'hidden');
+  await page.locator('#profile-name').fill('Mia');
+  await page.getByTestId('create-profile').click();
+  await expect(page.getByTestId('gear')).toHaveCSS('overflow', 'visible'); // its hold ring sits outside
+  await page.getByTestId('open-album').click();
+  await expect(page.getByTestId('back')).toHaveCSS('overflow', 'hidden');
 });

@@ -5,15 +5,17 @@ import { playableLevel, levelAvailable, ladderOf, LEVEL_COUNT } from './levels.j
 import { localDate } from './util.js';
 
 export const ROUND_LENGTH = 5;
+export const DEMO_MS = 3000;
 
 export function createRound(profile, exerciseId, rng) {
   const ex = EXERCISES[exerciseId];
   const level = profile.levels[exerciseId];
+  const played = playableLevel(exerciseId, profile.settings, level.level);
   return {
     exerciseId,
     level,
-    played: playableLevel(exerciseId, profile.settings, level.level),
-    ctx: ex.prepareRound ? ex.prepareRound(rng) : {},
+    played,
+    ctx: ex.prepareRound ? ex.prepareRound(rng, ladderOf(exerciseId, profile.settings)[played]) : {},
     results: [],
     task: null,
     durationMs: null,
@@ -43,16 +45,30 @@ export function nextTask(round, profile, rng) {
   const ex = EXERCISES[round.exerciseId];
   const eff = effectiveFor(profile, round.exerciseId, round.level, round.played);
   const task = ex.createTask(eff.stepDef, profile.settings, rng, round.ctx);
-  return { ...round, task, durationMs: Math.round(eff.durationMs * (task.durationFactor ?? 1)), awaiting: true };
+  return { ...round, task, durationMs: Math.round(eff.durationMs * (task.durationFactor ?? 1)), awaiting: true, replayed: false };
 }
 
 export function answerTask(round, profile, picked) {
   if (!round.awaiting) return { round, ignored: true };
   const correct = picked === round.task.answer;
   const steps = ladderOf(round.exerciseId, profile.settings)[round.played].steps;
-  const level = recordResult(round.level, correct, profile.settings.timing, steps.length - 1);
-  const results = [...round.results, { answer: round.task.answer, picked, correct, add: Boolean(round.task.stimulus?.add) }];
+  const level = recordResult(round.level, correct, profile.settings.timing, steps.length - 1, { neutral: Boolean(round.replayed) });
+  const st = round.task.stimulus;
+  const results = [...round.results, { answer: round.task.answer, picked, correct, noConfusion: Boolean(st?.add || st?.compare) }];
   return { round: { ...round, level, results, awaiting: false }, correct, finished: results.length >= ROUND_LENGTH };
+}
+
+// eye button: the same flash once more per task, only while the answers wait
+export function replayTask(round) {
+  if (!round.awaiting || round.replayed) return round;
+  return { ...round, replayed: true };
+}
+
+// first start of an exercise: one slow example task that counts for nothing; ctx is copied so per-round counters stay put
+export function demoTask(round, profile, rng) {
+  const ex = EXERCISES[round.exerciseId];
+  const eff = effectiveFor(profile, round.exerciseId, round.level, round.played);
+  return { task: ex.createTask(eff.stepDef, profile.settings, rng, structuredClone(round.ctx)), durationMs: DEMO_MS };
 }
 
 // a mastered level moves up at the end of the round, unless the parents hold it
@@ -69,7 +85,7 @@ export function finishRound(profile, round, rng, now = new Date()) {
   const correct = round.results.filter((r) => r.correct).length;
   const confusions = {};
   for (const r of round.results) {
-    if (r.correct || r.add) continue; // arithmetic mistakes are not letter/digit confusions
+    if (r.correct || r.noConfusion) continue; // arithmetic and compare mistakes are not letter/digit confusions
     const key = `${r.answer}>${r.picked}`;
     confusions[key] = (confusions[key] ?? 0) + 1;
   }

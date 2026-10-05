@@ -4,8 +4,9 @@ import { EXERCISES, EXERCISE_ORDER } from '../../js/exercises/index.js';
 import {
   DEFAULT_SETTINGS, createProfile, addProfile, removeProfile, setActive, getActive,
   updateProfile, updateSettings, resetLevels, normalizeProfile, setGrade, setLevel,
+  parseAge, gradeForAge, needsIntro, markIntroSeen, setAge, MIN_AGE, MAX_AGE,
 } from '../../js/profiles.js';
-import { GRADES, LEVEL_COUNT } from '../../js/levels.js';
+import { GRADES, GRADE_TIMING, LEVEL_COUNT } from '../../js/levels.js';
 import { parseImport } from '../../js/storage.js';
 
 const empty = () => ({ schemaVersion: 1, activeProfileId: null, profiles: [] });
@@ -276,4 +277,68 @@ test('rewards counts and pity are sanitized; old profiles get empty ones', () =>
     pity: { fruit: 2, sea: 9, nope: 1, dinos: -1 } } });
   assert.deepEqual(p.rewards.counts, { 'fruit/pear': 3 });
   assert.deepEqual(p.rewards.pity, { fruit: 2 });
+});
+
+test('quantity.compare defaults to on and is filled in for old profiles', () => {
+  assert.deepEqual(DEFAULT_SETTINGS.quantity, { compare: true });
+  const old = createProfile({ name: 'Alt', avatar: 'astronaut' }, { id: 'old' });
+  delete old.settings.quantity;
+  assert.equal(normalizeProfile(old).settings.quantity.compare, true);
+  const off = createProfile({ name: 'Aus', avatar: 'astronaut' }, { id: 'off' });
+  off.settings.quantity = { compare: false };
+  assert.equal(normalizeProfile(off).settings.quantity.compare, false);
+});
+
+test('parseAge accepts whole years in range only', () => {
+  assert.equal(MIN_AGE, 3);
+  assert.equal(MAX_AGE, 10);
+  assert.equal(parseAge(6), 6);
+  assert.equal(parseAge(' 7 '), 7);
+  assert.equal(parseAge('3'), 3);
+  assert.equal(parseAge('10'), 10);
+  for (const bad of [2, 11, 6.5, '6.5', '', 'sechs', null, undefined, NaN, '1e1', -4]) assert.equal(parseAge(bad), null, String(bad));
+});
+
+test('gradeForAge preselects Vorschule up to 5 and Klasse 1 from 6', () => {
+  assert.equal(gradeForAge(null), null);
+  assert.equal(gradeForAge(4), 'pre');
+  assert.equal(gradeForAge(5), 'pre');
+  assert.equal(gradeForAge(6), 'g1');
+  assert.equal(gradeForAge(9), 'g1');
+});
+
+test('createProfile stores age and starts in the chosen grade with its timing', () => {
+  const p = createProfile({ name: 'Ben', avatar: 'dino', grade: 'g1', age: '7' }, { id: 'p2' });
+  assert.equal(p.age, 7);
+  assert.equal(p.settings.grade, 'g1');
+  assert.deepEqual(p.settings.timing, { ...GRADE_TIMING.g1, adaptive: true });
+  assert.deepEqual(p.intro, {});
+  const d = createProfile({ name: 'Mia', avatar: 'cat' }, { id: 'p3' });
+  assert.equal(d.age, null);
+  assert.equal(d.settings.grade, 'pre');
+  assert.equal(createProfile({ name: 'X', avatar: 'cat', grade: 'g9' }, { id: 'p4' }).settings.grade, 'pre');
+});
+
+test('old or broken profiles get a clean age and intro', () => {
+  const base = createProfile({ name: 'Mia', avatar: 'cat' }, { id: 'p1' });
+  const { age, intro, ...old } = base;
+  const n = normalizeProfile(old);
+  assert.equal(n.age, null);
+  assert.deepEqual(n.intro, {});
+  const junk = normalizeProfile({ ...base, age: '7', intro: { quantity: 'yes', digits: true, nope: true } });
+  assert.equal(junk.age, null); // stored ages are numbers
+  assert.deepEqual(junk.intro, { digits: true });
+  assert.equal(normalizeProfile({ ...base, age: 99 }).age, null);
+  assert.equal(normalizeProfile({ ...base, age: 8 }).age, 8);
+});
+
+test('intro flags and age setters', () => {
+  const p = createProfile({ name: 'Mia', avatar: 'cat' }, { id: 'p1' });
+  assert.equal(needsIntro(p, 'quantity'), true);
+  const seen = markIntroSeen(p, 'quantity');
+  assert.equal(needsIntro(seen, 'quantity'), false);
+  assert.equal(needsIntro(seen, 'digits'), true);
+  assert.equal(p.intro.quantity, undefined); // immutable
+  assert.equal(setAge(p, '5').age, 5);
+  assert.equal(setAge(p, 'x').age, null);
 });

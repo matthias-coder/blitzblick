@@ -38,7 +38,9 @@ function easier(l, t) {
   return l;
 }
 
-export function recordResult(state, correct, timing, maxStep) {
+// neutral: the task was shown twice; a correct answer then says nothing about speed, a wrong one still counts
+export function recordResult(state, correct, timing, maxStep, { neutral = false } = {}) {
+  if (neutral && correct) return clampLevel(state, timing, maxStep);
   const recent = [...state.recent, correct].slice(-3);
   const streak = correct ? state.streak + 1 : 0;
   const base = { ...clampLevel(state, timing, maxStep), recent, streak };

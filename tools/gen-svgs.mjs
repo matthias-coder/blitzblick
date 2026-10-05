@@ -19,6 +19,10 @@ out('ui/lock.svg', sw('M33 46V32a17 17 0 0 1 34 0v14', 10) + `<path fill-rule="e
 out('ui/again.svg', sw('M80 50A30 30 0 1 1 69 27', 11) + `<polygon points="82,36 77,12 56,34" ${solid}/>`);
 out('ui/album.svg', `<rect x="18" y="12" width="64" height="76" rx="8" fill="none" stroke="${INK}" stroke-width="7"/>` + sw('M33 12v76', 6) + `<polygon points="${star(58, 50, 17, 7.5)}" ${solid}/>`);
 out('ui/star.svg', `<polygon points="50,6 63,36 95,38 70,59 78,92 50,74 22,92 30,59 5,38 37,36" fill="#FFC233" stroke="${INK}" stroke-width="4" stroke-linejoin="round"/>`);
+out('ui/speaker.svg', `<path fill="${INK}" stroke="${INK}" stroke-width="4" stroke-linejoin="round" d="M12 38h16l22-18v60L28 62H12z"/>` + sw('M62 36a18 18 0 0 1 0 28', 8) + sw('M72 24a34 34 0 0 1 0 52', 8));
+out('ui/eye.svg', sw('M8 50Q50 10 92 50Q50 90 8 50z', 8) + `<circle cx="50" cy="50" r="13" ${solid}/>`);
+out('ui/play.svg', `<polygon points="30,18 82,50 30,82" fill="${INK}" stroke="${INK}" stroke-width="8" stroke-linejoin="round"/>`);
+out('ui/home.svg', sw('M12 50L50 16l38 34', 10) + `<path ${solid} d="M24 46h52v40H58V64H42v22H24z"/>`);
 
 // ---- app icon (background per amendment)
 out('icons/icon.svg', `<rect x="0" y="0" width="100" height="100" rx="22" fill="#6B42DE"/><ellipse cx="50" cy="52" rx="38" ry="24" fill="#FFFFFF" stroke="${INK}" stroke-width="3"/><circle cx="50" cy="52" r="15" fill="#FF9F1C" stroke="${INK}" stroke-width="3"/><polygon points="54,30 40,56 50,56 46,74 62,46 52,46" fill="#FFC233" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/>`);

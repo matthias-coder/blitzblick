@@ -41,7 +41,7 @@ test('a 1.6 default profile (bis 5, capitals, syllables) becomes Vorschule at co
 
 test('old settings are dropped, own timing, stars and stickers are kept', () => {
   const p = up(v1({ timing: { startMs: 1200, minMs: 250, maxMs: 2800, adaptive: true } }));
-  assert.equal(p.settings.quantity, undefined);
+  assert.deepEqual(p.settings.quantity, { compare: true }); // v1 quantity settings dropped, new setting defaults on
   assert.equal(p.settings.digits, undefined);
   assert.equal(p.settings.letters.case, undefined);
   assert.deepEqual(p.settings.timing, { startMs: 1200, minMs: 250, maxMs: 2800, adaptive: true });

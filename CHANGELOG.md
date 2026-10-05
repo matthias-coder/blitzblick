@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.9.0] – 2026-10-05
+
+- Mengenblitz: „Wo ist mehr?“ – links und rechts blitzen zwei Gruppen auf, das Kind tippt die Seite mit mehr. Ab Vorschule Level 2 bzw. Klasse 1 Level 1 etwa jede dritte Aufgabe, höchstens zwei pro Runde; später auch „gleich viel“ und große Dinge in der kleineren Gruppe
+- Mengenblitz: Mengen bis 10 erscheinen manchmal als Finger (eine Hand bis 5, darüber eine volle Hand plus Rest)
+- Elternbereich: Schalter „Vergleiche einmischen“
+- Runde: 🔊 spricht die Frage noch einmal, 👁 zeigt das Bild noch einmal (einmal pro Aufgabe; eine richtige Antwort danach gibt den Stern, macht das Spiel aber nicht schneller)
+- „Zurück“ mitten in der Runde fragt erst „Weiter üben?“
+- Beim ersten Start jeder Übung zeigt der Roboter eine langsame Beispielaufgabe
+- Album: oben die Welten Mengen, Zahlen, Buchstaben, Silben (und Bonus), darunter nur deren Seiten; es öffnet bei der zuletzt gespielten Übung. Fehlende Sticker tragen ein „?“
+- Rundenende: ein großer Stern mit den Sternen der Runde, der Ring darum zeigt, wie nah die nächste Sticker-Tüte ist; „Fertig“ mit Haus
+- Profil anlegen: erst Name und Bild, darunter ein Eltern-Kasten mit Alter und Klasse (das Alter schlägt die Klasse vor)
+- Zahlenblitz: Bei einer falschen Rechenantwort steht die ganze Rechnung da, z. B. „9 – 5 = 4“
+- Besser lesbar: fette Ziffern, kräftigere Farben auf Kacheln, Wartezeichen und Sternleiste, größere Kachelnamen; Bildschirmleser hören Überschriften und Stickernamen
+- Kleinigkeiten: Zahlenfeld im Elternbereich, ruhigere Animationen, Glanzstreifen bleibt im Knopf
+
 ## [1.8.1] – 2026-10-04
 
 - Blitzwörter mit breiten Buchstaben (z. B. „Mama“, „Oma“) werden nicht mehr rechts abgeschnitten; lange Wörter auf den Antwortknöpfen passen auch auf schmalen Handys
