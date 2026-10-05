@@ -36,6 +36,7 @@ test('the level can be set per exercise and opens its sticker page', async ({ pa
   expect(p.rewards.reached.digits).toBe(2);
   await page.getByTestId('close-parents').click();
   await page.getByTestId('open-album').click();
+  await page.getByTestId('album-world-digits').click();
   await page.getByTestId('album-tab-space').click();
   await expect(page.getByTestId('locked-page')).toHaveCount(0);
 });

@@ -396,8 +396,8 @@ test('a round with no correct answer gives a secret sticker, and the album shows
   await seed(page, fixed(500));
   await page.goto('/');
   await page.getByTestId('open-album').click();
-  await expect(page.getByTestId('album-group-quantity')).toBeVisible();
-  await expect(page.getByTestId('album-group-secret')).toHaveCount(0);
+  await expect(page.getByTestId('album-world-quantity')).toBeVisible();
+  await expect(page.getByTestId('album-tab-mischief')).toHaveCount(0);
   await page.getByTestId('back').click();
   await page.getByTestId('tile-digits').click();
   for (let i = 0; i < N; i++) {

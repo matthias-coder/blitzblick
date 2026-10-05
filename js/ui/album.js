@@ -1,29 +1,45 @@
 import { h } from './dom.js';
 import { iconBtn, starBadge, uiIcon } from './widgets.js';
 import {
-  ALL_PAGES, SECRET_PAGE, stickerId, stickerUrl, isPageVisible, isPageComplete, canTrade, packPrice, countOf, openPack,
+  SECRET_PAGE, stickerId, stickerUrl, isPageVisible, isPageComplete, canTrade, packPrice, countOf, openPack, pageById,
 } from '../rewards.js';
+import { WORLD_LABELS, pagesOf, bonusWorldVisible, albumStart, defaultPage } from '../album-nav.js';
+import { stickerName } from '../sticker-names.js';
 import { updateProfile } from '../profiles.js';
 import { EXERCISE_ORDER } from '../exercises/index.js';
 import { STICKER, DUPLICATE, BONUS_PAGE } from '../phrases.js';
 
 const REVEAL_MS = 2500;
 
+// a scrolling tab row fades out at an edge while more tabs are hidden there
+function edgeFade(nav) {
+  const update = () => {
+    nav.classList.toggle('fade-start', nav.scrollLeft > 2);
+    nav.classList.toggle('fade-end', nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 2);
+  };
+  nav.addEventListener('scroll', update, { passive: true });
+  return update;
+}
+
 export function render(root, ctx, { highlight = null, page = null } = {}) {
   const rw = () => ctx.profile.rewards;
   // the secret page stays invisible until its first sticker is collected
   const secretIds = () => SECRET_PAGE.stickers.map((s) => stickerId(SECRET_PAGE.id, s)).filter((id) => rw().stickers.includes(id));
-  const pages = () => (secretIds().length ? [...ALL_PAGES, SECRET_PAGE] : ALL_PAGES);
   const visible = (pg) => pg === SECRET_PAGE || isPageVisible(rw(), pg);
   const motion = !matchMedia('(prefers-reduced-motion: reduce)').matches && typeof Element.prototype.animate === 'function';
   const animations = [], timers = [];
-  let pageIndex = 0;
-  if (page) pageIndex = Math.max(0, ALL_PAGES.findIndex((p) => p.id === page));
-  else if (highlight) pageIndex = Math.max(0, pages().findIndex((p) => highlight.startsWith(`${p.id}/`)));
+  let { world, pageId } = albumStart(ctx.profile, { page, highlight });
+  if (world === 'secret' && !secretIds().length) ({ world, pageId } = albumStart(ctx.profile));
   let justTraded = null;
+  let closePack = null;
   let starBadgeEl = starBadge(rw().stars);
-  const tabs = h('nav', { class: 'album-tabs' });
+  const worlds = h('nav', { class: 'album-worlds', 'aria-label': 'Welten' });
+  const tabs = h('nav', { class: 'album-tabs', 'aria-label': 'Seiten' });
   const body = h('div', { class: 'album-page' });
+  const fadeWorlds = edgeFade(worlds);
+  const fadeTabs = edgeFade(tabs);
+  const onResize = () => { fadeWorlds(); fadeTabs(); };
+  addEventListener('resize', onResize);
 
   function tradeBar(pg) {
     if (isPageComplete(rw(), pg)) return h('div', { class: 'page-complete', 'data-testid': 'page-complete' }, uiIcon('check'), 'komplett');
@@ -48,22 +64,40 @@ export function render(root, ctx, { highlight = null, page = null } = {}) {
     showPack(res);
   }
 
-  // the new sticker flips in on a dimmed overlay; closes on tap or after a moment and marks the slot
+  // #25: the new sticker flips in on a modal overlay; Escape, a tap or a moment closes it and the focus goes back
   function showPack(res) {
-    const card = h('div', { class: 'sticker-reveal' }, h('img', { src: stickerUrl(res.sticker), alt: '' }));
-    const overlay = h('div', { class: 'pack-reveal', 'data-testid': 'pack-result', 'data-sticker': res.sticker },
-      card,
-      res.duplicate ? h('span', { class: 'pack-count' }, `×${res.count}`) : null,
-      res.unlockedBonus ? h('span', { class: 'pack-count' }, uiIcon('album'), '+30', uiIcon('star')) : null);
-    const close = () => {
+    const name = stickerName(res.sticker);
+    const card = h('div', { class: 'sticker-reveal' }, h('img', { src: stickerUrl(res.sticker), alt: name }));
+    const closeBtn = h('button', { type: 'button', class: 'icon-btn candy candy-round pack-close', 'data-testid': 'pack-close', 'aria-label': 'Schließen' }, uiIcon('check'));
+    const overlay = h('div', {
+      class: 'pack-reveal', role: 'dialog', 'aria-modal': 'true', 'aria-label': `Neuer Sticker: ${name}`,
+      'data-testid': 'pack-result', 'data-sticker': res.sticker,
+    },
+    card,
+    res.duplicate ? h('span', { class: 'pack-count' }, `×${res.count}`) : null,
+    res.unlockedBonus ? h('span', { class: 'pack-count' }, uiIcon('album'), '+30', uiIcon('star')) : null,
+    closeBtn);
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); close(); }
+      else if (e.key === 'Tab') { e.preventDefault(); closeBtn.focus(); } // one button: the focus stays on it
+    };
+    function close() {
+      if (closePack !== close) return;
+      closePack = null;
+      document.removeEventListener('keydown', onKey, true);
       overlay.remove();
       const slot = body.querySelector(`[data-testid="sticker-${res.sticker}"]`);
       slot?.classList.add('highlight');
       slot?.scrollIntoView?.({ block: 'nearest' });
-    };
+      (body.querySelector('[data-testid="open-pack"]:not(:disabled)') ?? tabs.querySelector('.album-tab.active') ?? worlds.querySelector('.album-world.active'))
+        ?.focus({ preventScroll: true });
+    }
+    closePack = close;
     overlay.addEventListener('click', close);
+    document.addEventListener('keydown', onKey, true);
     timers.push(setTimeout(close, REVEAL_MS));
     root.append(overlay);
+    closeBtn.focus();
     if (motion) {
       animations.push(card.animate([
         { transform: 'rotateY(180deg) scale(.3)', opacity: 0 },
@@ -73,31 +107,65 @@ export function render(root, ctx, { highlight = null, page = null } = {}) {
     }
   }
 
+  function chooseWorld(id) {
+    world = id;
+    pageId = defaultPage(ctx.profile, id).id;
+    draw();
+  }
+
+  function worldChip(id, icon) {
+    const on = id === world;
+    return h('button', {
+      type: 'button', class: `album-world candy candy-small${on ? ' active' : ''}`, 'data-testid': `album-world-${id}`,
+      'aria-pressed': String(on), onClick: () => chooseWorld(id),
+    }, icon, h('span', {}, WORLD_LABELS[id]));
+  }
+
+  function pageTab(pg) {
+    const locked = !isPageVisible(rw(), pg);
+    const on = pg.id === pageId;
+    return h('button', {
+      type: 'button',
+      class: `album-tab candy candy-small${on ? ' active' : ''}${locked ? ' locked' : ''}`,
+      'data-testid': `album-tab-${pg.id}`,
+      'aria-current': on ? 'page' : null,
+      'aria-label': pg.bonus ? `${pg.title}, Bonusseite` : `${pg.title}, Level ${pg.level + 1}`,
+      onClick: () => { pageId = pg.id; draw(); },
+    }, h('img', { src: locked ? 'assets/ui/lock.svg' : stickerUrl(stickerId(pg.id, pg.stickers[0])), alt: '' }),
+    h('span', { class: 'album-tab-level medal-badge' }, pg.bonus ? uiIcon('star') : String(pg.level + 1)));
+  }
+
+  function stickerTile(pg, name) {
+    const id = stickerId(pg.id, name);
+    const have = rw().stickers.includes(id);
+    const n = countOf(rw(), id);
+    const label = !have ? `${stickerName(id)}, fehlt` : n >= 2 ? `${stickerName(id)}, ${n}-mal` : stickerName(id);
+    return h('div', {
+      class: `sticker${have ? ' collected' : ''}${id === highlight || id === justTraded ? ' highlight' : ''}`,
+      'data-testid': `sticker-${id}`, role: 'img', 'aria-label': label,
+    }, h('img', { src: stickerUrl(id), alt: '' }),
+    have ? null : h('span', { class: 'sticker-missing', 'aria-hidden': 'true' }, '?'),
+    n >= 2 ? h('span', { class: 'sticker-count', 'data-testid': `sticker-count-${id}` }, String(n)) : null);
+  }
+
   function draw() {
     const secret = secretIds();
-    const all = pages();
-    // one group per exercise (menu picture first), then its four level pages and the bonus page; the secret page last, once found
-    tabs.replaceChildren(...EXERCISE_ORDER.map((ex) => h('div', { class: 'album-group', 'data-testid': `album-group-${ex}` },
-      h('img', { class: 'album-group-icon', src: `assets/menu/${ex}.webp`, alt: '' }),
-      ALL_PAGES.map((pg, i) => [pg, i]).filter(([pg]) => pg.exercise === ex).map(([pg, i]) => {
-        const locked = !isPageVisible(rw(), pg);
-        return h('button', {
-          class: `album-tab candy candy-small${i === pageIndex ? ' active' : ''}${locked ? ' locked' : ''}`,
-          'data-testid': `album-tab-${pg.id}`,
-          'aria-label': pg.bonus ? `${pg.title}, Bonusseite` : `${pg.title}, Level ${pg.level + 1}`,
-          onClick: () => { pageIndex = i; draw(); },
-        }, h('img', { src: locked ? 'assets/ui/lock.svg' : stickerUrl(stickerId(pg.id, pg.stickers[0])), alt: '' }),
-        h('span', { class: 'album-tab-level medal-badge' }, pg.bonus ? uiIcon('star') : String(pg.level + 1)));
-      }))),
-    ...(secret.length ? [h('div', { class: 'album-group', 'data-testid': 'album-group-secret' },
-      h('button', {
-        class: `album-tab candy candy-small${pageIndex === ALL_PAGES.length ? ' active' : ''}`,
-        'data-testid': `album-tab-${SECRET_PAGE.id}`,
-        'aria-label': SECRET_PAGE.title,
-        onClick: () => { pageIndex = ALL_PAGES.length; draw(); },
-      }, h('img', { src: stickerUrl(secret[0]), alt: '' })))] : []));
+    worlds.replaceChildren(
+      ...EXERCISE_ORDER.map((ex) => worldChip(ex, h('img', { src: `assets/menu/${ex}.webp`, alt: '' }))),
+      (bonusWorldVisible(rw()) || world === 'bonus') ? worldChip('bonus', uiIcon('star')) : null,
+      secret.length ? h('button', {
+        type: 'button', class: `album-world album-secret candy candy-small${world === 'secret' ? ' active' : ''}`,
+        'data-testid': `album-tab-${SECRET_PAGE.id}`, 'aria-label': SECRET_PAGE.title, 'aria-pressed': String(world === 'secret'),
+        onClick: () => chooseWorld('secret'),
+      }, h('img', { src: stickerUrl(secret[0]), alt: '' })) : null,
+    );
+    tabs.hidden = world === 'secret';
+    tabs.replaceChildren(...(world === 'secret' ? [] : pagesOf(world).map(pageTab)));
+    worlds.querySelector('.album-world.active')?.scrollIntoView?.({ inline: 'center', block: 'nearest' });
     tabs.querySelector('.album-tab.active')?.scrollIntoView?.({ inline: 'center', block: 'nearest' });
-    const pg = all[pageIndex];
+    fadeWorlds();
+    fadeTabs();
+    const pg = pageById(pageId);
     if (!visible(pg)) {
       body.replaceChildren(h('div', { class: 'locked-page', 'data-testid': 'locked-page' },
         uiIcon('lock'),
@@ -105,24 +173,23 @@ export function render(root, ctx, { highlight = null, page = null } = {}) {
       ctx.speech.speak(pg.bonus ? 'Diese Bonusseite gibt es, wenn alle vier Seiten voll sind.' : `Diese Seite gibt es ab Level ${pg.level + 1}.`, { extra: true });
       return;
     }
-    body.replaceChildren(h('div', { class: 'sticker-grid' }, pg.stickers.map((name) => {
-      const id = stickerId(pg.id, name);
-      const have = rw().stickers.includes(id);
-      const n = countOf(rw(), id);
-      return h('div', {
-        class: `sticker${have ? ' collected' : ''}${id === highlight || id === justTraded ? ' highlight' : ''}`,
-        'data-testid': `sticker-${id}`,
-      }, h('img', { src: stickerUrl(id), alt: '' }),
-      n >= 2 ? h('span', { class: 'sticker-count', 'data-testid': `sticker-count-${id}` }, String(n)) : null);
-    })), pg === SECRET_PAGE ? null : h('div', { class: 'trade' }, tradeBar(pg)));
+    body.replaceChildren(h('div', { class: 'sticker-grid' }, pg.stickers.map((name) => stickerTile(pg, name))),
+      pg === SECRET_PAGE ? null : h('div', { class: 'trade' }, tradeBar(pg)));
     justTraded = null;
   }
 
   root.append(
+    h('h1', { class: 'sr-only' }, 'Sammelalbum'),
     h('header', { class: 'topbar' }, iconBtn('back', 'Zurück', () => ctx.go('menu'), 'back'), h('div', { class: 'spacer' }), starBadgeEl),
+    worlds,
     tabs,
     body,
   );
   draw();
-  return () => { timers.forEach(clearTimeout); animations.forEach((a) => a.cancel()); };
+  return () => {
+    closePack?.();
+    removeEventListener('resize', onResize);
+    timers.forEach(clearTimeout);
+    animations.forEach((a) => a.cancel());
+  };
 }
