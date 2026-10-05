@@ -42,6 +42,7 @@ export function render(root, ctx, { exerciseId }) {
   const backBtn = iconBtn('back', 'Zurück', () => abort(), 'back');
 
   function leave() {
+    if (!alive) return; // finished or already left: never abort a saved round
     alive = false;
     if (round.results.length) ctx.setState(updateProfile(ctx.state, profile.id, (p) => abortRound(p, round)));
     ctx.go('menu');
@@ -196,6 +197,7 @@ export function render(root, ctx, { exerciseId }) {
 
   function finish() {
     alive = false;
+    closeDialog?.(); closeDialog = null; // the round ended underneath an open dialog
     const { profile: updated, reward } = finishRound(profile, round, rng);
     ctx.setState(updateProfile(ctx.state, profile.id, () => updated));
     const correct = round.results.filter((r) => r.correct).length;
@@ -203,5 +205,5 @@ export function render(root, ctx, { exerciseId }) {
   }
 
   playTask();
-  return () => { alive = false; closeDialog?.(); stopEnd?.(); };
+  return () => { alive = false; closeDialog?.(); closeDialog = null; stopEnd?.(); };
 }

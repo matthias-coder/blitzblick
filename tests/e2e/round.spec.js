@@ -599,3 +599,45 @@ test('Beenden leaves the round and Escape afterwards does nothing', async ({ pag
   await expect(page.getByTestId('tile-digits')).toBeVisible();
   await expect(page.getByTestId('leave-dialog')).toHaveCount(0);
 });
+
+test('the round ending under an open leave dialog closes it and keeps the result', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  for (let i = 0; i < N - 1; i++) {
+    const { choices, answer } = await waitForChoices(page);
+    await choices.locator(`button[data-value="${answer}"]`).click();
+  }
+  const { choices, answer } = await waitForChoices(page);
+  await page.getByTestId('back').click();
+  await expect(page.getByTestId('leave-dialog')).toBeVisible();
+  // the round runs on underneath: answer through the overlay (as a keyboard or switch user would)
+  await choices.locator(`button[data-value="${answer}"]`).dispatchEvent('click');
+  await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
+  await expect(page.getByTestId('leave-dialog')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('round-end')).toBeVisible();
+  const p = (await readState(page)).profiles[0];
+  expect(p.history).toHaveLength(1);
+});
+
+test('leaving via the dialog during a 👁 replay leaves nothing behind', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  const { choices, answer } = await waitForChoices(page);
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await waitForChoices(page);
+  await page.getByTestId('show-again').click();
+  await expect(page.getByTestId('choices')).toHaveClass(/pending/);
+  await page.getByTestId('back').click();
+  await page.getByTestId('leave-quit').click();
+  await expect(page.getByTestId('tile-digits')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('leave-dialog')).toHaveCount(0);
+  await expect(page.getByTestId('tile-digits')).toBeVisible();
+  await expect(page.getByTestId('choices')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
