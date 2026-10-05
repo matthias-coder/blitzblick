@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { seed, readState } from './helpers.js';
+import { seed, readState, contrast } from './helpers.js';
 
 test('first start asks for a profile and then shows the menu', async ({ page }) => {
   await page.goto('/');
@@ -148,4 +148,34 @@ test('menu tiles carry their names and fit them on a phone', async ({ page }) =>
     expect(l.x).toBeGreaterThanOrEqual(t.x - 1);
     expect(l.x + l.width).toBeLessThanOrEqual(t.x + t.width + 1);
   }
+});
+
+test('menu: hidden heading, tile names 18–20 px at 390 px, AA contrast, distinct Zahlen/Buchstaben tiles', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seed(page);
+  await page.goto('/');
+  await expect(page.locator('h1')).toHaveText('Blitzblick – Übungen');
+  const css = (loc, prop) => loc.evaluate((e, p) => getComputedStyle(e)[p], prop);
+  const bg = {};
+  for (const id of ['quantity', 'digits', 'letters', 'syllables']) {
+    const tile = page.getByTestId(`tile-${id}`);
+    const label = tile.locator('.tile-name');
+    const size = parseFloat(await css(label, 'fontSize'));
+    expect(size).toBeGreaterThanOrEqual(id === 'letters' ? 16.5 : 18); // Buchstabenblitz may shrink to fit
+    expect(size).toBeLessThanOrEqual(20.5);
+    bg[id] = await css(tile, 'backgroundColor');
+    expect(contrast(await css(label, 'color'), bg[id])).toBeGreaterThanOrEqual(4.5);
+  }
+  const rgb = (s) => s.match(/\d+/g).slice(0, 3).map(Number);
+  const diff = rgb(bg.digits).reduce((sum, v, i) => sum + Math.abs(v - rgb(bg.letters)[i]), 0);
+  expect(diff).toBeGreaterThan(80);
+});
+
+test('the album button shows a mini sticker next to the count', async ({ page }) => {
+  await seed(page, (p) => { p.rewards.stickers = ['animals/lion', 'sea/fish']; });
+  await page.goto('/');
+  const mini = page.getByTestId('open-album').locator('.mini-sticker');
+  await expect(mini).toBeVisible();
+  await expect(mini).toHaveAttribute('src', 'assets/stickers/sea/fish.webp');
+  await expect(page.getByTestId('open-album')).toHaveText('2');
 });

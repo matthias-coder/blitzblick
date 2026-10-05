@@ -95,15 +95,17 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .menu.count-3 .tile:last-child { grid-column: 1 / -1; justify-self: center; width: calc((100% - var(--menu-gap)) / 2); }
 .tile { min-height: 0; }
 .tile img { position: absolute; inset: 6% 14% 26%; width: 72%; height: 68%; object-fit: contain; }
-.tile-name { position: absolute; left: 4%; right: 4%; bottom: 7%; font-size: clamp(1rem, 5.2cqw, 2rem); font-weight: 700; line-height: 1.1; color: var(--tile-ink); paint-order: stroke fill; -webkit-text-stroke: .18em #fff; text-align: center; white-space: nowrap; }
+.tile-name { position: absolute; left: 50%; transform: translateX(-50%); bottom: 7%; font-size: calc(clamp(1.125rem, 10.5cqw, 2rem) * var(--fit, 1)); font-weight: 700; line-height: 1.1; color: var(--tile-ink); paint-order: stroke fill; -webkit-text-stroke: .18em #fff; text-align: center; white-space: nowrap; }
 .tile { container-type: inline-size; }
-.candy.tile-quantity { --face: #FFE1DC; --edge: #F2B3A9; --tile-ink: #B3473A; }
+.candy.tile-quantity { --face: #FFE1DC; --edge: #F2B3A9; --tile-ink: #9E3A2F; }
 .candy.tile-digits { --face: #DCEBFF; --edge: #A9C8F2; --tile-ink: #2F62A8; }
-.candy.tile-letters { --face: #EAE0FF; --edge: #C4B2F2; --tile-ink: #6A4BBE; }
-.candy.tile-syllables { --face: #DDF4E4; --edge: #A8DDB9; --tile-ink: #2E8150; }
+.candy.tile-letters { --face: #FFF1C9; --edge: #EBCB73; --tile-ink: #8A5A00; }
+.candy.tile-syllables { --face: #DDF4E4; --edge: #A8DDB9; --tile-ink: #23663F; }
 .menu-foot { display: flex; justify-content: center; padding: 4px 16px 18px; }
 .album-btn { display: flex; align-items: center; gap: 10px; padding: 10px 22px 10px 14px; font-size: 1.6rem; font-weight: 700; }
 .album-btn img { width: 48px; height: 48px; }
+.album-btn .mini-sticker { width: 30px; height: 30px; margin-right: -4px; }
+.album-btn .mini-sticker.empty { filter: brightness(0); opacity: .25; }
 
 /* round */
 .round-stars { flex: 0 1 auto; margin: 0 auto; display: flex; gap: 4px; justify-content: center; flex-wrap: nowrap; min-width: 0; padding: 6px 12px; background: var(--surface); border-radius: 999px; box-shadow: var(--shadow); }
