@@ -151,6 +151,13 @@ export function renderChoices(task, el, onPick) {
   return renderChoiceButtons(el, task.choices, (v) => [h('span', { class: 'num school' }, String(v)), dots(v)], onPick);
 }
 
+const ANSWER_WORDS = { left: 'links', right: 'rechts', equal: 'gleich viel' };
+
+// the answer as it is spoken in the status line (compare tasks carry 'left' | 'right' | 'equal')
+export function answerText(task) {
+  return ANSWER_WORDS[task.answer] ?? String(task.answer);
+}
+
 export function speakPrompt(task) {
   if (task?.stimulus?.compare) return 'Wo waren mehr?';
   return task?.stimulus?.add ? 'Wie viele waren es zusammen?' : 'Wie viele waren es?';

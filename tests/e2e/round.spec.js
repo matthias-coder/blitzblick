@@ -479,6 +479,10 @@ test('Wo ist mehr? a wrong side shows both groups again as the solution', async 
   const { choices, answer } = await waitForChoices(page);
   await choices.locator(`button:not([data-value="${answer}"])`).first().click();
   await expect(page.locator('.stimulus.solution [data-testid="compare-stimulus"] .field')).toHaveCount(2);
+  // the screen-reader status speaks German, not the internal answer key
+  const status = page.getByTestId('round-status');
+  await expect(status).toContainText(answer === 'left' ? 'links' : 'rechts');
+  await expect(status).not.toContainText(/left|right|equal/);
 });
 
 test('no compare tasks when the parents switched them off', async ({ page }) => {
@@ -536,6 +540,24 @@ test('👁 shows the flash once more per task, 🔊 is hidden with speech off', 
   await waitForChoices(page);
   await expect(eye).toBeEnabled(); // next task: one replay again
 });
+
+for (const [w, hgt] of [[320, 568], [360, 640]]) {
+  test(`top bar with speech on keeps readable stars and no overflow at ${w}×${hgt}`, async ({ page }) => {
+    await page.setViewportSize({ width: w, height: hgt });
+    await seed(page, fixed(500, (p) => { p.settings.speech = 'little'; }));
+    await page.goto('/');
+    await page.getByTestId('tile-quantity').click();
+    await expect(page.getByTestId('say-again')).toBeVisible();
+    const bar = page.locator('.topbar');
+    expect(await bar.evaluate((e) => e.scrollWidth - e.clientWidth)).toBeLessThanOrEqual(0);
+    const slot = await page.locator('.round-stars .slot').first().boundingBox();
+    expect(slot.width).toBeGreaterThanOrEqual(w === 320 ? 16 : 24);
+    for (const id of ['back', 'say-again']) {
+      const box = await page.getByTestId(id).boundingBox();
+      expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44);
+    }
+  });
+}
 
 test('🔊 is shown with speech on and only active while the answers wait', async ({ page }) => {
   await seed(page, fixed(500, (p) => { p.settings.speech = 'little'; }));
@@ -880,6 +902,7 @@ test('round end: a full ring and the trade hint below it when a pack can be boug
   await page.goto('/');
   await playPerfectRound(page);
   const ring = page.getByTestId('end-ring');
+  await settled(ring); // the ring pops in; measure only the final box
   expect(Number(await ring.evaluate((e) => getComputedStyle(e).getPropertyValue('--p')))).toBe(1);
   const [r, hint] = [await ring.boundingBox(), await page.getByTestId('trade-hint').boundingBox()];
   expect(hint.y).toBeGreaterThan(r.y + r.height - 1);

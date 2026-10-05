@@ -251,3 +251,10 @@ test('structured counts up to 10 sometimes show fingers, never twice in a row, n
   }
   assert.ok(fingers > 100 && fingers < 350, String(fingers));
 });
+
+test('answerText speaks compare answers in German and passes numbers through', () => {
+  assert.equal(quantity.answerText({ answer: 'left' }), 'links');
+  assert.equal(quantity.answerText({ answer: 'right' }), 'rechts');
+  assert.equal(quantity.answerText({ answer: 'equal' }), 'gleich viel');
+  assert.equal(quantity.answerText({ answer: 7 }), '7');
+});

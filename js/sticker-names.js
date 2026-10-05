@@ -17,11 +17,11 @@ export const STICKER_NAMES = {
   pot: 'Topf', bread: 'Brot', spatula: 'Pfannenwender', mug: 'Tasse', whisk: 'Schneebesen', rollingpin: 'Nudelholz', salad: 'Salat', cereal: 'Müsli',
   pan: 'Pfanne', ladle: 'Schöpfkelle', kettle: 'Wasserkocher', toaster: 'Toaster', grater: 'Reibe', colander: 'Sieb', ovenmitt: 'Topflappen', bowl: 'Schüssel',
   wand: 'Zauberstab', spellbook: 'Zauberbuch', crystals: 'Kristalle', potion: 'Zaubertrank', broom: 'Hexenbesen', telescope: 'Fernrohr', globe: 'Globus', camera: 'Kamera',
-  toast: 'Toast', finger: 'Finger', bubbletea: 'Bubble Tea', shroomrider: 'Pilzreiter', yarncat: 'Wollknäuel-Katze', melon: 'Melone',
+  toast: 'Toast', finger: 'Finger', bubbletea: 'Bubble Tea', shroomrider: 'Pilzreiter', yarncat: 'Kabelsalat-Katze', melon: 'Wassermelone',
   sunflower: 'Sonnenblume', wateringcan: 'Gießkanne', tulips: 'Tulpen', snail: 'Schnecke', butterfly: 'Schmetterling', gnome: 'Gartenzwerg', bee: 'Biene', flowerpot: 'Blumentopf',
   excavator: 'Bagger', crane: 'Kran', dumptruck: 'Kipplaster', hardhat: 'Bauhelm', cone: 'Leitkegel', mixer: 'Betonmischer', wheelbarrow: 'Schubkarre', hammer: 'Hammer',
   ladybug: 'Marienkäfer', dragonfly: 'Libelle', caterpillar: 'Raupe', beetle: 'Käfer', grasshopper: 'Grashüpfer', spider: 'Spinne', firefly: 'Glühwürmchen', worm: 'Wurm',
-  icecowboy: 'Eis-Cowboy', surfrock: 'Surf-Stein', saxavocado: 'Saxofon-Avocado', cloudbot: 'Wolkenroboter', balletpencil: 'Ballett-Stift', mouse: 'Maus', wrenchscientist: 'Schrauben-Forscher', pizzaking: 'Pizzakönig',
+  icecowboy: 'Eis-Cowboy', surfrock: 'Surf-Stein', saxavocado: 'Saxofon-Avocado', cloudbot: 'Wolkenroboter', balletpencil: 'Ballett-Stift', mouse: 'Computermaus', wrenchscientist: 'Schrauben-Forscher', pizzaking: 'Pizzakönig',
 };
 
 export const stickerName = (id) => STICKER_NAMES[String(id).slice(String(id).indexOf('/') + 1)] ?? '';

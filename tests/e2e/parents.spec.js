@@ -330,6 +330,16 @@ test('the gate answer is a numeric text field', async ({ page }) => {
   await expect(page.locator('nav.tabs')).toHaveAttribute('aria-label', 'Bereiche');
 });
 
+test('junk in the gate field is no native validation error, it just returns to the menu', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await longPress(page, page.getByTestId('gear'));
+  await page.getByTestId('gate-answer').fill('abc');
+  expect(await page.locator('form.gate').evaluate((f) => f.noValidate)).toBe(true);
+  await page.getByTestId('gate-submit').click();
+  await expect(page.getByTestId('tile-quantity')).toBeVisible();
+});
+
 test('with reduced motion the gear ring shows as a static fill while held', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await seed(page);

@@ -23,6 +23,7 @@ export function render(root, ctx) {
   const input = h('input', { type: 'text', inputmode: 'numeric', pattern: '[0-9]*', autocomplete: 'off', 'data-testid': 'gate-answer', 'aria-label': 'Ergebnis' });
   const form = h('form', {
     class: 'card gate',
+    novalidate: '',
     onSubmit: (e) => {
       e.preventDefault();
       if (Number(input.value) === ch.answer) renderPanel(root, ctx, 'settings');

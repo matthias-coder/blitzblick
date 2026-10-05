@@ -192,7 +192,7 @@ export function render(root, ctx, { exerciseId }) {
     } else {
       button.classList.add('wrong');
       choicesEl.querySelector(`[data-value="${CSS.escape(String(task.answer))}"]`)?.classList.add('right');
-      status.textContent = `Leider falsch. Richtig ist ${task.answer}.`;
+      status.textContent = `Leider falsch. Richtig ist ${ex.answerText?.(task) ?? task.answer}.`;
       showSolution(task);
       await wait(SOLUTION_MS);
     }
@@ -208,7 +208,7 @@ export function render(root, ctx, { exerciseId }) {
     setTools(false);
     // the answer buttons are disabled now; keep the focus inside the round instead of losing it to the page
     if (choicesEl.contains(document.activeElement)) board.focus({ preventScroll: true });
-    status.textContent = res.correct ? 'Richtig!' : `Leider falsch. Richtig ist ${round.task.answer}.`;
+    status.textContent = res.correct ? 'Richtig!' : `Leider falsch. Richtig ist ${ex.answerText?.(round.task) ?? round.task.answer}.`;
     const slot = stars.children[round.results.length - 1];
     if (res.correct) {
       button.classList.add('right');
