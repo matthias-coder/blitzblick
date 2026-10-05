@@ -24,6 +24,8 @@ for (const n of [0, 1, 2, 3, 4, 5]) {
         const ys = pts.map((q) => q[1]);
         out.push({
           cls: el.getAttribute('class') || 'palm',
+          thumb: el.hasAttribute('transform'),
+          x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys),
           left: Math.min(...xs) - stroke - vb.x,
           top: Math.min(...ys) - stroke - vb.y,
           right: vb.x + vb.width - (Math.max(...xs) + stroke),
@@ -33,6 +35,12 @@ for (const n of [0, 1, 2, 3, 4, 5]) {
       return out;
     }, { n, stroke: STROKE });
     expect(res.length).toBe(6); // 5 fingers or thumb + palm
+    if (n >= 1) { // a raised thumb grows out of the palm: its box overlaps the palm's box (no gap)
+      const thumb = res.find((r) => r.thumb);
+      const palm = res.find((r) => r.cls === 'palm');
+      expect(thumb.x1, 'thumb reaches the palm horizontally').toBeGreaterThan(palm.x0);
+      expect(thumb.y1, 'thumb reaches the palm vertically').toBeGreaterThan(palm.y0);
+    }
     for (const r of res) {
       for (const side of ['left', 'top', 'right', 'bottom']) {
         expect(r[side], `${r.cls} ${side} margin`).toBeGreaterThanOrEqual(0);

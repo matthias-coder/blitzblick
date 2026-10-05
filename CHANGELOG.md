@@ -2,7 +2,7 @@
 
 ## [1.9.1] – 2026-10-05
 
-- Fingerbilder: Der Daumen war links abgeschnitten und ist jetzt vollständig zu sehen
+- Fingerbilder: Der Daumen war abgeschnitten und sitzt jetzt an der Hand
 
 ## [1.9.0] – 2026-10-05
 
