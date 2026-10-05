@@ -19,7 +19,7 @@
 .candy-small { --depth: 4px; --r: 12px; }
 
 .candy.is-primary { --face: var(--primary); --edge: #4A28A8; color: var(--primary-ink); }
-.candy.is-go { --face: var(--right); --edge: #1F8350; color: #fff; }
+.candy.is-go { --face: var(--right); --edge: #166B3A; color: #fff; }
 .candy.is-danger { --edge: var(--wrong); color: var(--wrong); }
 .candy.is-primary, .candy.is-go { --gloss: rgba(255, 255, 255, .45); --gloss-h: 22%; }
 

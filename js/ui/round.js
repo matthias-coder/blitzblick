@@ -1,4 +1,4 @@
-import { h, wait } from './dom.js';
+import { h, wait, fitText } from './dom.js';
 import { EXERCISES } from '../exercises/index.js';
 import { createRound, nextTask, answerTask, finishRound, abortRound, ROUND_LENGTH } from '../session.js';
 import { updateProfile } from '../profiles.js';
@@ -22,10 +22,12 @@ export function render(root, ctx, { exerciseId }) {
   const stars = h('div', { class: 'round-stars', 'data-testid': 'round-stars' },
     Array.from({ length: ROUND_LENGTH }, () => h('span', { class: 'slot' })));
   // the board is one card of constant size for every exercise and phase; only its content changes
-  const board = h('div', { class: 'board', 'data-testid': 'board' });
+  const board = h('div', { class: 'board', 'data-testid': 'board', tabindex: '-1' });
   const stage = h('div', { class: 'stage', 'data-testid': 'stage' }, board);
   const waiting = () => h('div', { class: 'board-waiting', 'data-testid': 'board-waiting' }, '?');
   const choicesEl = h('div', { class: 'choices-area', 'data-testid': 'choices' });
+  // screen readers hear the question and whether the answer was right
+  const status = h('p', { class: 'sr-only', role: 'status', 'data-testid': 'round-status' });
 
   function abort() {
     alive = false;
@@ -37,6 +39,7 @@ export function render(root, ctx, { exerciseId }) {
     h('header', { class: 'topbar' }, iconBtn('back', 'Zurück', abort, 'back'), stars, h('div', { class: 'topbar-pad' })),
     stage,
     choicesEl,
+    status,
   );
 
   async function playTask() {
@@ -44,6 +47,7 @@ export function render(root, ctx, { exerciseId }) {
     const { task, durationMs } = round;
     // choices are laid out (hidden) from the start so the board keeps its size in every phase
     delete choicesEl.dataset.answer;
+    status.textContent = '';
     choicesEl.classList.add('pending');
     ex.renderChoices(task, choicesEl, onPick);
     const stim = h('div', { class: 'stimulus preload', 'data-testid': 'stimulus' });
@@ -57,6 +61,7 @@ export function render(root, ctx, { exerciseId }) {
       ...[...stim.querySelectorAll('img')].map((img) => img.decode().catch(() => {})),
     ]);
     if (!alive) return;
+    fitWords(stim);
     stim.classList.remove('preload');
     board.replaceChildren(stim);
     ctx.sounds.ping();
@@ -68,13 +73,20 @@ export function render(root, ctx, { exerciseId }) {
     board.replaceChildren(waiting());
     choicesEl.dataset.answer = String(task.answer);
     choicesEl.classList.remove('pending');
-    ctx.speech.speak(ex.speakPrompt(task, profile.settings), { extra: round.results.length > 0 });
+    const prompt = ex.speakPrompt(task, profile.settings);
+    status.textContent = prompt;
+    // a keyboard player answered the last task: hand the focus to the new answers
+    if (document.activeElement === board) choicesEl.querySelector('button.choice')?.focus();
+    ctx.speech.speak(prompt, { extra: round.results.length > 0 });
   }
 
   async function onPick(value, button) {
     const res = answerTask(round, profile, value);
     if (res.ignored) return;
     round = res.round;
+    // the answer buttons are disabled now; keep the focus inside the round instead of losing it to the page
+    if (choicesEl.contains(document.activeElement)) board.focus({ preventScroll: true });
+    status.textContent = res.correct ? 'Richtig!' : `Leider falsch. Richtig ist ${round.task.answer}.`;
     const slot = stars.children[round.results.length - 1];
     if (res.correct) {
       button.classList.add('right');
@@ -89,12 +101,19 @@ export function render(root, ctx, { exerciseId }) {
       const solution = h('div', { class: 'stimulus solution' });
       ex.renderStimulus(round.task, solution);
       board.replaceChildren(solution);
+      fitWords(solution);
       ctx.speech.speak(ctx.pick('solution', ex.speakSolution(round.task, profile.settings)));
       await wait(SOLUTION_MS);
     }
     if (!alive) return;
     if (res.finished) finish();
     else playTask();
+  }
+
+  // words on the board and on the answer buttons must never be cut off
+  function fitWords(stim) {
+    for (const w of stim.querySelectorAll('.flash-word')) fitText(w, board.clientWidth * 0.94);
+    for (const w of choicesEl.querySelectorAll('.choice .word')) fitText(w, w.parentElement.clientWidth - 16);
   }
 
   // a small star flies from the tapped button into its progress slot, which then fills
