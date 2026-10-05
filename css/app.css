@@ -377,3 +377,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); height: 32px; }
 .candy.leave-quit { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 18px; font-size: 1rem; font-weight: 700; }
 .leave-quit img { width: 24px; height: 24px; }
 @media (max-height: 500px) { .leave-card { gap: 10px; padding: 12px 20px; } .leave-robot { width: 72px; } .candy.leave-stay { min-height: 64px; } }
+
+/* v1.9: demo run */
+.demo-intro { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px; text-align: center; }
+.demo-intro img { width: 40%; }
+.demo-intro .bubble { font-size: clamp(1.1rem, 5cqmin, 1.8rem); }

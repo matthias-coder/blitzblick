@@ -641,3 +641,35 @@ test('leaving via the dialog during a 👁 replay leaves nothing behind', async 
   await expect(page.getByTestId('choices')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+test('the first start of an exercise runs one slow demo task that counts for nothing', async ({ page }) => {
+  await seed(page, fixed(500, (p) => { p.intro = {}; }));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  await expect(page.getByTestId('demo-intro')).toContainText('Schau genau hin');
+  const stim = page.getByTestId('stimulus');
+  await expect(stim).toBeVisible({ timeout: 6000 });
+  await page.waitForTimeout(2000);
+  await expect(stim).toBeVisible(); // 3 s instead of 0.5 s
+  const choices = page.getByTestId('choices');
+  await expect(choices.locator('button.choice:enabled').first()).toBeVisible({ timeout: 6000 });
+  await expect(choices).toHaveAttribute('data-demo', '1');
+  expect((await readState(page)).profiles[0].intro.digits).toBe(true);
+  const demoAnswer = await choices.getAttribute('data-answer');
+  await choices.locator(`button[data-value="${demoAnswer}"]`).click();
+  await expect(page.locator('.round-stars .slot.earned')).toHaveCount(0);
+  for (let i = 0; i < N; i++) {
+    const { choices: c, answer } = await waitForChoices(page);
+    await expect(c).not.toHaveAttribute('data-demo', '1');
+    await c.locator(`button[data-value="${answer}"]`).click();
+  }
+  await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
+  const p = (await readState(page)).profiles[0];
+  expect(p.rewards.stars).toBe(N);
+  expect(p.history[0].total).toBe(N);
+  expect(p.intro.digits).toBe(true); // intro stays seen after the round
+  await page.getByTestId('play-again').click();
+  await waitForChoices(page);
+  await expect(page.getByTestId('demo-intro')).toHaveCount(0);
+  await expect(page.getByTestId('choices')).not.toHaveAttribute('data-demo', '1');
+});

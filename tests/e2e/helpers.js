@@ -6,6 +6,7 @@ export function buildState(mutate = () => {}, name = 'Mia') {
   const p = createProfile({ name, avatar: 'astronaut' }, { id: 'p1' });
   p.settings.speech = 'off';
   p.settings.sounds = false;
+  p.intro = { quantity: true, digits: true, letters: true, syllables: true }; // the first-start demo is tested on its own
   mutate(p);
   return { schemaVersion: SCHEMA_VERSION, activeProfileId: 'p1', profiles: [p] };
 }
