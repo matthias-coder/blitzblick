@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.9.1] – 2026-10-05
+
+- Fingerbilder: Der Daumen war abgeschnitten und sitzt jetzt an der Hand
+
 ## [1.9.0] – 2026-10-05
 
 - Mengenblitz: „Wo ist mehr?“ – links und rechts blitzen zwei Gruppen auf, das Kind tippt die Seite mit mehr. Ab Vorschule Level 2 bzw. Klasse 1 Level 1 etwa jede dritte Aufgabe, höchstens zwei pro Runde; später auch „gleich viel“ und große Dinge in der kleineren Gruppe
