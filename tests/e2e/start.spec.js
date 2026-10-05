@@ -179,3 +179,65 @@ test('the album button shows a mini sticker next to the count', async ({ page })
   await expect(mini).toHaveAttribute('src', 'assets/stickers/sea/fish.webp');
   await expect(page.getByTestId('open-album')).toHaveText('2');
 });
+
+async function expectLabelsInside(page) {
+  for (const id of ['quantity', 'digits', 'letters', 'syllables']) {
+    const tile = page.getByTestId(`tile-${id}`);
+    const [t, l] = [await tile.boundingBox(), await tile.locator('.tile-name').boundingBox()];
+    expect(l.x).toBeGreaterThanOrEqual(t.x);
+    expect(l.x + l.width).toBeLessThanOrEqual(t.x + t.width);
+    expect(l.width).toBeLessThanOrEqual(t.width * 0.93); // fitText keeps a margin
+  }
+}
+
+test('tile names stay inside their tiles at 320 px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await seed(page);
+  await page.goto('/');
+  await expect(page.getByTestId('tile-letters')).toBeVisible();
+  await expectLabelsInside(page);
+});
+
+test('tile names are refitted when the viewport shrinks', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await seed(page);
+  await page.goto('/');
+  await expect(page.getByTestId('tile-letters')).toBeVisible();
+  await page.evaluate(async () => { await document.fonts.ready; await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); }); // initial fit has run
+  await page.setViewportSize({ width: 320, height: 568 });
+  await expect.poll(async () => {
+    const t = await page.getByTestId('tile-letters').boundingBox();
+    const l = await page.getByTestId('tile-letters').locator('.tile-name').boundingBox();
+    return l.x >= t.x && l.x + l.width <= t.x + t.width && l.width <= t.width * 0.93;
+  }).toBe(true);
+  await expectLabelsInside(page);
+});
+
+test('the menu removes its resize listener when left', async ({ page }) => {
+  await seed(page);
+  await page.addInitScript(() => {
+    window.__rs = 0;
+    const add = window.addEventListener.bind(window);
+    window.addEventListener = (t, f, o) => { if (t === 'resize') window.__rs++; return add(t, f, o); };
+    const rem = window.removeEventListener.bind(window);
+    window.removeEventListener = (t, f, o) => { if (t === 'resize') window.__rs--; return rem(t, f, o); };
+  });
+  await page.goto('/');
+  await expect(page.getByTestId('tile-quantity')).toBeVisible();
+  expect(await page.evaluate(() => window.__rs)).toBe(1);
+  await page.getByTestId('open-album').click();
+  await page.getByTestId('back').dispatchEvent('click');
+  await expect(page.getByTestId('tile-quantity')).toBeVisible();
+  expect(await page.evaluate(() => window.__rs)).toBe(1); // album adds+removes its own, menu re-added once
+  await page.getByTestId('open-album').click();
+  await expect(page.getByTestId('back')).toBeVisible();
+  expect(await page.evaluate(() => window.__rs)).toBeLessThanOrEqual(1); // menu's listener is gone
+});
+
+test('the empty album button shows a dimmed placeholder sticker that loads', async ({ page }) => {
+  await seed(page, (p) => { p.rewards.stickers = []; });
+  await page.goto('/');
+  const mini = page.getByTestId('open-album').locator('.mini-sticker');
+  await expect(mini).toHaveClass(/empty/);
+  await expect.poll(() => mini.evaluate((i) => i.naturalWidth)).toBeGreaterThan(0);
+});

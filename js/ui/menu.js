@@ -33,9 +33,16 @@ export function render(root, ctx) {
       class: 'album-btn candy candy-pill', 'data-testid': 'open-album', 'aria-label': 'Sammelalbum', onClick: () => ctx.go('album'),
     }, uiIcon('album'), mini, h('span', {}, String(p.rewards.stickers.length)))),
   );
-  // long names (Buchstabenblitz) shrink just enough to stay inside their tile
-  requestAnimationFrame(() => {
+  // long names (Buchstabenblitz) shrink just enough to stay inside their tile;
+  // refit once fonts are loaded (fallback metrics differ) and on every resize
+  const fit = () => {
     for (const n of root.querySelectorAll('.tile-name')) fitText(n, n.parentElement.clientWidth * 0.92);
-  });
+  };
+  let alive = true;
+  const refit = () => { if (alive) fit(); };
+  requestAnimationFrame(refit);
+  document.fonts?.ready.then(refit);
+  addEventListener('resize', refit);
   ctx.speech.speak(hello, { extra: true });
+  return () => { alive = false; removeEventListener('resize', refit); };
 }
