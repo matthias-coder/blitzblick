@@ -115,3 +115,15 @@ test('recordResult clamps an out-of-range step first', () => {
 test('advanceLevel starts the next level fresh', () => {
   assert.deepEqual(advanceLevel(lvl({ mastered: true, durationMs: 300, step: 2 }), T), initialLevel(T, 2));
 });
+
+test('a neutral correct answer changes nothing, a neutral wrong one counts', () => {
+  const timing = { startMs: 2000, minMs: 400, maxMs: 3500, adaptive: true };
+  let s = initialLevel(timing);
+  for (let i = 0; i < 5; i++) s = recordResult(s, true, timing, 0, { neutral: true });
+  assert.equal(s.durationMs, 2000);
+  assert.equal(s.streak, 0);
+  assert.deepEqual(s.recent, []);
+  const a = recordResult(initialLevel(timing), false, timing, 0, { neutral: true });
+  const b = recordResult(initialLevel(timing), false, timing, 0);
+  assert.deepEqual(a, b);
+});

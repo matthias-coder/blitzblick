@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ROUND_LENGTH, createRound, nextTask, answerTask, finishRound, abortRound } from '../../js/session.js';
+import { ROUND_LENGTH, createRound, nextTask, answerTask, finishRound, abortRound, replayTask, demoTask, DEMO_MS } from '../../js/session.js';
 import { createProfile, updateSettings, setGrade, setLevel } from '../../js/profiles.js';
 import { mulberry32 } from '../../js/rng.js';
 
@@ -252,4 +252,55 @@ test('compare answers are marked noConfusion', () => {
     seen = compare;
   }
   assert.ok(seen);
+});
+
+test('a correct answer after a replay earns the star but is neutral for the adaptive engine', () => {
+  const rng = mulberry32(5);
+  const p = profile();
+  let r = nextTask(createRound(p, 'digits', rng), p, rng);
+  r = answerTask(r, p, r.task.answer).round; // streak 1
+  r = nextTask(r, p, rng);
+  assert.equal(r.replayed, false);
+  const before = r.level;
+  r = replayTask(r);
+  assert.equal(r.replayed, true);
+  const res = answerTask(r, p, r.task.answer);
+  assert.equal(res.correct, true);
+  assert.equal(res.round.results.at(-1).correct, true);
+  assert.equal(res.round.level.streak, before.streak);
+  assert.deepEqual(res.round.level.recent, before.recent);
+});
+
+test('a wrong answer after a replay counts as usual', () => {
+  const rng = mulberry32(6);
+  const p = profile();
+  let r = nextTask(createRound(p, 'digits', rng), p, rng);
+  const wrong = r.task.choices.find((c) => c !== r.task.answer);
+  const plain = answerTask(r, p, wrong).round.level;
+  const replayed = answerTask(replayTask(r), p, wrong).round.level;
+  assert.deepEqual(replayed, plain);
+});
+
+test('replay works once per task and only while an answer is awaited', () => {
+  const rng = mulberry32(7);
+  const p = profile();
+  const fresh = createRound(p, 'digits', rng);
+  assert.equal(replayTask(fresh), fresh); // no task yet
+  let r = replayTask(nextTask(fresh, p, rng));
+  assert.equal(replayTask(r), r); // second replay: unchanged
+  r = answerTask(r, p, r.task.answer).round;
+  assert.equal(replayTask(r).awaiting, false);
+  assert.equal(nextTask(r, p, rng).replayed, false);
+});
+
+test('demoTask gives a slow task and leaves the round untouched', () => {
+  const rng = mulberry32(8);
+  const p = profile();
+  const r = createRound(p, 'quantity', rng);
+  const snapshot = structuredClone(r);
+  const demo = demoTask(r, p, rng);
+  assert.equal(DEMO_MS, 3000);
+  assert.equal(demo.durationMs, DEMO_MS);
+  assert.ok(demo.task.choices.includes(demo.task.answer));
+  assert.deepEqual(r, snapshot);
 });
