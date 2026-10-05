@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.9.2] – 2026-10-05
+
+- Menü: Die Übungsnamen auf den Kacheln sind jetzt in allen Browsern lesbar (Umrandung ohne Textkontur)
+
 ## [1.9.1] – 2026-10-05
 
 - Fingerbilder: Der Daumen war abgeschnitten und sitzt jetzt an der Hand
