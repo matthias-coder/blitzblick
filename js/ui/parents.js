@@ -20,7 +20,7 @@ const TABS = [['settings', 'Einstellungen'], ['progress', 'Fortschritt'], ['prof
 
 export function render(root, ctx) {
   const ch = makeChallenge();
-  const input = h('input', { type: 'number', inputmode: 'numeric', 'data-testid': 'gate-answer', 'aria-label': 'Ergebnis' });
+  const input = h('input', { type: 'text', inputmode: 'numeric', pattern: '[0-9]*', autocomplete: 'off', 'data-testid': 'gate-answer', 'aria-label': 'Ergebnis' });
   const form = h('form', {
     class: 'card gate',
     onSubmit: (e) => {
@@ -54,7 +54,7 @@ function renderPanel(root, ctx, tab) {
       h('h1', {}, 'Elternbereich'),
       h('button', { class: 'primary-btn candy candy-pill is-primary', 'data-testid': 'close-parents', onClick: () => close(ctx) }, 'Fertig')),
     warnings(ctx),
-    h('nav', { class: 'tabs' }, TABS.map(([id, label]) => h('button', {
+    h('nav', { class: 'tabs', 'aria-label': 'Bereiche' }, TABS.map(([id, label]) => h('button', {
       class: `tab candy candy-small${id === tab ? ' is-primary' : ''}`,
       'data-testid': `tab-${id}`,
       onClick: () => renderPanel(root, ctx, id),

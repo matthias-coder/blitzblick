@@ -316,3 +316,30 @@ test('a new profile in the parent area gets age and grade; the age can be change
   s = await readState(page);
   expect(s.profiles.find((p) => p.id === ben.id).age).toBe(5);
 });
+
+test('the gate answer is a numeric text field', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await longPress(page, page.getByTestId('gear'));
+  const input = page.getByTestId('gate-answer');
+  await expect(input).toHaveAttribute('type', 'text');
+  await expect(input).toHaveAttribute('inputmode', 'numeric');
+  await expect(input).toHaveAttribute('pattern', '[0-9]*');
+  await input.fill(await page.getByTestId('gate-question').getAttribute('data-answer'));
+  await page.getByTestId('gate-submit').click();
+  await expect(page.locator('nav.tabs')).toHaveAttribute('aria-label', 'Bereiche');
+});
+
+test('with reduced motion the gear ring shows as a static fill while held', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await seed(page);
+  await page.goto('/');
+  const gear = page.getByTestId('gear');
+  const box = await gear.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  const after = await gear.evaluate((e) => { const s = getComputedStyle(e, '::after'); return [s.animationName, s.clipPath]; });
+  await page.mouse.up();
+  expect(after[0]).toBe('none');
+  expect(after[1]).toMatch(/inset\(0(px)?\)/);
+});

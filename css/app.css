@@ -75,7 +75,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .avatar-pick.small .avatar-opt img { width: 40px; height: 40px; }
 .welcome .primary-btn { width: 100%; margin-top: 8px; }
 .welcome-step { align-content: center; justify-items: center; gap: 18px; text-align: center; }
-.welcome-robot { width: min(48vw, 240px); animation: bob 2.4s ease-in-out infinite; }
+.welcome-robot { width: min(48vw, 240px); animation: bob 2.4s ease-in-out 3; }
 @keyframes bob { 50% { transform: translateY(-8px); } }
 .welcome-go { min-height: 64px; padding: 12px 40px; font-size: 1.5rem; font-weight: 700; }
 
@@ -120,7 +120,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .board { position: relative; width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); display: grid; place-items: center; overflow: hidden; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
 .board > * { grid-area: 1 / 1; }
 .board .mask { width: 100%; height: 100%; background: repeating-linear-gradient(45deg, #E0E8F7 0 12px, #EBEFFA 12px 24px); }
-.board-waiting { font-size: min(45cqh, 40cqw); font-weight: 700; line-height: 1; color: #7A82AA; animation: breathe 2s ease-in-out infinite; }
+.board-waiting { font-size: min(45cqh, 40cqw); font-weight: 700; line-height: 1; color: #7A82AA; animation: breathe 2s ease-in-out 3; }
 @keyframes breathe { 50% { transform: scale(1.06); } }
 .board .cheer { width: 55%; height: auto; animation: pop .35s; }
 .stimulus { width: 100%; height: 100%; display: grid; place-items: center; }
@@ -299,7 +299,8 @@ input[type="range"] { width: 100%; accent-color: var(--primary); height: 32px; }
 .profile-row select { width: auto; }
 .badge { background: var(--primary); color: #fff; padding: 6px 12px; border-radius: 999px; font-weight: 700; }
 @media (max-width: 480px) { .field-row { grid-template-columns: 1fr auto; } .field-row > span:first-child { grid-column: 1 / -1; } .field-row.seg-row { grid-template-columns: 1fr; } .seg { flex: 1 1 0; min-width: max-content; padding: 8px 4px; } }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; animation-iteration-count: 1 !important; }
+  .gear.pressing::after { animation: none !important; clip-path: inset(0); transition: none !important; } }
 
 /* mascot */
 #app { position: relative; }

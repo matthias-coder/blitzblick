@@ -767,6 +767,7 @@ test('digits are bold; disabled digits, the waiting "?" and empty header stars k
   const { choices, answer } = await waitForChoices(page);
   const css = (loc, prop) => loc.evaluate((e, p) => getComputedStyle(e)[p], prop);
   expect(contrast(await css(page.getByTestId('board-waiting'), 'color'), await css(page.getByTestId('board'), 'backgroundColor'))).toBeGreaterThanOrEqual(3);
+  await expect(page.getByTestId('board-waiting')).toHaveCSS('animation-iteration-count', '3');
   expect(contrast(await css(page.locator('.round-stars .slot').first(), 'backgroundColor'), await css(page.getByTestId('round-stars'), 'backgroundColor'))).toBeGreaterThanOrEqual(3);
   expect(Number(await css(choices.locator('.glyph').first(), 'fontWeight'))).toBeGreaterThanOrEqual(700);
   await choices.locator(`button[data-value="${answer}"]`).click();

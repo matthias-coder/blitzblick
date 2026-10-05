@@ -27,3 +27,6 @@
 .profile-card.candy { --r: 28px; }
 .avatar-opt.candy { --depth: 4px; }
 .chip button.candy { --r: 50%; }
+
+/* #18: the gloss stripe never sticks out of round buttons; gear ring and badges sit outside, so those two stay unclipped */
+.candy-round:not(.gear):not(.big-btn), .avatar-opt { overflow: hidden; }

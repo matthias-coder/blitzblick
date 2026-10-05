@@ -278,3 +278,15 @@ test('create profile: junk age is ignored and Enter in the age field submits', a
   expect(p.age).toBeNull();
   expect(p.settings.grade).toBe('pre');
 });
+
+test('candy gloss stays inside round buttons; looping animations stop', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.welcome-robot')).toHaveCSS('animation-iteration-count', '3');
+  await page.getByTestId('welcome-start').click();
+  await expect(page.locator('.avatar-opt').first()).toHaveCSS('overflow', 'hidden');
+  await page.locator('#profile-name').fill('Mia');
+  await page.getByTestId('create-profile').click();
+  await expect(page.getByTestId('gear')).toHaveCSS('overflow', 'visible'); // its hold ring sits outside
+  await page.getByTestId('open-album').click();
+  await expect(page.getByTestId('back')).toHaveCSS('overflow', 'hidden');
+});
