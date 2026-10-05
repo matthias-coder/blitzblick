@@ -74,7 +74,7 @@ export function renderStimulus(task, el) {
 // wrong answer on a sum: the whole equation, e.g. "9 – 5 = 4"
 export function renderSolution(task, el) {
   if (!task.stimulus.add) { renderStimulus(task, el); return; }
-  el.replaceChildren(h('div', { class: 'flash-text school sum equation', 'data-testid': 'equation' }, `${task.stimulus.text} = ${task.answer}`));
+  el.replaceChildren(h('div', { class: 'flash-text school sum equation', 'data-testid': 'equation', 'aria-label': `${task.stimulus.a} ${task.stimulus.op === '+' ? 'plus' : 'minus'} ${task.stimulus.b} ist ${task.answer}` }, `${task.stimulus.text} = ${task.answer}`));
 }
 
 export function renderChoices(task, el, onPick) {

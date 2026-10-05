@@ -776,30 +776,73 @@ test('digits are bold; disabled digits, the waiting "?" and empty header stars k
   expect(contrast(await css(other, 'color'), await css(other, 'backgroundColor'))).toBeGreaterThanOrEqual(4.5);
 });
 
-test('answer buttons keep long words and numbers inside at 320 px', async ({ page }, testInfo) => {
+// every animation on the element finished (the answer buttons pop in with a 1.08 overshoot)
+const settled = (loc) => loc.evaluate((e) => Promise.all(e.getAnimations().map((a) => a.finished)));
+
+// content that is wider than its button gets --fit < 1 from fitText and then really fits
+async function expectFitted(choices, selector) {
+  const items = await choices.locator(selector).all();
+  expect(items.length).toBeGreaterThan(0);
+  let shrunk = 0;
+  for (const it of items) {
+    const fit = await it.evaluate((e) => ({ f: e.style.getPropertyValue('--fit'), sw: e.scrollWidth, cw: e.clientWidth, pw: e.parentElement.clientWidth }));
+    if (fit.f && Number(fit.f) < 1) shrunk++;
+    expect(fit.cw).toBeLessThanOrEqual(fit.pw - 16 + 1);
+  }
+  return shrunk;
+}
+
+test('answer buttons shrink long words and numbers to fit (narrow phone)', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'viewport test runs once');
-  await page.setViewportSize({ width: 320, height: 568 });
+  await page.setViewportSize({ width: 240, height: 568 });
+  await page.addInitScript(() => { Math.random = () => 0.99; });
   await seed(page, (p) => {
     fixed(500)(p);
-    p.settings.letters.known = ['A', 'M', 'O'];
+    p.settings.grade = 'g1';
+    p.settings.quantity = { compare: false };
+    p.settings.letters.known = ['A', 'M', 'O', 'L', 'S'];
+    p.levels.digits = { ...p.levels.digits, level: 1, step: 0 };
     p.levels.syllables = { ...p.levels.syllables, level: 2, step: 0 };
   });
   await page.goto('/');
-  for (const tile of ['tile-syllables', 'tile-quantity']) {
+  let shrunk = 0;
+  for (const [tile, sel] of [['tile-digits', '.choice .glyph'], ['tile-syllables', '.choice .word'], ['tile-quantity', '.choice .num, .choice .glyph, .choice .word']]) {
     await page.getByTestId(tile).click();
     const { choices } = await waitForChoices(page);
-    for (const btn of await choices.locator('button.choice').all()) {
-      const bb = await btn.boundingBox();
-      const inner = await btn.locator(':scope > span').first().boundingBox();
-      expect(inner.x).toBeGreaterThanOrEqual(bb.x - 1);
-      expect(inner.x + inner.width).toBeLessThanOrEqual(bb.x + bb.width + 1);
-    }
+    await settled(choices.locator('button.choice').last());
+    if (await choices.locator(sel).count()) shrunk += await expectFitted(choices, sel);
     await page.getByTestId('back').click();
+  }
+  expect(shrunk).toBeGreaterThan(0); // without fitText these overflow, so the shrink must have happened
+});
+
+// the widest real equation ('10 – 10 = 0') takes ~50 % of the board; the style below makes it 3x too big so only the fit keeps it inside
+test('an oversized equation solution is fitted into the board', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'viewport test runs once');
+  await page.addInitScript(() => { Math.random = () => 0.99; }); // largest addends: widest equations
+  await seed(page, (p) => { onTopAddition(p); p.levels.digits = { ...p.levels.digits, level: 3, step: 0 }; });
+  for (const [width, height] of [[320, 568], [568, 320], [360, 640]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await page.addStyleTag({ content: '.flash-text.sum.equation { font-size: calc(40 * min(1cqw, 1cqh) * var(--fit, 1)) !important; }' });
+    await page.getByTestId('tile-digits').click();
+    const { choices, answer } = await waitForChoices(page);
+    await choices.locator(`button:not([data-value="${answer}"])`).first().click();
+    const eq = page.getByTestId('equation');
+    await expect(eq).toBeVisible();
+    await settled(eq.locator('xpath=..'));
+    const board = await page.getByTestId('board').boundingBox();
+    const box = await eq.boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(board.x - 1);
+    expect(box.x + box.width).toBeLessThanOrEqual(board.x + board.width + 1);
+    expect(await eq.evaluate((e) => e.scrollWidth <= e.clientWidth + 1)).toBe(true);
+    expect(await eq.evaluate((e) => Number(e.style.getPropertyValue('--fit') || 1))).toBeLessThan(1);
   }
 });
 
 test('the answer row keeps 16 px to the bottom edge and quantity objects use the board', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'viewport test runs once');
+  await page.addInitScript(() => { Math.random = () => 0.99; }); // no finger pictures (25 %), only objects
   await seed(page, (p) => { fixed(3000)(p); p.settings.quantity = { compare: false }; });
   for (const [width, height] of [[360, 640], [640, 360], [1024, 700]]) {
     await page.setViewportSize({ width, height });
@@ -811,7 +854,7 @@ test('the answer row keeps 16 px to the bottom edge and quantity objects use the
     const bb = await page.getByTestId('board').boundingBox();
     expect(ob.width / bb.width).toBeGreaterThanOrEqual(0.155);
     const { choices } = await waitForChoices(page);
-    await choices.locator('button.choice').last().evaluate((e) => Promise.all(e.getAnimations().map((a) => a.finished))); // measure after the pop-in
+    await settled(choices.locator('button.choice').last()); // measure after the pop-in
     const last = await choices.locator('button.choice').last().boundingBox();
     expect(height - (last.y + last.height)).toBeGreaterThanOrEqual(16);
     await page.getByTestId('back').click();

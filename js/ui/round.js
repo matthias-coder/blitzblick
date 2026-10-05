@@ -231,6 +231,7 @@ export function render(root, ctx, { exerciseId }) {
   // words and numbers on the board and the answer buttons must never be cut off
   function fitWords(stim) {
     for (const w of stim.querySelectorAll('.flash-word')) fitText(w, board.clientWidth * 0.94);
+    for (const w of stim.querySelectorAll('.equation')) fitText(w, board.clientWidth * 0.94);
     for (const w of choicesEl.querySelectorAll('.choice .word, .choice .glyph, .choice .num')) fitText(w, w.parentElement.clientWidth - 16);
   }
   const onResize = () => fitWords(board);
