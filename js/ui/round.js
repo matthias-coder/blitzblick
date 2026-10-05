@@ -47,6 +47,7 @@ export function render(root, ctx, { exerciseId }) {
   function leave() {
     if (!alive) return; // finished or already left: never abort a saved round
     alive = false;
+    removeEventListener('resize', onResize);
     if (round.results.length) ctx.setState(updateProfile(ctx.state, profile.id, (p) => abortRound(p, round)));
     ctx.go('menu');
   }
@@ -146,7 +147,7 @@ export function render(root, ctx, { exerciseId }) {
 
   function showSolution(task) {
     const solution = h('div', { class: 'stimulus solution' });
-    ex.renderStimulus(task, solution);
+    (ex.renderSolution ?? ex.renderStimulus)(task, solution);
     board.replaceChildren(solution);
     fitWords(solution);
     ctx.speech.speak(ctx.pick('solution', ex.speakSolution(task, profile.settings)));
@@ -227,11 +228,13 @@ export function render(root, ctx, { exerciseId }) {
     else playTask();
   }
 
-  // words on the board and on the answer buttons must never be cut off
+  // words and numbers on the board and the answer buttons must never be cut off
   function fitWords(stim) {
     for (const w of stim.querySelectorAll('.flash-word')) fitText(w, board.clientWidth * 0.94);
-    for (const w of choicesEl.querySelectorAll('.choice .word')) fitText(w, w.parentElement.clientWidth - 16);
+    for (const w of choicesEl.querySelectorAll('.choice .word, .choice .glyph, .choice .num')) fitText(w, w.parentElement.clientWidth - 16);
   }
+  const onResize = () => fitWords(board);
+  addEventListener('resize', onResize);
 
   // a small star flies from the tapped button into its progress slot, which then fills
   function flyStar(from, slot) {
@@ -252,6 +255,7 @@ export function render(root, ctx, { exerciseId }) {
 
   function finish() {
     alive = false;
+    removeEventListener('resize', onResize);
     closeDialog?.(); closeDialog = null; // the round ended underneath an open dialog
     const { profile: updated, reward } = finishRound(profile, round, rng);
     ctx.setState(updateProfile(ctx.state, profile.id, () => updated));
@@ -261,5 +265,5 @@ export function render(root, ctx, { exerciseId }) {
 
   if (needsIntro(profile, exerciseId)) playDemo();
   else playTask();
-  return () => { alive = false; closeDialog?.(); closeDialog = null; stopEnd?.(); };
+  return () => { alive = false; removeEventListener('resize', onResize); closeDialog?.(); closeDialog = null; stopEnd?.(); };
 }

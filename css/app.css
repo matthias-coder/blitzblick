@@ -106,10 +106,10 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .album-btn img { width: 48px; height: 48px; }
 
 /* round */
-.round-stars { flex: 1; display: flex; gap: 4px; justify-content: center; flex-wrap: nowrap; min-width: 0; }
-.round-stars .slot { flex: 0 1 30px; min-width: 0; aspect-ratio: 1; background: rgba(255, 255, 255, .45); -webkit-mask: url(../assets/ui/star.svg) center / contain no-repeat; mask: url(../assets/ui/star.svg) center / contain no-repeat; }
+.round-stars { flex: 0 1 auto; margin: 0 auto; display: flex; gap: 4px; justify-content: center; flex-wrap: nowrap; min-width: 0; padding: 6px 12px; background: var(--surface); border-radius: 999px; box-shadow: var(--shadow); }
+.round-stars .slot { flex: 0 1 30px; width: 30px; min-width: 0; aspect-ratio: 1; background: #7A82AA; -webkit-mask: url(../assets/ui/star.svg) center / contain no-repeat; mask: url(../assets/ui/star.svg) center / contain no-repeat; }
 .round-stars .slot.earned { -webkit-mask: none; mask: none; background: url(../assets/ui/star.svg) center / contain no-repeat; animation: pop .35s; }
-.round-stars .slot.missed { background: rgba(45, 42, 93, .3); }
+.round-stars .slot.missed { background: #D5D9EA; }
 .flying-star { position: fixed; z-index: 50; width: 48px; height: 48px; pointer-events: none; }
 .stage { flex: 1; min-height: 0; display: grid; place-items: center; padding: 8px; container-type: size; position: relative; }
 .stage .fixation { width: 18px; height: 18px; border-radius: 50%; background: var(--ink); }
@@ -118,14 +118,14 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .board { position: relative; width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); display: grid; place-items: center; overflow: hidden; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
 .board > * { grid-area: 1 / 1; }
 .board .mask { width: 100%; height: 100%; background: repeating-linear-gradient(45deg, #E0E8F7 0 12px, #EBEFFA 12px 24px); }
-.board-waiting { font-size: min(45cqh, 40cqw); font-weight: 700; line-height: 1; color: #D9E0F4; animation: breathe 2s ease-in-out infinite; }
+.board-waiting { font-size: min(45cqh, 40cqw); font-weight: 700; line-height: 1; color: #7A82AA; animation: breathe 2s ease-in-out infinite; }
 @keyframes breathe { 50% { transform: scale(1.06); } }
 .board .cheer { width: 55%; height: auto; animation: pop .35s; }
 .stimulus { width: 100%; height: 100%; display: grid; place-items: center; }
 .stimulus.preload { visibility: hidden; position: absolute; inset: 8px; width: auto; height: auto; }
 .stimulus.solution { animation: pop .3s; }
 .field { position: relative; width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); }
-.obj { position: absolute; width: 14%; height: 14%; transform: translate(-50%, -50%); }
+.obj { position: absolute; width: 16%; height: 16%; transform: translate(-50%, -50%); }
 .flash-text { font-size: min(60cqh, 50cqw); font-weight: 700; line-height: 1; padding: 0 .25em; text-align: center; }
 .school { font-family: var(--font-school); font-weight: 400; }
 .flash-lineature { width: 100%; display: grid; place-items: center; }
@@ -162,7 +162,12 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .choices-area.pending { visibility: hidden; }
 .choices-area:not(.pending) .choice { animation: pop .25s; }
 .choice .dots { display: flex; flex-direction: column; font-size: .65rem; line-height: .8; color: var(--muted); letter-spacing: 1px; }
-.choice .glyph { font-size: 2.6rem; line-height: 1; }
+.choice .glyph { line-height: 1; }
+.choice .glyph, .choice .num { font-weight: 700; }
+.choice .glyph { font-size: calc(2.6rem * var(--fit, 1)); }
+.choice .num { font-size: calc(2rem * var(--fit, 1)); }
+.choices-area .choice:disabled:not(.right):not(.wrong) { opacity: 1; color: var(--muted); --edge: #DDE3F3; }
+.flash-text.sum.equation { font-size: calc(13 * min(1cqw, 1cqh)); }
 .choices-area .choice.right { --face: var(--right); --edge: #166B3A; --gloss: rgba(255, 255, 255, .45); color: #fff; opacity: 1; animation: spring .45s; }
 .choice.right .dots { color: #fff; }
 .choices-area .choice.wrong { --face: #FCE6E3; --edge: #F2B3A9; color: var(--wrong); opacity: 1; animation: wiggle .3s 2; }

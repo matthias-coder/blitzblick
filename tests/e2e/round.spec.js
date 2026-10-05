@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { seed, readState } from './helpers.js';
+import { seed, readState, contrast } from './helpers.js';
 
 const N = 5; // tasks per round
 
@@ -744,3 +744,76 @@ for (const [name, delay] of [['the intro text', 300], ['the demo flash', 3000]])
     expect((await readState(page)).profiles[0].history).toHaveLength(0);
   });
 }
+
+test('a wrong sum shows the whole equation inside the board', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await seed(page, onTopAddition);
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  const { choices, answer } = await waitForChoices(page);
+  await choices.locator(`button:not([data-value="${answer}"])`).first().click();
+  const eq = page.getByTestId('equation');
+  await expect(eq).toHaveText(new RegExp(`^\\d+ [+–] \\d+ = ${answer}$`));
+  const box = await eq.boundingBox();
+  const board = await page.getByTestId('board').boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(board.x - 1);
+  expect(box.x + box.width).toBeLessThanOrEqual(board.x + board.width + 1);
+});
+
+test('digits are bold; disabled digits, the waiting "?" and empty header stars keep their contrast', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  const { choices, answer } = await waitForChoices(page);
+  const css = (loc, prop) => loc.evaluate((e, p) => getComputedStyle(e)[p], prop);
+  expect(contrast(await css(page.getByTestId('board-waiting'), 'color'), await css(page.getByTestId('board'), 'backgroundColor'))).toBeGreaterThanOrEqual(3);
+  expect(contrast(await css(page.locator('.round-stars .slot').first(), 'backgroundColor'), await css(page.getByTestId('round-stars'), 'backgroundColor'))).toBeGreaterThanOrEqual(3);
+  expect(Number(await css(choices.locator('.glyph').first(), 'fontWeight'))).toBeGreaterThanOrEqual(700);
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  const other = choices.locator(`button:not([data-value="${answer}"])`).first();
+  await expect(other).toBeDisabled();
+  expect(Number(await css(other, 'opacity'))).toBe(1);
+  expect(contrast(await css(other, 'color'), await css(other, 'backgroundColor'))).toBeGreaterThanOrEqual(4.5);
+});
+
+test('answer buttons keep long words and numbers inside at 320 px', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'viewport test runs once');
+  await page.setViewportSize({ width: 320, height: 568 });
+  await seed(page, (p) => {
+    fixed(500)(p);
+    p.settings.letters.known = ['A', 'M', 'O'];
+    p.levels.syllables = { ...p.levels.syllables, level: 2, step: 0 };
+  });
+  await page.goto('/');
+  for (const tile of ['tile-syllables', 'tile-quantity']) {
+    await page.getByTestId(tile).click();
+    const { choices } = await waitForChoices(page);
+    for (const btn of await choices.locator('button.choice').all()) {
+      const bb = await btn.boundingBox();
+      const inner = await btn.locator(':scope > span').first().boundingBox();
+      expect(inner.x).toBeGreaterThanOrEqual(bb.x - 1);
+      expect(inner.x + inner.width).toBeLessThanOrEqual(bb.x + bb.width + 1);
+    }
+    await page.getByTestId('back').click();
+  }
+});
+
+test('the answer row keeps 16 px to the bottom edge and quantity objects use the board', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'viewport test runs once');
+  await seed(page, (p) => { fixed(3000)(p); p.settings.quantity = { compare: false }; });
+  for (const [width, height] of [[360, 640], [640, 360], [1024, 700]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await page.getByTestId('tile-quantity').click();
+    const obj = page.locator('.board .obj').first();
+    await expect(obj).toBeVisible({ timeout: 6000 });
+    const ob = await obj.boundingBox();
+    const bb = await page.getByTestId('board').boundingBox();
+    expect(ob.width / bb.width).toBeGreaterThanOrEqual(0.155);
+    const { choices } = await waitForChoices(page);
+    await choices.locator('button.choice').last().evaluate((e) => Promise.all(e.getAnimations().map((a) => a.finished))); // measure after the pop-in
+    const last = await choices.locator('button.choice').last().boundingBox();
+    expect(height - (last.y + last.height)).toBeGreaterThanOrEqual(16);
+    await page.getByTestId('back').click();
+  }
+});
