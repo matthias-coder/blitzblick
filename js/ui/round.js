@@ -39,6 +39,7 @@ export function render(root, ctx, { exerciseId }) {
   const tools = h('div', { class: 'round-tools' }, sayAgain, showAgain);
   const setTools = (on) => { sayAgain.disabled = !on; showAgain.disabled = !on || Boolean(round.replayed); };
   let flashing = false;
+  let demoPicked = false;
 
   let closeDialog = null;
   const backBtn = iconBtn('back', 'Zurück', () => abort(), 'back');
@@ -178,6 +179,8 @@ export function render(root, ctx, { exerciseId }) {
   }
 
   async function onDemoPick(task, value, button) {
+    if (demoPicked) return; // a second tap during the feedback must not start another task
+    demoPicked = true;
     if (choicesEl.contains(document.activeElement)) board.focus({ preventScroll: true });
     if (value === task.answer) {
       button.classList.add('right');

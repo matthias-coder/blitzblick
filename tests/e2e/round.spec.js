@@ -673,3 +673,74 @@ test('the first start of an exercise runs one slow demo task that counts for not
   await expect(page.getByTestId('demo-intro')).toHaveCount(0);
   await expect(page.getByTestId('choices')).not.toHaveAttribute('data-demo', '1');
 });
+
+async function startDemo(page) {
+  await page.getByTestId('tile-digits').click();
+  const choices = page.getByTestId('choices');
+  await expect(choices.locator('button.choice:enabled').first()).toBeVisible({ timeout: 10000 });
+  const answer = await choices.getAttribute('data-answer');
+  await expect(choices).toHaveAttribute('data-demo', '1');
+  return { choices, answer };
+}
+
+test('double-tapping the demo answer starts exactly one real task', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await seed(page, fixed(500, (p) => { p.intro = {}; }));
+  await page.goto('/');
+  const { choices, answer } = await startDemo(page);
+  const right = choices.locator(`button[data-value="${answer}"]`);
+  await right.click();
+  await page.waitForTimeout(600); // still inside the 1 s feedback
+  await right.click({ force: true });
+  await choices.locator('button:not([data-value="' + answer + '"])').first().click({ force: true });
+  // the first real task shows its answers ~1.5 s after the tap; a second playTask would hide them again
+  await waitForChoices(page);
+  await page.waitForTimeout(400);
+  await expect(choices).not.toHaveClass(/pending/);
+  for (let i = 0; i < N; i++) {
+    const { choices: c, answer: a } = await waitForChoices(page);
+    await expect(c).not.toHaveAttribute('data-demo', '1');
+    await c.locator(`button[data-value="${a}"]`).click();
+  }
+  await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
+  const p = (await readState(page)).profiles[0];
+  expect(p.history[0].total).toBe(N);
+  expect(p.rewards.stars).toBe(N);
+  expect(errors).toEqual([]);
+});
+
+test('a wrong demo answer shows the solution, then the first real task follows', async ({ page }) => {
+  await seed(page, fixed(500, (p) => { p.intro = {}; }));
+  await page.goto('/');
+  const { choices, answer } = await startDemo(page);
+  await choices.locator(`button:not([data-value="${answer}"])`).first().click();
+  await expect(page.locator('[data-testid="board"] .solution')).toBeVisible();
+  await expect(page.locator('.round-stars .slot.missed')).toHaveCount(0);
+  const next = await waitForChoices(page);
+  await expect(next.choices).not.toHaveAttribute('data-demo', '1');
+  await expect(page.locator('[data-testid="board"] .solution')).toHaveCount(0);
+  await next.choices.locator(`button[data-value="${next.answer}"]`).click();
+  await expect(page.locator('.round-stars .slot.earned')).toHaveCount(1);
+});
+
+for (const [name, delay] of [['the intro text', 300], ['the demo flash', 3000]]) {
+  test(`leaving during ${name} of the demo leaves nothing behind`, async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await seed(page, fixed(500, (p) => { p.intro = {}; }));
+    await page.goto('/');
+    await page.getByTestId('tile-digits').click();
+    await expect(page.getByTestId('demo-intro')).toBeVisible();
+    await page.waitForTimeout(delay);
+    await page.getByTestId('back').click();
+    await expect(page.getByTestId('tile-digits')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('leave-dialog')).toHaveCount(0);
+    await expect(page.getByTestId('tile-digits')).toBeVisible();
+    await expect(page.getByTestId('choices')).toHaveCount(0);
+    await page.waitForTimeout(3500); // the aborted demo must not wake up later
+    expect(errors).toEqual([]);
+    expect((await readState(page)).profiles[0].history).toHaveLength(0);
+  });
+}
