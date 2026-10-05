@@ -290,3 +290,36 @@ test('candy gloss stays inside round buttons; looping animations stop', async ({
   await page.getByTestId('open-album').click();
   await expect(page.getByTestId('back')).toHaveCSS('overflow', 'hidden');
 });
+
+// Regression 1.9.2: the white outline of the tile names used to be a text stroke that only stayed behind the glyphs
+// with `paint-order`; without it the stroke covered the fill and the names were invisible. Emulate such a browser.
+test('tile names stay legible without paint-order support', async ({ page }) => {
+  await seed(page);
+  await page.goto('/');
+  await expect(page.getByTestId('tile-quantity')).toBeVisible();
+  await page.addStyleTag({ content: '.tile-name { paint-order: normal !important; }' });
+  await page.evaluate(() => document.fonts.ready);
+  for (const id of ['quantity', 'digits', 'letters', 'syllables']) {
+    const label = page.getByTestId(`tile-${id}`).locator('.tile-name');
+    await expect(label).toBeVisible();
+    const style = await label.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { stroke: parseFloat(cs.webkitTextStrokeWidth) || 0, shadow: cs.textShadow, ink: cs.color };
+    });
+    expect(style.stroke).toBe(0);
+    expect(style.shadow).not.toBe('none');
+    const png = await label.screenshot();
+    const share = await page.evaluate(async ({ b64, ink }) => {
+      const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${b64}`)).blob());
+      const c = new OffscreenCanvas(bmp.width, bmp.height);
+      const ctx = c.getContext('2d');
+      ctx.drawImage(bmp, 0, 0);
+      const d = ctx.getImageData(0, 0, bmp.width, bmp.height).data;
+      const [r, g, b] = ink.match(/[\d.]+/g).map(Number);
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - r) + Math.abs(d[i + 1] - g) + Math.abs(d[i + 2] - b) < 60) n++;
+      return n / (d.length / 4);
+    }, { b64: png.toString('base64'), ink: style.ink });
+    expect(share, `${id} label ink share`).toBeGreaterThanOrEqual(0.05);
+  }
+});

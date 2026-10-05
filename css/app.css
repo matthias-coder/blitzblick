@@ -95,7 +95,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .menu.count-3 .tile:last-child { grid-column: 1 / -1; justify-self: center; width: calc((100% - var(--menu-gap)) / 2); }
 .tile { min-height: 0; }
 .tile img { position: absolute; inset: 6% 14% 26%; width: 72%; height: 68%; object-fit: contain; }
-.tile-name { position: absolute; left: 50%; transform: translateX(-50%); bottom: 7%; font-size: calc(clamp(1.125rem, 10.5cqw, 2rem) * var(--fit, 1)); font-weight: 700; line-height: 1.1; color: var(--tile-ink); paint-order: stroke fill; -webkit-text-stroke: .18em #fff; text-align: center; white-space: nowrap; }
+.tile-name { position: absolute; left: 50%; transform: translateX(-50%); bottom: 7%; font-size: calc(clamp(1.125rem, 10.5cqw, 2rem) * var(--fit, 1)); font-weight: 700; line-height: 1.1; color: var(--tile-ink); text-shadow: 0.08em 0em 0 #fff, 0.069em 0.04em 0 #fff, 0.04em 0.069em 0 #fff, 0em 0.08em 0 #fff, -0.04em 0.069em 0 #fff, -0.069em 0.04em 0 #fff, -0.08em 0em 0 #fff, -0.069em -0.04em 0 #fff, -0.04em -0.069em 0 #fff, -0em -0.08em 0 #fff, 0.04em -0.069em 0 #fff, 0.069em -0.04em 0 #fff, 0 0 .12em #fff; text-align: center; white-space: nowrap; }
 .tile { container-type: inline-size; }
 .candy.tile-quantity { --face: #FFE1DC; --edge: #F2B3A9; --tile-ink: #9E3A2F; }
 .candy.tile-digits { --face: #DCEBFF; --edge: #A9C8F2; --tile-ink: #2F62A8; }
