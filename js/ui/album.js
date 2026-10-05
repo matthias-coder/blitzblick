@@ -151,7 +151,7 @@ export function render(root, ctx, { highlight = null, page = null } = {}) {
 
   function draw() {
     const secret = secretIds();
-    worlds.replaceChildren(
+    worlds.replaceChildren(...[
       ...EXERCISE_ORDER.map((ex) => worldChip(ex, h('img', { src: `assets/menu/${ex}.webp`, alt: '' }))),
       (bonusWorldVisible(rw()) || world === 'bonus') ? worldChip('bonus', uiIcon('star')) : null,
       secret.length ? h('button', {
@@ -159,7 +159,7 @@ export function render(root, ctx, { highlight = null, page = null } = {}) {
         'data-testid': `album-tab-${SECRET_PAGE.id}`, 'aria-label': SECRET_PAGE.title, 'aria-pressed': String(world === 'secret'),
         onClick: () => chooseWorld('secret'),
       }, h('img', { src: stickerUrl(secret[0]), alt: '' })) : null,
-    );
+    ].filter(Boolean));
     tabs.hidden = world === 'secret';
     tabs.replaceChildren(...(world === 'secret' ? [] : pagesOf(world).map(pageTab)));
     worlds.querySelector('.album-world.active')?.scrollIntoView?.({ inline: 'center', block: 'nearest' });
@@ -174,8 +174,8 @@ export function render(root, ctx, { highlight = null, page = null } = {}) {
       ctx.speech.speak(pg.bonus ? 'Diese Bonusseite gibt es, wenn alle vier Seiten voll sind.' : `Diese Seite gibt es ab Level ${pg.level + 1}.`, { extra: true });
       return;
     }
-    body.replaceChildren(h('div', { class: 'sticker-grid' }, pg.stickers.map((name) => stickerTile(pg, name))),
-      pg === SECRET_PAGE ? null : h('div', { class: 'trade' }, tradeBar(pg)));
+    body.replaceChildren(...[h('div', { class: 'sticker-grid' }, pg.stickers.map((name) => stickerTile(pg, name))),
+      pg === SECRET_PAGE ? null : h('div', { class: 'trade' }, tradeBar(pg))].filter(Boolean));
     justTraded = null;
   }
 

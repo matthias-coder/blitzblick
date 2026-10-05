@@ -383,6 +383,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); height: 32px; }
 
 /* v1.8: round end trade hint */
 .candy.trade-hint { display: inline-flex; align-items: center; gap: 10px; font-size: 1.3rem; padding: 12px 24px; }
+.candy.trade-hint img { width: 28px; height: 28px; flex: 0 0 auto; }
 .level-gift { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; }
 
 /* v1.9: back confirmation */

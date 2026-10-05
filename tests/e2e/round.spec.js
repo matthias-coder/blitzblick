@@ -884,3 +884,20 @@ test('round end: a full ring and the trade hint below it when a pack can be boug
   const [r, hint] = [await ring.boundingBox(), await page.getByTestId('trade-hint').boundingBox()];
   expect(hint.y).toBeGreaterThan(r.y + r.height - 1);
 });
+
+test('round end in phone landscape: the trade hint icon stays small and clear of the three buttons', async ({ page }) => {
+  await page.setViewportSize({ width: 640, height: 360 });
+  await seed(page, fixed(500, (p) => { p.rewards.stars = 8; }));
+  await page.goto('/');
+  await playPerfectRound(page);
+  const hint = page.getByTestId('trade-hint');
+  await expect(hint).toBeVisible();
+  const icon = await hint.locator('img').boundingBox();
+  expect(icon.width).toBeLessThanOrEqual(40);
+  const h = await hint.boundingBox();
+  for (const id of ['play-again', 'to-album', 'round-done']) {
+    const b = await page.getByTestId(id).boundingBox();
+    const overlap = h.x < b.x + b.width && b.x < h.x + h.width && h.y < b.y + b.height && b.y < h.y + h.height;
+    expect(overlap, id).toBe(false);
+  }
+});

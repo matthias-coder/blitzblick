@@ -181,3 +181,12 @@ test('closing the pack dialog and leaving the album remove the key listener', as
   await expect(page.getByTestId('tile-quantity')).toBeVisible();
   expect(await page.evaluate(() => window.__keys)).toBe(0);
 });
+
+test('the world chips row holds only chips, no stray text', async ({ page }) => {
+  await seed(page, (p) => { p.rewards.stickers = ['animals/lion']; });
+  await page.goto('/');
+  await page.getByTestId('open-album').click();
+  await expect(page.getByTestId('album-world-quantity')).toBeVisible();
+  await expect(page.locator('.album-worlds')).toHaveText(/^\s*Mengen\s*Zahlen\s*Buchstaben\s*Silben\s*$/);
+  expect(await page.locator('.album-worlds').evaluate((n) => [...n.childNodes].filter((c) => c.nodeType === 3).length)).toBe(0);
+});
