@@ -11,6 +11,6 @@ export function handSvgMarkup(n) {
   const fingers = FINGERS.map(([x, len], i) => (n >= i + 2
     ? `<rect class="finger up" x="${x}" y="${60 - len}" width="12" height="${len + 8}" rx="6" ${SKIN}/>`
     : `<rect class="finger down" x="${x}" y="50" width="12" height="16" rx="6" ${SKIN}/>`)).join('');
-  return `<svg viewBox="0 0 90 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${fingers}`
+  return `<svg viewBox="-20 0 106 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${fingers}`
     + `<rect x="18" y="56" width="64" height="54" rx="20" ${SKIN}/>${thumb}</svg>`;
 }
