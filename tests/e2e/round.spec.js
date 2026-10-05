@@ -512,3 +512,39 @@ for (const [w, hgt] of [[360, 640], [640, 360]]) {
     }
   });
 }
+
+test('👁 shows the flash once more per task, 🔊 is hidden with speech off', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  await expect(page.locator('h1')).toHaveText('Zahlenblitz');
+  const eye = page.getByTestId('show-again');
+  await expect(eye).toBeDisabled(); // flash still running
+  await waitForChoices(page);
+  await expect(page.getByTestId('say-again')).toBeHidden();
+  await expect(eye).toBeEnabled();
+  await eye.click();
+  await expect(page.getByTestId('choices')).toHaveClass(/pending/);
+  await expect(page.getByTestId('board-waiting')).toBeVisible({ timeout: 4000 });
+  await expect(page.getByTestId('choices')).not.toHaveClass(/pending/);
+  await expect(eye).toBeDisabled(); // once per task
+  const { choices, answer } = await waitForChoices(page);
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await expect(page.locator('.round-stars .slot.earned')).toHaveCount(1); // the star still counts
+  await waitForChoices(page);
+  await expect(eye).toBeEnabled(); // next task: one replay again
+});
+
+test('🔊 is shown with speech on and only active while the answers wait', async ({ page }) => {
+  await seed(page, fixed(500, (p) => { p.settings.speech = 'little'; }));
+  await page.goto('/');
+  await page.getByTestId('tile-quantity').click();
+  const say = page.getByTestId('say-again');
+  await expect(say).toBeVisible();
+  await expect(say).toBeDisabled();
+  const { choices, answer } = await waitForChoices(page);
+  await expect(say).toBeEnabled();
+  await say.click();
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await expect(say).toBeDisabled();
+});

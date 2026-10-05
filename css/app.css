@@ -36,8 +36,7 @@ h1, h2, h3 { margin: 0 0 .5em; line-height: 1.2; }
   display: flex; align-items: center; gap: 12px; padding: 8px 12px; min-height: 72px;
   background: linear-gradient(90deg, var(--grad-a), var(--grad-b)); border-radius: 0 0 24px 24px; color: #fff;
 }
-.spacer, .topbar-pad { flex: 1; }
-.topbar-pad { flex: 0 0 64px; }
+.spacer { flex: 1; }
 .icon-btn { width: 64px; height: 64px; flex: 0 0 64px; display: grid; place-items: center; position: relative; }
 div.icon-btn { border-radius: 50%; background: var(--surface); box-shadow: var(--shadow); }
 .icon-btn img { width: 32px; height: 32px; }
@@ -168,6 +167,10 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .choice.right .dots { color: #fff; }
 .choices-area .choice.wrong { --face: #FCE6E3; --edge: #F2B3A9; color: var(--wrong); opacity: 1; animation: wiggle .3s 2; }
 @keyframes spring { 30% { transform: scale(1.12); } 60% { transform: scale(.96); } 100% { transform: scale(1); } }
+.round-tools { display: flex; gap: 8px; flex: none; }
+.round-tools .icon-btn { width: 52px; height: 52px; flex-basis: 52px; }
+.round-tools .icon-btn img { width: 28px; height: 28px; }
+.round-tools .icon-btn[hidden] { display: none; }
 
 /* round end */
 .round-end { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 16px; text-align: center; }
