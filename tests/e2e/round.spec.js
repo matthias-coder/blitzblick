@@ -122,6 +122,8 @@ test('back aborts the round without rewards but keeps difficulty changes', async
     await choices.locator(`button[data-value="${answer}"]`).click();
   }
   await page.getByTestId('back').click();
+  await expect(page.getByTestId('leave-dialog')).toBeVisible();
+  await page.getByTestId('leave-quit').click();
   await expect(page.getByTestId('tile-digits')).toBeVisible();
   const p = (await readState(page)).profiles[0];
   expect(p.rewards.stars).toBe(0);
@@ -547,4 +549,53 @@ test('🔊 is shown with speech on and only active while the answers wait', asyn
   await say.click();
   await choices.locator(`button[data-value="${answer}"]`).click();
   await expect(say).toBeDisabled();
+});
+
+test('back before the first answer leaves at once', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  await waitForChoices(page);
+  await page.getByTestId('back').click();
+  await expect(page.getByTestId('leave-dialog')).toHaveCount(0);
+  await expect(page.getByTestId('tile-digits')).toBeVisible();
+});
+
+test('back after an answer asks first; Weiter and Escape keep playing', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  let { choices, answer } = await waitForChoices(page);
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await page.getByTestId('back').click();
+  const dialog = page.getByTestId('leave-dialog');
+  await expect(dialog).toContainText('Weiter üben?');
+  await expect(page.getByTestId('leave-stay')).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByTestId('leave-quit')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await page.getByTestId('back').click();
+  await page.getByTestId('leave-stay').click();
+  await expect(dialog).toHaveCount(0);
+  for (let i = 1; i < N; i++) {
+    ({ choices, answer } = await waitForChoices(page));
+    await choices.locator(`button[data-value="${answer}"]`).click();
+  }
+  await expect(page.getByTestId('round-end')).toBeVisible({ timeout: 6000 });
+  expect((await readState(page)).profiles[0].history).toHaveLength(1);
+});
+
+test('Beenden leaves the round and Escape afterwards does nothing', async ({ page }) => {
+  await seed(page, fixed(500));
+  await page.goto('/');
+  await page.getByTestId('tile-digits').click();
+  const { choices, answer } = await waitForChoices(page);
+  await choices.locator(`button[data-value="${answer}"]`).click();
+  await page.getByTestId('back').click();
+  await page.getByTestId('leave-quit').click();
+  await expect(page.getByTestId('tile-digits')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('tile-digits')).toBeVisible();
+  await expect(page.getByTestId('leave-dialog')).toHaveCount(0);
 });

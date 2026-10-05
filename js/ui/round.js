@@ -4,6 +4,7 @@ import { createRound, nextTask, answerTask, finishRound, abortRound, replayTask,
 import { updateProfile } from '../profiles.js';
 import { iconBtn } from './widgets.js';
 import { renderRoundEnd } from './round-end.js';
+import { confirmLeave } from './leave-dialog.js';
 
 // two countdown ticks fit into the fixation, the ping lands on the stimulus
 export const FIXATION_MS = 900;
@@ -37,15 +38,29 @@ export function render(root, ctx, { exerciseId }) {
   const setTools = (on) => { sayAgain.disabled = !on; showAgain.disabled = !on || Boolean(round.replayed); };
   let flashing = false;
 
-  function abort() {
+  let closeDialog = null;
+  const backBtn = iconBtn('back', 'Zurück', () => abort(), 'back');
+
+  function leave() {
     alive = false;
     if (round.results.length) ctx.setState(updateProfile(ctx.state, profile.id, (p) => abortRound(p, round)));
     ctx.go('menu');
   }
 
+  // nothing answered yet: straight back; otherwise ask (the round keeps running underneath)
+  function abort() {
+    if (!round.results.length) { leave(); return; }
+    if (closeDialog) return;
+    ctx.speech.speak('Weiter üben?');
+    closeDialog = confirmLeave(root, {
+      onStay: () => { closeDialog = null; backBtn.focus({ preventScroll: true }); },
+      onLeave: () => { closeDialog = null; leave(); },
+    });
+  }
+
   root.append(
     h('h1', { class: 'sr-only' }, ex.menuTitle),
-    h('header', { class: 'topbar' }, iconBtn('back', 'Zurück', abort, 'back'), stars, tools),
+    h('header', { class: 'topbar' }, backBtn, stars, tools),
     stage,
     choicesEl,
     status,
@@ -188,5 +203,5 @@ export function render(root, ctx, { exerciseId }) {
   }
 
   playTask();
-  return () => { alive = false; stopEnd?.(); };
+  return () => { alive = false; closeDialog?.(); stopEnd?.(); };
 }
